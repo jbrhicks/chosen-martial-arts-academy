@@ -1,0 +1,64 @@
+{
+  "name": "ClassSchedule",
+  "type": "object",
+  "properties": {
+    "class_name": {
+      "type": "string"
+    },
+    "day_of_week": {
+      "type": "string",
+      "enum": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday"
+      ]
+    },
+    "start_time": {
+      "type": "string"
+    },
+    "end_time": {
+      "type": "string"
+    },
+    "instructor": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "age_group": {
+      "type": "string",
+      "enum": [
+        "Kids (4-7)",
+        "Youth (8-12)",
+        "Teens (13-17)",
+        "Adults (18+)",
+        "All Ages"
+      ],
+      "default": "All Ages"
+    },
+    "belt_level": {
+      "type": "string",
+      "enum": [
+        "All Belts",
+        "Beginner",
+        "Intermediate",
+        "Advanced",
+        "Black Belt"
+      ],
+      "default": "All Belts"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "class_name",
+    "day_of_week",
+    "start_time"
+  ]
+}

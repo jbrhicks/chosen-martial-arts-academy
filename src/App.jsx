@@ -1,12 +1,44 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
-// Add page imports here
+import ProtectedRoute from '@/components/ProtectedRoute';
+import AdminRoute from '@/components/AdminRoute';
+
+// Auth pages
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
+
+// Public pages
+import Home from '@/pages/Home';
+import Schedule from '@/pages/Schedule';
+import About from '@/pages/About';
+import Testimonials from '@/pages/Testimonials';
+
+// Member portal
+import MemberLayout from '@/components/MemberLayout';
+import PortalHome from '@/pages/portal/PortalHome';
+import Curriculum from '@/pages/portal/Curriculum';
+import Community from '@/pages/portal/Community';
+import Events from '@/pages/portal/Events';
+import Billing from '@/pages/portal/Billing';
+
+// Admin
+import AdminLayout from '@/components/AdminLayout';
+import AdminDashboard from '@/pages/admin/AdminDashboard';
+import AdminLeads from '@/pages/admin/AdminLeads';
+import AdminUsers from '@/pages/admin/AdminUsers';
+import AdminBilling from '@/pages/admin/AdminBilling';
+import AdminCurriculum from '@/pages/admin/AdminCurriculum';
+import AdminCommunity from '@/pages/admin/AdminCommunity';
+import AdminEvents from '@/pages/admin/AdminEvents';
+import AdminSchedule from '@/pages/admin/AdminSchedule';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -34,7 +66,45 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      {/* Add your page Route elements here */}
+      {/* Public pages */}
+      <Route path="/" element={<Home />} />
+      <Route path="/schedule" element={<Schedule />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/testimonials" element={<Testimonials />} />
+
+      {/* Auth pages */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+
+      {/* Member portal (authenticated) */}
+      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+        <Route element={<MemberLayout />}>
+          <Route path="/portal" element={<PortalHome />} />
+          <Route path="/portal/curriculum" element={<Curriculum />} />
+          <Route path="/portal/community" element={<Community />} />
+          <Route path="/portal/events" element={<Events />} />
+          <Route path="/portal/billing" element={<Billing />} />
+        </Route>
+      </Route>
+
+      {/* Admin dashboard (authenticated + admin role) */}
+      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+        <Route element={<AdminRoute />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/leads" element={<AdminLeads />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/billing" element={<AdminBilling />} />
+            <Route path="/admin/curriculum" element={<AdminCurriculum />} />
+            <Route path="/admin/community" element={<AdminCommunity />} />
+            <Route path="/admin/events" element={<AdminEvents />} />
+            <Route path="/admin/schedule" element={<AdminSchedule />} />
+          </Route>
+        </Route>
+      </Route>
+
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

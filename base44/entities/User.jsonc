@@ -1,0 +1,63 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "guest",
+        "student",
+        "admin"
+      ],
+      "default": "student"
+    },
+    "belt_rank": {
+      "type": "string",
+      "enum": [
+        "White",
+        "White w/ Black Stripe",
+        "Orange",
+        "Orange w/ White Stripe",
+        "Green",
+        "Green w/ White Stripe",
+        "Brown",
+        "Brown w/ White Stripe",
+        "Red",
+        "Red w/ White Stripe",
+        "Blue",
+        "1st Degree Black Belt",
+        "2nd Degree Black Belt",
+        "3rd Degree Black Belt",
+        "4th Degree Master"
+      ],
+      "default": "White"
+    },
+    "subscription_status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "past_due",
+        "canceled",
+        "none"
+      ],
+      "default": "none"
+    },
+    "subscription_plan_id": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "join_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "role"
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "name": "Payment",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "payment_type": {
+      "type": "string",
+      "enum": [
+        "subscription",
+        "retail",
+        "testing",
+        "custom",
+        "event"
+      ],
+      "default": "custom"
+    },
+    "description": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "succeeded",
+        "failed",
+        "refunded"
+      ],
+      "default": "pending"
+    },
+    "stripe_payment_intent_id": {
+      "type": "string"
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "user_id",
+    "amount",
+    "payment_type"
+  ]
+}

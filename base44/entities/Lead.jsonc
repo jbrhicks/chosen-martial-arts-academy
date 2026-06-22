@@ -1,0 +1,49 @@
+{
+  "name": "Lead",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "interest": {
+      "type": "string",
+      "enum": [
+        "Kids Program",
+        "Adult Program",
+        "Family Program",
+        "Private Lessons",
+        "Just Curious"
+      ],
+      "default": "Just Curious"
+    },
+    "message": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "contacted",
+        "enrolled",
+        "lost"
+      ],
+      "default": "new"
+    },
+    "welcome_email_sent": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "full_name",
+    "email",
+    "phone"
+  ]
+}

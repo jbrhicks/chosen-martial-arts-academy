@@ -1,0 +1,33 @@
+{
+  "name": "Instructor",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "bio": {
+      "type": "string"
+    },
+    "belt_rank": {
+      "type": "string"
+    },
+    "specialties": {
+      "type": "string"
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "display_order": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "name",
+    "title",
+    "bio"
+  ]
+}

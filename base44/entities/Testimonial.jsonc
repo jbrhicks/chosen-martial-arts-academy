@@ -1,0 +1,30 @@
+{
+  "name": "Testimonial",
+  "type": "object",
+  "properties": {
+    "author_name": {
+      "type": "string"
+    },
+    "author_role": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    },
+    "rating": {
+      "type": "number",
+      "default": 5
+    },
+    "is_featured": {
+      "type": "boolean",
+      "default": false
+    },
+    "image_url": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "author_name",
+    "content"
+  ]
+}
