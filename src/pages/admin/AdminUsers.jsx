@@ -47,7 +47,7 @@ export default function AdminUsers() {
     if (!inviteForm.email) return;
     setInviting(true);
     try {
-      await base44.users.inviteUser(inviteForm.email, inviteForm.role);
+      await base44.users.inviteUser(inviteForm.email, inviteForm.role === "student" ? "user" : "admin");
       alert(`Invitation sent to ${inviteForm.email}`);
       setShowInvite(false);
       setInviteForm({ email: "", role: "student", belt_rank: "White" });
