@@ -39,6 +39,10 @@ import AdminCurriculum from '@/pages/admin/AdminCurriculum';
 import AdminCommunity from '@/pages/admin/AdminCommunity';
 import AdminEvents from '@/pages/admin/AdminEvents';
 import AdminSchedule from '@/pages/admin/AdminSchedule';
+import AdminProgress from '@/pages/admin/AdminProgress';
+import AdminAttendance from '@/pages/admin/AdminAttendance';
+import Progress from '@/pages/portal/Progress';
+import Kiosk from '@/pages/Kiosk';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -84,6 +88,7 @@ const AuthenticatedApp = () => {
           <Route path="/portal" element={<PortalHome />} />
           <Route path="/portal/curriculum" element={<Curriculum />} />
           <Route path="/portal/community" element={<Community />} />
+          <Route path="/portal/progress" element={<Progress />} />
           <Route path="/portal/events" element={<Events />} />
           <Route path="/portal/billing" element={<Billing />} />
         </Route>
@@ -101,9 +106,14 @@ const AuthenticatedApp = () => {
             <Route path="/admin/community" element={<AdminCommunity />} />
             <Route path="/admin/events" element={<AdminEvents />} />
             <Route path="/admin/schedule" element={<AdminSchedule />} />
+            <Route path="/admin/progress" element={<AdminProgress />} />
+            <Route path="/admin/attendance" element={<AdminAttendance />} />
           </Route>
         </Route>
       </Route>
+
+      {/* Kiosk (public, no auth) */}
+      <Route path="/kiosk" element={<Kiosk />} />
 
       <Route path="*" element={<PageNotFound />} />
     </Routes>

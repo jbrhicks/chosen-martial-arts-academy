@@ -1,0 +1,33 @@
+{
+  "name": "AttendanceRecord",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "class_name": {
+      "type": "string"
+    },
+    "check_in_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "check_in_method": {
+      "type": "string",
+      "enum": [
+        "kiosk",
+        "manual"
+      ],
+      "default": "manual"
+    }
+  },
+  "required": [
+    "user_id",
+    "user_name",
+    "class_name",
+    "check_in_date"
+  ]
+}

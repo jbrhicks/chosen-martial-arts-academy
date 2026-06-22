@@ -1,0 +1,42 @@
+{
+  "name": "StudentProgress",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "goal_id": {
+      "type": "string"
+    },
+    "goal_title": {
+      "type": "string"
+    },
+    "belt_rank": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "in_progress",
+        "completed"
+      ],
+      "default": "not_started"
+    },
+    "admin_notes": {
+      "type": "string"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "user_id",
+    "goal_id",
+    "belt_rank"
+  ]
+}

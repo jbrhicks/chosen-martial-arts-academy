@@ -1,0 +1,56 @@
+{
+  "name": "ProgressGoal",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "belt_rank": {
+      "type": "string",
+      "enum": [
+        "White",
+        "White w/ Black Stripe",
+        "Orange",
+        "Orange w/ White Stripe",
+        "Green",
+        "Green w/ White Stripe",
+        "Brown",
+        "Brown w/ White Stripe",
+        "Red",
+        "Red w/ White Stripe",
+        "Blue",
+        "1st Degree Black Belt",
+        "2nd Degree Black Belt",
+        "3rd Degree Black Belt",
+        "4th Degree Master"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Technique",
+        "Kata",
+        "Sparring",
+        "Fitness",
+        "Knowledge"
+      ],
+      "default": "Technique"
+    },
+    "is_required": {
+      "type": "boolean",
+      "default": true
+    },
+    "display_order": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "title",
+    "belt_rank",
+    "category"
+  ]
+}

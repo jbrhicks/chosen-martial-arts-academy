@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useState } from "react";
-import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, CalendarDays, UserPlus, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, CalendarDays, UserPlus, LogOut, Menu, X, TrendingUp, ClipboardCheck } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 
 export default function AdminLayout() {
@@ -15,6 +15,8 @@ export default function AdminLayout() {
     { label: "Users", path: "/admin/users", icon: Users },
     { label: "Billing", path: "/admin/billing", icon: CreditCard },
     { label: "Curriculum", path: "/admin/curriculum", icon: Video },
+    { label: "Progress", path: "/admin/progress", icon: TrendingUp },
+    { label: "Attendance", path: "/admin/attendance", icon: ClipboardCheck },
     { label: "Community", path: "/admin/community", icon: MessageSquare },
     { label: "Events", path: "/admin/events", icon: Calendar },
     { label: "Schedule", path: "/admin/schedule", icon: CalendarDays },

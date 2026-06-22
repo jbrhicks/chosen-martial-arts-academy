@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useState } from "react";
-import { Home, Video, Users, Calendar, CreditCard, LogOut, Menu, X, ChevronRight } from "lucide-react";
+import { Home, Video, Users, Calendar, CreditCard, LogOut, Menu, X, ChevronRight, TrendingUp } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import BeltBadge from "@/components/BeltBadge";
 
@@ -13,6 +13,7 @@ export default function MemberLayout() {
   const navItems = [
     { label: "Dashboard", path: "/portal", icon: Home },
     { label: "Curriculum", path: "/portal/curriculum", icon: Video },
+    { label: "Progression", path: "/portal/progress", icon: TrendingUp },
     { label: "Community", path: "/portal/community", icon: Users },
     { label: "Events", path: "/portal/events", icon: Calendar },
     { label: "Billing", path: "/portal/billing", icon: CreditCard },
