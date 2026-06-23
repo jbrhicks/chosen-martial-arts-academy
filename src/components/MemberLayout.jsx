@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useState } from "react";
-import { Home, Video, Users, Calendar, CreditCard, LogOut, Menu, TrendingUp, UserCog, Eye, Map, MessageCircle, Lock, Wallet, CalendarClock, UserCircle } from "lucide-react";
+import { Home, Video, Users, Calendar, CreditCard, LogOut, Menu, TrendingUp, UserCog, Eye, Map, MessageCircle, Lock, Wallet, CalendarClock, UserCircle, Gift, Share2 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { FamilyProvider, useFamily } from "@/lib/FamilyContext";
 import BeltBadge from "@/components/BeltBadge";
@@ -27,7 +27,9 @@ function MemberLayoutContent() {
     { label: "Billing", path: "/portal/billing", icon: CreditCard },
     { label: "Wallet", path: "/portal/wallet", icon: Wallet },
     { label: "My Profile", path: "/portal/profile", icon: UserCircle },
+    { label: "Refer a Friend", path: "/portal/referrals", icon: Gift },
     ...(isGuardian ? [{ label: "Family", path: "/portal/family", icon: UserCog }] : []),
+    { label: "Refer a Friend", path: "/portal/referrals", icon: Share2 },
   ];
 
   const isActive = (path) => location.pathname === path;

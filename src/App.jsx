@@ -24,6 +24,7 @@ import TrialBooking from '@/pages/TrialBooking';
 import Activate from '@/pages/Activate';
 import FrontDesk from '@/pages/FrontDesk';
 import PublicEvents from '@/pages/Events';
+import GuestPassLanding from '@/pages/GuestPassLanding';
 
 // Member portal
 import MemberLayout from '@/components/MemberLayout';
@@ -56,6 +57,8 @@ import AdminExceptionRequests from '@/pages/admin/AdminExceptionRequests';
 import AdminProfileManager from '@/pages/admin/AdminProfileManager';
 import AdminBadges from '@/pages/admin/AdminBadges';
 import EventCheckIn from '@/pages/admin/EventCheckIn';
+import AdminReferralCampaigns from '@/pages/admin/AdminReferralCampaigns';
+import AdminReferralTracking from '@/pages/admin/AdminReferralTracking';
 import Progress from '@/pages/portal/Progress';
 import StudentCurriculum from '@/pages/portal/StudentCurriculum';
 import Messages from '@/pages/portal/Messages';
@@ -63,6 +66,7 @@ import Family from '@/pages/portal/Family';
 import Wallet from '@/pages/portal/Wallet';
 import MyProfile from '@/pages/portal/MyProfile';
 import PortalSchedule from '@/pages/portal/Schedule';
+import ReferralHub from '@/pages/portal/ReferralHub';
 import Kiosk from '@/pages/Kiosk';
 
 const AuthenticatedApp = () => {
@@ -104,6 +108,9 @@ const AuthenticatedApp = () => {
       {/* Account Activation (public) */}
       <Route path="/activate" element={<Activate />} />
 
+      {/* Guest Pass Landing (public) */}
+      <Route path="/guest-pass" element={<GuestPassLanding />} />
+
       {/* Auth pages */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -125,6 +132,7 @@ const AuthenticatedApp = () => {
           <Route path="/portal/wallet" element={<Wallet />} />
           <Route path="/portal/profile" element={<MyProfile />} />
           <Route path="/portal/schedule" element={<PortalSchedule />} />
+          <Route path="/portal/referrals" element={<ReferralHub />} />
         </Route>
       </Route>
 
@@ -153,6 +161,8 @@ const AuthenticatedApp = () => {
             <Route path="/admin/profile-manager" element={<AdminProfileManager />} />
             <Route path="/admin/badges" element={<AdminBadges />} />
             <Route path="/admin/event-checkin" element={<EventCheckIn />} />
+            <Route path="/admin/referral-campaigns" element={<AdminReferralCampaigns />} />
+            <Route path="/admin/referral-tracking" element={<AdminReferralTracking />} />
           </Route>
         </Route>
       </Route>
