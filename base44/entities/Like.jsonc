@@ -12,5 +12,28 @@
   "required": [
     "post_id",
     "user_id"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "student"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": null,
+    "delete": {
+      "data.user_id": "{{user.id}}"
+    }
+  }
 }
