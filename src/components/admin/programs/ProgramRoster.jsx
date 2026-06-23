@@ -25,6 +25,7 @@ export default function ProgramRoster({ program, onBack }) {
   const [ageMax, setAgeMax] = useState(program.age_maximum || 0);
   const [prereqRank, setPrereqRank] = useState(program.prerequisite_rank || "");
   const [dropInPrice, setDropInPrice] = useState(program.drop_in_price || 0);
+  const [defaultRate, setDefaultRate] = useState(program.default_monthly_rate || 0);
   const [sending, setSending] = useState(false);
 
   const load = async () => {
@@ -94,7 +95,7 @@ export default function ProgramRoster({ program, onBack }) {
 
   const saveCapacity = async () => {
     try {
-      await base44.entities.Program.update(program.id, { max_capacity: capacity, age_minimum: ageMin, age_maximum: ageMax, prerequisite_rank: prereqRank, drop_in_price: dropInPrice });
+      await base44.entities.Program.update(program.id, { max_capacity: capacity, age_minimum: ageMin, age_maximum: ageMax, prerequisite_rank: prereqRank, drop_in_price: dropInPrice, default_monthly_rate: defaultRate });
       alert("Program settings updated.");
       setShowSettings(false);
     } catch (e) { alert("Failed to update settings."); }
@@ -244,6 +245,11 @@ export default function ProgramRoster({ program, onBack }) {
       {showSettings && (
         <Modal title="Program Settings" onClose={() => setShowSettings(false)}>
           <div className="space-y-4">
+            <div>
+              <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Default Monthly Rate ($)</label>
+              <input type="number" step="0.01" value={defaultRate} onChange={e => setDefaultRate(parseFloat(e.target.value) || 0)} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
+              <p className="text-xs text-[#A8A9AD] mt-2">Used as a fallback when no subscription tiers are configured. Actual pricing is driven by tiers.</p>
+            </div>
             <div>
               <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Max Capacity</label>
               <input type="number" value={capacity} onChange={e => setCapacity(parseInt(e.target.value) || 0)} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
