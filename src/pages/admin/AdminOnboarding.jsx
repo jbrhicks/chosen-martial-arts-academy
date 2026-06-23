@@ -16,25 +16,40 @@ const createEmptyMember = () => ({
   beltSize: "", uniformSize: "", medicalConditions: "",
   emergencyContact: { name: "", relationship: "", phone: "", altPhone: "" },
   programs: [], startDate: "",
+  customFields: {},
 });
 
 const defaultBilling = {
   registrationFee: 75, firstMonthTuition: 120, equipmentPackage: 0,
-  autoPay: true, monthlyAmount: 120, billingCycle: "1st",
+  autoPay: true, monthlyAmount: 120, billingCycle: "1st", billingCycleDate: 1,
   paymentType: "credit_card", cardName: "", cardNumber: "", cardExpiry: "", cardCvc: "",
   achName: "", achAccount: "", achRouting: "",
+  prorateEnabled: true, siblingDiscountEnabled: true,
+  appliedDiscountId: "", splitBillingEnabled: false, splitRatioA: 50,
+  secondPaymentType: "credit_card", secondCardName: "", secondCardNumber: "", secondCardExpiry: "", secondCardCvc: "",
+  secondAchName: "", secondAchAccount: "", secondAchRouting: "",
+};
+
+const defaultHousehold = {
+  splitEnabled: false, secondaryAddress: "", secondaryContactName: "",
+  secondaryContactPhone: "", custodyNotes: "", sendToBothHouseholds: true,
 };
 
 export default function AdminOnboarding() {
   const [step, setStep] = useState(1);
   const [members, setMembers] = useState([createEmptyMember()]);
   const [billing, setBilling] = useState(defaultBilling);
+  const [household, setHousehold] = useState(defaultHousehold);
   const [waiverSigned, setWaiverSigned] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState(null);
 
   const updateMember = (index, field, value) => {
     setMembers(members.map((m, i) => i === index ? { ...m, [field]: value } : m));
+  };
+
+  const updateHousehold = (field, value) => {
+    setHousehold({ ...household, [field]: value });
   };
 
   const updateEmergencyContact = (index, field, value) => {
@@ -104,6 +119,12 @@ export default function AdminOnboarding() {
         cc_emails: members.map(m => m.email).filter(Boolean).join(", "),
         cc_phones: members.map(m => m.phone).filter(Boolean).join(", "),
         invite_code: familyCode,
+        secondary_household_address: household.splitEnabled ? household.secondaryAddress : "",
+        secondary_contact_name: household.splitEnabled ? household.secondaryContactName : "",
+        secondary_contact_phone: household.splitEnabled ? household.secondaryContactPhone : "",
+        custody_notes: household.splitEnabled ? household.custodyNotes : "",
+        split_billing_enabled: household.splitEnabled,
+        send_to_both_households: household.splitEnabled ? household.sendToBothHouseholds : true,
       });
 
       // 2. Invite each member and send welcome email
@@ -142,28 +163,65 @@ export default function AdminOnboarding() {
             program,
             start_date: member.startDate,
             status: "active",
+            custom_fields_data: member.customFields ? JSON.stringify(member.customFields) : "",
           });
         }
       }
 
-      // 5. Create BillingRecord
-      if (billing.autoPay && billing.monthlyAmount > 0) {
-        const nextDate = new Date();
-        const day = billing.billingCycle === "1st" ? 1 : 15;
-        nextDate.setDate(day);
-        if (nextDate < new Date()) nextDate.setMonth(nextDate.getMonth() + 1);
-        await base44.entities.BillingRecord.create({
-          family_id: familyGroup.id,
-          recurring_amount: billing.monthlyAmount,
-          billing_cycle: billing.billingCycle,
-          next_billing_date: nextDate.toISOString().split("T")[0],
-          payment_type: billing.paymentType,
-          status: "active",
-        });
+      // 5. Calculate proration
+      const startDate = members[0]?.startDate;
+      let proratedAmount = 0;
+      if (startDate && billing.prorateEnabled) {
+        const d = new Date(startDate);
+        const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+        proratedAmount = (billing.monthlyAmount / daysInMonth) * (daysInMonth - d.getDate() + 1);
       }
 
-      // 6. Create Payment record for one-time charges
-      const totalDue = (billing.registrationFee || 0) + (billing.firstMonthTuition || 0) + (billing.equipmentPackage || 0);
+      // 6. Create BillingRecord(s)
+      if (billing.autoPay && billing.monthlyAmount > 0) {
+        const nextDate = new Date();
+        const day = billing.billingCycleDate || 1;
+        nextDate.setDate(day);
+        if (nextDate < new Date()) nextDate.setMonth(nextDate.getMonth() + 1);
+        const billingCycleLabel = day === 1 ? "1st" : day === 15 ? "15th" : "custom";
+
+        if (billing.splitBillingEnabled) {
+          const ratioA = billing.splitRatioA || 50;
+          for (const ratio of [ratioA, 100 - ratioA]) {
+            await base44.entities.BillingRecord.create({
+              family_id: familyGroup.id,
+              recurring_amount: billing.monthlyAmount * ratio / 100,
+              billing_cycle: billingCycleLabel,
+              billing_cycle_date: day,
+              next_billing_date: nextDate.toISOString().split("T")[0],
+              payment_type: billing.paymentType,
+              status: "active",
+              prorated_initial_amount: proratedAmount * ratio / 100,
+              applied_discount_id: billing.appliedDiscountId || "",
+              split_billing_enabled: true,
+              split_billing_ratio: `${ratioA}/${100 - ratioA}`,
+            });
+          }
+        } else {
+          await base44.entities.BillingRecord.create({
+            family_id: familyGroup.id,
+            recurring_amount: billing.monthlyAmount,
+            billing_cycle: billingCycleLabel,
+            billing_cycle_date: day,
+            next_billing_date: nextDate.toISOString().split("T")[0],
+            payment_type: billing.paymentType,
+            status: "active",
+            prorated_initial_amount: proratedAmount,
+            applied_discount_id: billing.appliedDiscountId || "",
+            split_billing_enabled: false,
+          });
+        }
+      }
+
+      // 7. Create Payment record for one-time charges
+      const tuitionAmount = billing.prorateEnabled ? proratedAmount : (billing.firstMonthTuition || 0);
+      const siblingDiscount = members.length > 1 && billing.siblingDiscountEnabled ? (billing.monthlyAmount * 0.10) * (members.length - 1) : 0;
+      const totalDue = Math.max(0, (billing.registrationFee || 0) + tuitionAmount + (billing.equipmentPackage || 0) - siblingDiscount);
       if (totalDue > 0) {
         await base44.entities.Payment.create({
           user_id: "admin_onboarding",
@@ -187,6 +245,7 @@ export default function AdminOnboarding() {
     setStep(1);
     setMembers([createEmptyMember()]);
     setBilling(defaultBilling);
+    setHousehold(defaultHousehold);
     setWaiverSigned(false);
     setConfirmation(null);
   };
@@ -205,11 +264,11 @@ export default function AdminOnboarding() {
       <StepIndicator currentStep={step} steps={STEPS} />
 
       <div className="mb-8">
-        {step === 1 && <StepContact members={members} updateMember={updateMember} addMember={addMember} removeMember={removeMember} />}
+        {step === 1 && <StepContact members={members} updateMember={updateMember} addMember={addMember} removeMember={removeMember} household={household} updateHousehold={updateHousehold} />}
         {step === 2 && <StepEmergency members={members} updateMember={updateMember} updateEmergencyContact={updateEmergencyContact} />}
         {step === 3 && <StepProgram members={members} updateMember={updateMember} toggleProgram={toggleProgram} />}
         {step === 4 && <StepWaiver waiverSigned={waiverSigned} setWaiverSigned={setWaiverSigned} />}
-        {step === 5 && <StepBilling billing={billing} setBilling={setBilling} onSubmit={handleSubmit} submitting={submitting} />}
+        {step === 5 && <StepBilling billing={billing} setBilling={setBilling} members={members} onSubmit={handleSubmit} submitting={submitting} />}
       </div>
 
       {/* Navigation */}

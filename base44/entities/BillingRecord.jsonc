@@ -15,9 +15,14 @@
       "type": "string",
       "enum": [
         "1st",
-        "15th"
+        "15th",
+        "custom"
       ],
       "default": "1st"
+    },
+    "billing_cycle_date": {
+      "type": "number",
+      "default": 1
     },
     "next_billing_date": {
       "type": "string",
@@ -39,9 +44,52 @@
       "enum": [
         "active",
         "paused",
-        "cancelled"
+        "cancelled",
+        "past_due",
+        "failed"
       ],
       "default": "active"
+    },
+    "prorated_initial_amount": {
+      "type": "number",
+      "default": 0
+    },
+    "applied_discount_id": {
+      "type": "string"
+    },
+    "split_billing_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "split_billing_ratio": {
+      "type": "string"
+    },
+    "second_payment_type": {
+      "type": "string",
+      "enum": [
+        "credit_card",
+        "ach"
+      ],
+      "default": "credit_card"
+    },
+    "freeze_start": {
+      "type": "string",
+      "format": "date"
+    },
+    "freeze_end": {
+      "type": "string",
+      "format": "date"
+    },
+    "freeze_reason": {
+      "type": "string"
+    },
+    "dunning_attempts": {
+      "type": "number",
+      "default": 0
+    },
+    "last_dunning_date": {
+      "type": "string",
+      "format": "date-time"
     }
   },
   "required": [

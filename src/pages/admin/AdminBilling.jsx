@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { PAYMENT_TYPES } from "@/lib/constants";
 import { Loader2, Plus, DollarSign, X, CreditCard } from "lucide-react";
+import SubscriptionFreezeManager from "@/components/admin/billing/SubscriptionFreezeManager";
 
 export default function AdminBilling() {
   const [payments, setPayments] = useState([]);
@@ -131,6 +132,9 @@ export default function AdminBilling() {
           </table>
         </div>
       )}
+
+      {/* Subscriptions & Freezes */}
+      <SubscriptionFreezeManager />
 
       {/* Charge modal */}
       {showCharge && (

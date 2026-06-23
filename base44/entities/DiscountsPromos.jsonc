@@ -1,0 +1,69 @@
+{
+  "name": "DiscountsPromos",
+  "type": "object",
+  "properties": {
+    "promo_name": {
+      "type": "string"
+    },
+    "promo_code": {
+      "type": "string"
+    },
+    "discount_type": {
+      "type": "string",
+      "enum": [
+        "percentage",
+        "flat_rate"
+      ],
+      "default": "percentage"
+    },
+    "amount": {
+      "type": "number",
+      "default": 0
+    },
+    "applies_to": {
+      "type": "string",
+      "enum": [
+        "tuition",
+        "retail",
+        "signup_fee",
+        "all"
+      ],
+      "default": "tuition"
+    },
+    "expiration_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "sibling_discount_percent": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "promo_name",
+    "discount_type",
+    "amount"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

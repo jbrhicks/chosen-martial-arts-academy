@@ -25,6 +25,26 @@
     },
     "invite_code": {
       "type": "string"
+    },
+    "secondary_household_address": {
+      "type": "string"
+    },
+    "secondary_contact_name": {
+      "type": "string"
+    },
+    "secondary_contact_phone": {
+      "type": "string"
+    },
+    "custody_notes": {
+      "type": "string"
+    },
+    "split_billing_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "send_to_both_households": {
+      "type": "boolean",
+      "default": true
     }
   },
   "required": [
