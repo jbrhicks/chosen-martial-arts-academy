@@ -127,17 +127,13 @@ export default function AdminOnboarding() {
         send_to_both_households: household.splitEnabled ? household.sendToBothHouseholds : true,
       });
 
-      // 2. Invite each member and send welcome email
+      // 2. Invite each member and generate activation token
       for (const member of members) {
         if (member.email) {
           try { await base44.users.inviteUser(member.email, "user"); } catch (e) { console.error("Invite failed for", member.email, e); }
           try {
-            await base44.integrations.Core.SendEmail({
-              to: member.email,
-              subject: "Welcome to Chosen Martial Arts Academy!",
-              body: `Welcome ${member.firstName}!\n\nYour account has been created at Chosen Martial Arts Academy. You will receive a separate email with instructions to set up your login and password.\n\nPrograms: ${member.programs.join(", ")}\nStart Date: ${member.startDate}\n\nWe're excited to have you join our martial arts family!\n\nChosen Martial Arts Academy`,
-            });
-          } catch (e) { console.error("Welcome email failed", e); }
+            await base44.functions.invoke("generateActivationToken", { email: member.email, first_name: member.firstName });
+          } catch (e) { console.error("Activation email failed for", member.email, e); }
         }
       }
 

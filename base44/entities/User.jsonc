@@ -89,6 +89,21 @@
     },
     "medical_conditions": {
       "type": "string"
+    },
+    "activation_token": {
+      "type": "string"
+    },
+    "token_expiration": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "account_status": {
+      "type": "string",
+      "enum": [
+        "pending_activation",
+        "active"
+      ],
+      "default": "active"
     }
   },
   "required": [

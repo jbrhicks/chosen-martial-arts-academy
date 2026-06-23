@@ -21,6 +21,7 @@ import Schedule from '@/pages/Schedule';
 import About from '@/pages/About';
 import Testimonials from '@/pages/Testimonials';
 import TrialBooking from '@/pages/TrialBooking';
+import Activate from '@/pages/Activate';
 
 // Member portal
 import MemberLayout from '@/components/MemberLayout';
@@ -90,6 +91,9 @@ const AuthenticatedApp = () => {
 
       {/* Trial Booking (public) */}
       <Route path="/trial-booking" element={<TrialBooking />} />
+
+      {/* Account Activation (public) */}
+      <Route path="/activate" element={<Activate />} />
 
       {/* Auth pages */}
       <Route path="/login" element={<Login />} />
