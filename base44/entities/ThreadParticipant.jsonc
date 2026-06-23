@@ -10,6 +10,21 @@
     },
     "user_name": {
       "type": "string"
+    },
+    "joined_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "is_admin": {
+      "type": "boolean",
+      "default": false
+    },
+    "last_read_message_id": {
+      "type": "string"
+    },
+    "unread_count": {
+      "type": "number",
+      "default": 0
     }
   },
   "required": [
@@ -18,11 +33,6 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
-    "read": {
       "$or": [
         {
           "data.user_id": "{{user.id}}"
@@ -34,15 +44,63 @@
         }
       ]
     },
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.thread_id": {
+            "$in": {
+              "_filter": {
+                "entity": "MessageThread",
+                "field": "id",
+                "filter": {
+                  "$or": [
+                    {
+                      "data.created_by_id": "{{user.id}}"
+                    },
+                    {
+                      "user_condition": {
+                        "role": "admin"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     }
   }
 }
