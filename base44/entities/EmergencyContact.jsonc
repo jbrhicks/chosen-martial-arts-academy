@@ -1,0 +1,29 @@
+{
+  "name": "EmergencyContact",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "contact_name": {
+      "type": "string"
+    },
+    "relationship": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "alt_phone": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_email",
+    "contact_name",
+    "phone"
+  ]
+}

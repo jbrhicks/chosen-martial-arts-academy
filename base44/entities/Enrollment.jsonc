@@ -1,0 +1,41 @@
+{
+  "name": "Enrollment",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "program": {
+      "type": "string",
+      "enum": [
+        "Tang Soo Do",
+        "Jiu Jitsu",
+        "Tai Chi"
+      ]
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "cancelled"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "user_email",
+    "program",
+    "start_date"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "name": "BillingRecord",
+  "type": "object",
+  "properties": {
+    "family_id": {
+      "type": "string"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "recurring_amount": {
+      "type": "number"
+    },
+    "billing_cycle": {
+      "type": "string",
+      "enum": [
+        "1st",
+        "15th"
+      ],
+      "default": "1st"
+    },
+    "next_billing_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "payment_method_token": {
+      "type": "string"
+    },
+    "payment_type": {
+      "type": "string",
+      "enum": [
+        "credit_card",
+        "ach"
+      ],
+      "default": "credit_card"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "cancelled"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "family_id",
+    "recurring_amount",
+    "billing_cycle"
+  ]
+}

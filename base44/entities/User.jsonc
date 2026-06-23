@@ -70,6 +70,25 @@
     },
     "pin_code": {
       "type": "string"
+    },
+    "dob": {
+      "type": "string",
+      "format": "date"
+    },
+    "address": {
+      "type": "string"
+    },
+    "belt_size": {
+      "type": "string"
+    },
+    "uniform_size": {
+      "type": "string"
+    },
+    "profile_photo": {
+      "type": "string"
+    },
+    "medical_conditions": {
+      "type": "string"
     }
   },
   "required": [

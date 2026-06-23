@@ -13,6 +13,7 @@ export default function AdminLayout() {
     { label: "Dashboard", path: "/admin", icon: LayoutDashboard },
     { label: "Leads", path: "/admin/leads", icon: UserPlus },
     { label: "Users", path: "/admin/users", icon: Users },
+    { label: "Onboarding", path: "/admin/onboarding", icon: UserPlus },
     { label: "Billing", path: "/admin/billing", icon: CreditCard },
     { label: "Curriculum", path: "/admin/curriculum", icon: Video },
     { label: "Progress", path: "/admin/progress", icon: TrendingUp },
