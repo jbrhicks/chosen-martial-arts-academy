@@ -17,9 +17,9 @@ function MemberLayoutContent() {
 
   const navItems = [
     { label: "Dashboard", path: "/portal", icon: Home },
-    { label: "Curriculum", path: "/portal/curriculum", icon: Video },
-    { label: "Progression", path: "/portal/progress", icon: TrendingUp },
-    { label: "My Journey", path: "/portal/journey", icon: Map },
+    { label: "Curriculum", path: "/portal/curriculum", icon: Video, communityAccess: true },
+    { label: "Progression", path: "/portal/progress", icon: TrendingUp, communityAccess: true },
+    { label: "My Journey", path: "/portal/journey", icon: Map, communityAccess: true },
     { label: "Messages", path: "/portal/messages", icon: MessageCircle, communityAccess: true },
     { label: "Community", path: "/portal/community", icon: Users, communityAccess: true },
     { label: "Events", path: "/portal/events", icon: Calendar },

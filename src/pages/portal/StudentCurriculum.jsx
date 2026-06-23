@@ -6,10 +6,13 @@ import StudentHandbook from "@/components/portal/curriculum/StudentHandbook";
 import JourneyMap from "@/components/portal/curriculum/JourneyMap";
 import FeedbackInbox from "@/components/portal/curriculum/FeedbackInbox";
 import { Loader2, BookOpen, Map, MessageSquare } from "lucide-react";
+import { useCommunityAccess } from "@/lib/CommunityAccessContext";
+import LockedCurriculum from "@/components/portal/community/LockedCurriculum";
 
 export default function StudentCurriculum() {
   const { user } = useAuth();
   const { activeProfile } = useFamily();
+  const { hasAccess, isChecking } = useCommunityAccess();
   const [tab, setTab] = useState("handbook");
   const [belts, setBelts] = useState([]);
   const [currentBelt, setCurrentBelt] = useState(null);
@@ -77,6 +80,9 @@ export default function StudentCurriculum() {
     { id: "journey", label: "Journey", icon: Map },
     { id: "feedback", label: "Feedback", icon: MessageSquare },
   ];
+
+  if (isChecking) return <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-[#C9A84C]" /></div>;
+  if (!hasAccess) return <LockedCurriculum />;
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-[#C9A84C]" /></div>;
 

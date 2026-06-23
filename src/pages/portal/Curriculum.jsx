@@ -6,12 +6,15 @@ import { canAccessRank, BELT_RANKS } from "@/lib/constants";
 import BeltBadge from "@/components/BeltBadge";
 import VideoPlayer from "@/components/VideoPlayer";
 import { Play, Clock, Loader2, Search, Lock } from "lucide-react";
+import { useCommunityAccess } from "@/lib/CommunityAccessContext";
+import LockedCurriculum from "@/components/portal/community/LockedCurriculum";
 
 const CATEGORIES = ["All", "Basics", "Kata", "Kumite", "Self-Defense", "Conditioning", "Philosophy"];
 
 export default function Curriculum() {
   const { user } = useAuth();
   const { activeProfile } = useFamily();
+  const { hasAccess, isChecking } = useCommunityAccess();
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeVideo, setActiveVideo] = useState(null);
@@ -26,6 +29,9 @@ export default function Curriculum() {
       })
       .catch(() => setLoading(false));
   }, []);
+
+  if (isChecking) return <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-[#C9A84C]" /></div>;
+  if (!hasAccess) return <LockedCurriculum />;
 
   // Filter videos: only show videos at or below the user's belt rank
   const accessibleVideos = videos.filter((v) => canAccessRank(activeProfile?.belt_rank, v.belt_rank_required));

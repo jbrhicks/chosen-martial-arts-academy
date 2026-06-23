@@ -5,10 +5,13 @@ import { useFamily } from "@/lib/FamilyContext";
 import { BELT_RANKS } from "@/lib/constants";
 import BeltBadge from "@/components/BeltBadge";
 import { Loader2, CheckCircle, Circle, Clock, Target, TrendingUp, Calendar } from "lucide-react";
+import { useCommunityAccess } from "@/lib/CommunityAccessContext";
+import LockedCurriculum from "@/components/portal/community/LockedCurriculum";
 
 export default function Progress() {
   const { user } = useAuth();
   const { activeProfile } = useFamily();
+  const { hasAccess, isChecking } = useCommunityAccess();
   const [goals, setGoals] = useState([]);
   const [progress, setProgress] = useState([]);
   const [attendance, setAttendance] = useState([]);
@@ -64,6 +67,9 @@ export default function Progress() {
     const now = new Date();
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   }).length;
+
+  if (isChecking) return <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-[#C9A84C]" /></div>;
+  if (!hasAccess) return <LockedCurriculum />;
 
   if (loading) {
     return <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-[#C9A84C]" /></div>;
