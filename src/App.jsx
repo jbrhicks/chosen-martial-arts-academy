@@ -47,10 +47,12 @@ import AdminOnboarding from '@/pages/admin/AdminOnboarding';
 import AdminPrograms from '@/pages/admin/AdminPrograms';
 import AdminCustomFields from '@/pages/admin/AdminCustomFields';
 import AdminDiscounts from '@/pages/admin/AdminDiscounts';
+import AdminMembershipRequests from '@/pages/admin/AdminMembershipRequests';
 import Progress from '@/pages/portal/Progress';
 import StudentCurriculum from '@/pages/portal/StudentCurriculum';
 import Messages from '@/pages/portal/Messages';
 import Family from '@/pages/portal/Family';
+import Wallet from '@/pages/portal/Wallet';
 import Kiosk from '@/pages/Kiosk';
 
 const AuthenticatedApp = () => {
@@ -103,6 +105,7 @@ const AuthenticatedApp = () => {
           <Route path="/portal/family" element={<Family />} />
           <Route path="/portal/events" element={<Events />} />
           <Route path="/portal/billing" element={<Billing />} />
+          <Route path="/portal/wallet" element={<Wallet />} />
         </Route>
       </Route>
 
@@ -126,6 +129,7 @@ const AuthenticatedApp = () => {
             <Route path="/admin/programs" element={<AdminPrograms />} />
             <Route path="/admin/custom-fields" element={<AdminCustomFields />} />
             <Route path="/admin/discounts" element={<AdminDiscounts />} />
+            <Route path="/admin/membership-requests" element={<AdminMembershipRequests />} />
           </Route>
         </Route>
       </Route>

@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useState } from "react";
-import { Home, Video, Users, Calendar, CreditCard, LogOut, Menu, TrendingUp, UserCog, Eye, Map, MessageCircle, Lock } from "lucide-react";
+import { Home, Video, Users, Calendar, CreditCard, LogOut, Menu, TrendingUp, UserCog, Eye, Map, MessageCircle, Lock, Wallet } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { FamilyProvider, useFamily } from "@/lib/FamilyContext";
 import BeltBadge from "@/components/BeltBadge";
@@ -24,6 +24,7 @@ function MemberLayoutContent() {
     { label: "Community", path: "/portal/community", icon: Users, communityAccess: true },
     { label: "Events", path: "/portal/events", icon: Calendar },
     { label: "Billing", path: "/portal/billing", icon: CreditCard },
+    { label: "Wallet", path: "/portal/wallet", icon: Wallet },
     ...(isGuardian ? [{ label: "Family", path: "/portal/family", icon: UserCog }] : []),
   ];
 
