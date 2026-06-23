@@ -74,12 +74,15 @@
     "discount_applied": {
       "type": "number",
       "default": 0
+    },
+    "is_guest": {
+      "type": "boolean",
+      "default": false
     }
   },
   "required": [
     "event_id",
-    "user_id",
-    "student_id"
+    "event_title"
   ],
   "rls": {
     "create": {
