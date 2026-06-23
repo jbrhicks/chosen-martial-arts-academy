@@ -39,9 +39,11 @@ export default function EventCreatorWizard({ onClose, onEventCreated }) {
     target_audience_rank_id: "",
     target_audience_rank_name: "",
     location: "",
+    image_url: "",
     early_bird_price: 0,
     early_bird_deadline: "",
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [scheduleItems, setScheduleItems] = useState([]);
   const [customFields, setCustomFields] = useState([]);
 
@@ -80,8 +82,11 @@ export default function EventCreatorWizard({ onClose, onEventCreated }) {
     try {
       const user = await base44.auth.me();
       
+      let imageUrl = formData.image_url;
+      
       const event = await base44.entities.Event.create({
         ...formData,
+        image_url: imageUrl,
         created_by_id: user.id,
         created_by_name: user.full_name,
       });
@@ -150,6 +155,54 @@ export default function EventCreatorWizard({ onClose, onEventCreated }) {
                   className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white"
                   placeholder="e.g., Summer Camp 2024"
                 />
+              </div>
+              <div>
+                <Label className="text-[#A8A9AD] text-xs tracking-widest uppercase">Event Graphic</Label>
+                <div className="border border-[#A8A9AD]/30 rounded-md p-4 mt-1">
+                  {formData.image_url ? (
+                    <div className="relative">
+                      <img src={formData.image_url} alt="Event graphic" className="w-full h-48 object-cover rounded-md" />
+                      <button
+                        onClick={() => setFormData({ ...formData, image_url: "" })}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <label className="cursor-pointer">
+                        <div className="border-2 border-dashed border-[#A8A9AD]/30 rounded-md p-6 hover:border-[#C9A84C]/50 transition-colors">
+                          <p className="text-sm text-[#A8A9AD]">Click to upload event graphic</p>
+                          <p className="text-xs text-[#A8A9AD] mt-1">JPG, PNG, or GIF (max 5MB)</p>
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+                            setUploadingImage(true);
+                            try {
+                              const result = await base44.integrations.Core.UploadFile({ file });
+                              setFormData({ ...formData, image_url: result.file_url });
+                            } catch (err) {
+                              alert("Failed to upload image: " + err.message);
+                            }
+                            setUploadingImage(false);
+                          }}
+                        />
+                      </label>
+                      {uploadingImage && (
+                        <div className="flex items-center justify-center mt-2">
+                          <Loader2 size={16} className="animate-spin text-[#C9A84C]" />
+                          <span className="text-xs text-[#A8A9AD] ml-2">Uploading...</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               <div>
                 <Label className="text-[#A8A9AD] text-xs tracking-widest uppercase">Event Type</Label>
@@ -380,6 +433,18 @@ export default function EventCreatorWizard({ onClose, onEventCreated }) {
                           className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-xs mb-2"
                           placeholder="Question text"
                         />
+                        {field.field_type === "dropdown" || field.field_type === "radio" || field.field_type === "checkboxes" ? (
+                          <Input
+                            value={field.dropdown_options}
+                            onChange={(e) => {
+                              const updated = [...customFields];
+                              updated[idx].dropdown_options = e.target.value;
+                              setCustomFields(updated);
+                            }}
+                            className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-xs mb-2"
+                            placeholder="Options (comma-separated)"
+                          />
+                        ) : null}
                         <div className="flex items-center gap-2">
                           <Select
                             value={field.field_type}
@@ -396,7 +461,11 @@ export default function EventCreatorWizard({ onClose, onEventCreated }) {
                               <SelectItem value="text">Text</SelectItem>
                               <SelectItem value="textarea">Long Text</SelectItem>
                               <SelectItem value="dropdown">Dropdown</SelectItem>
-                              <SelectItem value="checkbox">Checkbox</SelectItem>
+                              <SelectItem value="radio">Multiple Choice</SelectItem>
+                              <SelectItem value="checkboxes">Checkboxes</SelectItem>
+                              <SelectItem value="checkbox">Yes/No</SelectItem>
+                              <SelectItem value="number">Number</SelectItem>
+                              <SelectItem value="date">Date</SelectItem>
                             </SelectContent>
                           </Select>
                           <label className="flex items-center gap-2 text-xs text-[#A8A9AD]">

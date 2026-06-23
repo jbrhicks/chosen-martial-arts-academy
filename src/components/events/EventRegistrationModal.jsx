@@ -97,11 +97,14 @@ export default function EventRegistrationModal({ event, user, onClose, onRegiste
 
       for (const field of customFields) {
         if (answers[field.id]) {
+          const answerValue = Array.isArray(answers[field.id]) 
+            ? answers[field.id].join(", ") 
+            : answers[field.id];
           await base44.entities.EventRegistrationAnswer.create({
             registration_id: registration.id,
             field_id: field.id,
             question_text: field.question_text,
-            answer_value: answers[field.id],
+            answer_value: answerValue,
           });
         }
       }
@@ -179,6 +182,43 @@ export default function EventRegistrationModal({ event, user, onClose, onRegiste
                         ))}
                       </SelectContent>
                     </Select>
+                  ) : field.field_type === "radio" ? (
+                    <div className="space-y-2 mt-1">
+                      {field.dropdown_options?.split(",").map((opt, i) => (
+                        <label key={i} className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name={field.id}
+                            value={opt.trim()}
+                            checked={answers[field.id] === opt.trim()}
+                            onChange={(e) => setAnswers({ ...answers, [field.id]: e.target.value })}
+                            className="rounded"
+                          />
+                          <span className="text-sm text-white">{opt.trim()}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : field.field_type === "checkboxes" ? (
+                    <div className="space-y-2 mt-1">
+                      {field.dropdown_options?.split(",").map((opt, i) => (
+                        <label key={i} className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={(answers[field.id] || []).includes(opt.trim())}
+                            onChange={(e) => {
+                              const current = answers[field.id] || [];
+                              if (e.target.checked) {
+                                setAnswers({ ...answers, [field.id]: [...current, opt.trim()] });
+                              } else {
+                                setAnswers({ ...answers, [field.id]: current.filter(v => v !== opt.trim()) });
+                              }
+                            }}
+                            className="rounded"
+                          />
+                          <span className="text-sm text-white">{opt.trim()}</span>
+                        </label>
+                      ))}
+                    </div>
                   ) : field.field_type === "checkbox" ? (
                     <label className="flex items-center gap-2 mt-1">
                       <input
@@ -189,6 +229,21 @@ export default function EventRegistrationModal({ event, user, onClose, onRegiste
                       />
                       <span className="text-sm text-white">Yes</span>
                     </label>
+                  ) : field.field_type === "number" ? (
+                    <Input
+                      type="number"
+                      value={answers[field.id] || ""}
+                      onChange={(e) => setAnswers({ ...answers, [field.id]: e.target.value })}
+                      className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1"
+                      placeholder="0"
+                    />
+                  ) : field.field_type === "date" ? (
+                    <Input
+                      type="date"
+                      value={answers[field.id] || ""}
+                      onChange={(e) => setAnswers({ ...answers, [field.id]: e.target.value })}
+                      className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1"
+                    />
                   ) : (
                     <Input
                       value={answers[field.id] || ""}

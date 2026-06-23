@@ -25,6 +25,8 @@ export default function EventRoster({ event, onClose }) {
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
   const [selectedWaitlist, setSelectedWaitlist] = useState(null);
   const [processing, setProcessing] = useState(false);
+  const [expandedReg, setExpandedReg] = useState(null);
+  const [customAnswers, setCustomAnswers] = useState({});
 
   const load = async () => {
     try {
@@ -35,6 +37,15 @@ export default function EventRoster({ event, onClose }) {
       console.error(e);
     }
     setLoading(false);
+  };
+
+  const loadAnswers = async (regId) => {
+    try {
+      const answers = await base44.entities.EventRegistrationAnswer.filter({ registration_id: regId });
+      setCustomAnswers(prev => ({ ...prev, [regId]: answers }));
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   useEffect(() => {
@@ -179,7 +190,7 @@ export default function EventRoster({ event, onClose }) {
               <div className="space-y-3">
                 {filtered.map((reg) => (
                   <div key={reg.id} className="border border-[#A8A9AD]/20 p-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-2">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-1">
                           <h4 className="font-bold">{reg.student_name}</h4>
@@ -220,6 +231,30 @@ export default function EventRoster({ event, onClose }) {
                         )}
                       </div>
                     </div>
+                    <button
+                      onClick={() => {
+                        if (expandedReg === reg.id) {
+                          setExpandedReg(null);
+                        } else {
+                          setExpandedReg(reg.id);
+                          if (!customAnswers[reg.id]) loadAnswers(reg.id);
+                        }
+                      }}
+                      className="text-xs text-[#A8A9AD] hover:text-[#C9A84C] flex items-center gap-1"
+                    >
+                      {expandedReg === reg.id ? "Hide" : "Show"} Registration Details
+                    </button>
+                    {expandedReg === reg.id && customAnswers[reg.id] && customAnswers[reg.id].length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-[#A8A9AD]/20 space-y-2">
+                        <p className="text-xs font-bold text-[#A8A9AD] uppercase tracking-widest">Registration Answers</p>
+                        {customAnswers[reg.id].map((ans, idx) => (
+                          <div key={idx} className="text-sm">
+                            <span className="text-[#A8A9AD]">{ans.question_text}: </span>
+                            <span className="text-white">{ans.answer_value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

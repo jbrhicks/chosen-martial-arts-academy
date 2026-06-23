@@ -60,8 +60,19 @@ export default function Events() {
             return (
               <div key={event.id} className="border border-[#A8A9AD]/20 p-6 hover:border-[#C9A84C]/40 transition-colors">
                 <div className="flex flex-col sm:flex-row gap-6">
+                  {/* Event Graphic */}
+                  {event.image_url && (
+                    <div className="shrink-0 w-full sm:w-48 h-32 sm:h-48">
+                      <img
+                        src={event.image_url}
+                        alt={event.title}
+                        className="w-full h-full object-cover rounded-lg border border-[#A8A9AD]/20"
+                      />
+                    </div>
+                  )}
+                  
                   {/* Date block */}
-                  <div className="shrink-0 w-16 h-16 border-2 border-[#C9A84C] flex flex-col items-center justify-center">
+                  <div className={`shrink-0 w-16 h-16 border-2 border-[#C9A84C] flex flex-col items-center justify-center ${!event.image_url ? 'sm:ml-0' : ''}`}>
                     <span className="text-xl font-bold text-[#C9A84C] leading-none">
                       {eventDate.toLocaleDateString("en-US", { day: "numeric" })}
                     </span>

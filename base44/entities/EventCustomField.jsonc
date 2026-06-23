@@ -15,9 +15,13 @@
       "type": "string",
       "enum": [
         "text",
-        "dropdown",
         "textarea",
-        "checkbox"
+        "dropdown",
+        "checkbox",
+        "radio",
+        "checkboxes",
+        "number",
+        "date"
       ],
       "default": "text"
     },
