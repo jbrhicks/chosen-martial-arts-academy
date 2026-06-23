@@ -1,0 +1,66 @@
+{
+  "name": "Inventory",
+  "type": "object",
+  "properties": {
+    "item_name": {
+      "type": "string"
+    },
+    "sku": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number",
+      "default": 0
+    },
+    "stock_quantity": {
+      "type": "number",
+      "default": 0
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Uniform",
+        "Sparring Gear",
+        "Apparel",
+        "Equipment",
+        "Testing Fee",
+        "Event Ticket"
+      ],
+      "default": "Apparel"
+    },
+    "low_stock_threshold": {
+      "type": "number",
+      "default": 5
+    },
+    "description": {
+      "type": "string"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "item_name",
+    "price",
+    "category"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

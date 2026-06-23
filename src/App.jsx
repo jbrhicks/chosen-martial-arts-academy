@@ -22,6 +22,7 @@ import About from '@/pages/About';
 import Testimonials from '@/pages/Testimonials';
 import TrialBooking from '@/pages/TrialBooking';
 import Activate from '@/pages/Activate';
+import FrontDesk from '@/pages/FrontDesk';
 
 // Member portal
 import MemberLayout from '@/components/MemberLayout';
@@ -144,6 +145,9 @@ const AuthenticatedApp = () => {
 
       {/* Kiosk (public, no auth) */}
       <Route path="/kiosk" element={<Kiosk />} />
+
+      {/* Front Desk Kiosk (public, no auth) */}
+      <Route path="/front-desk" element={<FrontDesk />} />
 
       <Route path="*" element={<PageNotFound />} />
     </Routes>
