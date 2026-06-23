@@ -1,24 +1,43 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { EVENT_TYPES } from "@/lib/constants";
-import { Calendar, MapPin, ExternalLink, Loader2 } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
+import { Calendar, MapPin, ExternalLink, Loader2, Lock } from "lucide-react";
+import EventRegistrationModal from "@/components/events/EventRegistrationModal";
 
 export default function Events() {
+  const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
-    base44.entities.Event.list()
-      .then((data) => {
-        const now = new Date();
-        const upcoming = data
-          .filter((e) => new Date(e.start_date) >= now)
-          .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
-        setEvents(upcoming);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
+    loadEvents();
+  }, [user]);
+
+  const loadEvents = async () => {
+    try {
+      const all = await base44.entities.Event.list();
+      const now = new Date();
+      const upcoming = all.filter((e) => {
+        if (new Date(e.start_date) < now) return false;
+        if (e.target_audience_rank_id && user.belt_rank) {
+          const rankOrder = {
+            "White": 1, "White w/ Black Stripe": 2, "Orange": 3, "Orange w/ White Stripe": 4,
+            "Green": 5, "Green w/ White Stripe": 6, "Brown": 7, "Brown w/ White Stripe": 8,
+            "Red": 9, "Red w/ White Stripe": 10, "Blue": 11, "1st Degree Black Belt": 12
+          };
+          const requiredRank = rankOrder[e.target_audience_rank_name] || 0;
+          const userRank = rankOrder[user.belt_rank] || 0;
+          if (userRank < requiredRank) return false;
+        }
+        return true;
+      }).sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+      setEvents(upcoming);
+    } catch (e) {
+      console.error(e);
+    }
+    setLoading(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -37,7 +56,6 @@ export default function Events() {
       ) : (
         <div className="space-y-4">
           {events.map((event) => {
-            const typeInfo = EVENT_TYPES[event.event_type] || EVENT_TYPES.seminar;
             const eventDate = new Date(event.start_date);
             return (
               <div key={event.id} className="border border-[#A8A9AD]/20 p-6 hover:border-[#C9A84C]/40 transition-colors">
@@ -56,7 +74,7 @@ export default function Events() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-[10px] tracking-widest uppercase text-[#C9A84C] border border-[#C9A84C]/30 px-2 py-1">
-                        {typeInfo.label}
+                        {event.event_type.replace("-", " ")}
                       </span>
                     </div>
                     <h3 className="text-lg font-bold mb-2">{event.title}</h3>
@@ -75,22 +93,32 @@ export default function Events() {
                         </span>
                       )}
                     </div>
-                    {event.registration_url && (
-                      <a
-                        href={event.registration_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 mt-4 px-5 py-2 bg-[#C9A84C] text-black font-bold text-xs tracking-widest uppercase hover:bg-[#E0C97A] transition-colors"
-                      >
-                        Register <ExternalLink size={14} />
-                      </a>
-                    )}
+                    <button
+                      onClick={() => setSelectedEvent(event)}
+                      disabled={event.target_audience_rank_id && !user.belt_rank}
+                      className="inline-flex items-center gap-2 mt-4 px-5 py-2 bg-[#C9A84C] text-black font-bold text-xs tracking-widest uppercase hover:bg-[#E0C97A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Register
+                      {event.target_audience_rank_id && <Lock size={14} />}
+                    </button>
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
+      )}
+
+      {selectedEvent && user && (
+        <EventRegistrationModal
+          event={selectedEvent}
+          user={user}
+          onClose={() => setSelectedEvent(null)}
+          onRegistered={() => {
+            setSelectedEvent(null);
+            loadEvents();
+          }}
+        />
       )}
     </div>
   );

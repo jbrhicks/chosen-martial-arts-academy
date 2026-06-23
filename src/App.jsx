@@ -23,6 +23,7 @@ import Testimonials from '@/pages/Testimonials';
 import TrialBooking from '@/pages/TrialBooking';
 import Activate from '@/pages/Activate';
 import FrontDesk from '@/pages/FrontDesk';
+import PublicEvents from '@/pages/Events';
 
 // Member portal
 import MemberLayout from '@/components/MemberLayout';
@@ -94,6 +95,7 @@ const AuthenticatedApp = () => {
       <Route path="/schedule" element={<Schedule />} />
       <Route path="/about" element={<About />} />
       <Route path="/testimonials" element={<Testimonials />} />
+      <Route path="/events" element={<PublicEvents />} />
 
       {/* Trial Booking (public) */}
       <Route path="/trial-booking" element={<TrialBooking />} />

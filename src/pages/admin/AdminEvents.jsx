@@ -1,188 +1,173 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { EVENT_TYPES } from "@/lib/constants";
-import { Loader2, Plus, X, Pencil, Trash2, Calendar } from "lucide-react";
+import { Calendar, Plus, Users, DollarSign, Loader2, Search, Filter } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import EventCreatorWizard from "@/components/admin/events/EventCreatorWizard";
+import EventRoster from "@/components/admin/events/EventRoster";
 
 export default function AdminEvents() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({
-    title: "", description: "", event_type: "seminar",
-    start_date: "", end_date: "", location: "", registration_url: "", is_public: true, image_url: "",
-  });
-  const [submitting, setSubmitting] = useState(false);
+  const [showCreator, setShowCreator] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState("all");
 
-  const loadEvents = useCallback(async () => {
+  const load = async () => {
     try {
-      const data = await base44.entities.Event.list();
-      setEvents(data.sort((a, b) => new Date(a.start_date) - new Date(b.start_date)));
-    } catch (e) { console.error(e); }
+      const all = await base44.entities.Event.list("-start_date");
+      setEvents(all);
+    } catch (e) {
+      console.error(e);
+    }
     setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
   }, []);
 
-  useEffect(() => { loadEvents(); }, [loadEvents]);
+  const filtered = events.filter((e) => {
+    const matchesSearch = e.title.toLowerCase().includes(search.toLowerCase());
+    const matchesType = filterType === "all" || e.event_type === filterType;
+    return matchesSearch && matchesType;
+  });
 
-  const resetForm = () => {
-    setForm({ title: "", description: "", event_type: "seminar", start_date: "", end_date: "", location: "", registration_url: "", is_public: true, image_url: "" });
-    setEditing(null);
-  };
-
-  const handleEdit = (event) => {
-    setEditing(event);
-    const startDate = event.start_date ? new Date(event.start_date).toISOString().slice(0, 16) : "";
-    const endDate = event.end_date ? new Date(event.end_date).toISOString().slice(0, 16) : "";
-    setForm({
-      title: event.title || "", description: event.description || "", event_type: event.event_type || "seminar",
-      start_date: startDate, end_date: endDate, location: event.location || "",
-      registration_url: event.registration_url || "", is_public: event.is_public !== false, image_url: event.image_url || "",
-    });
-    setShowForm(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.title || !form.start_date) return;
-    setSubmitting(true);
-    try {
-      const payload = {
-        title: form.title,
-        description: form.description,
-        event_type: form.event_type,
-        start_date: new Date(form.start_date).toISOString(),
-        end_date: form.end_date ? new Date(form.end_date).toISOString() : null,
-        location: form.location || null,
-        registration_url: form.registration_url || null,
-        is_public: form.is_public,
-        image_url: form.image_url || null,
-      };
-      if (editing) {
-        await base44.entities.Event.update(editing.id, payload);
-      } else {
-        await base44.entities.Event.create(payload);
-      }
-      setShowForm(false);
-      resetForm();
-      loadEvents();
-    } catch (e) {
-      alert("Failed to save event: " + e.message);
-    }
-    setSubmitting(false);
-  };
-
-  const handleDelete = async (id) => {
-    if (!confirm("Delete this event?")) return;
-    try {
-      await base44.entities.Event.delete(id);
-      loadEvents();
-    } catch (e) { alert("Delete failed"); }
+  const stats = {
+    total: events.length,
+    active: events.filter((e) => e.status === "active").length,
+    totalRevenue: events.reduce((sum, e) => sum + (e.price || 0), 0),
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="flex items-center justify-between">
         <div>
           <p className="text-xs tracking-widest uppercase text-[#C9A84C] mb-2">Event Management</p>
           <h1 className="text-3xl font-bold">Events</h1>
+          <p className="text-sm text-[#A8A9AD] mt-1">Create and manage academy events, tournaments, and camps.</p>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-2 px-5 py-2.5 bg-[#C9A84C] text-black font-bold text-sm tracking-wide uppercase hover:bg-[#E0C97A] transition-colors">
-          <Plus size={18} /> Add Event
-        </button>
+        <Button onClick={() => setShowCreator(true)} className="bg-[#C9A84C] text-black font-bold text-xs tracking-widest uppercase hover:bg-[#E0C97A]">
+          <Plus size={16} className="mr-2" />
+          Create Event
+        </Button>
       </div>
 
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="border border-[#A8A9AD]/20 bg-black p-4">
+          <div className="flex items-center gap-3">
+            <Calendar size={20} className="text-[#C9A84C]" />
+            <div>
+              <p className="text-xs text-[#A8A9AD] uppercase tracking-widest">Total Events</p>
+              <p className="text-2xl font-bold">{stats.total}</p>
+            </div>
+          </div>
+        </div>
+        <div className="border border-[#A8A9AD]/20 bg-black p-4">
+          <div className="flex items-center gap-3">
+            <Users size={20} className="text-[#C9A84C]" />
+            <div>
+              <p className="text-xs text-[#A8A9AD] uppercase tracking-widest">Active Events</p>
+              <p className="text-2xl font-bold">{stats.active}</p>
+            </div>
+          </div>
+        </div>
+        <div className="border border-[#A8A9AD]/20 bg-black p-4">
+          <div className="flex items-center gap-3">
+            <DollarSign size={20} className="text-[#C9A84C]" />
+            <div>
+              <p className="text-xs text-[#A8A9AD] uppercase tracking-widest">Avg Price</p>
+              <p className="text-2xl font-bold">${stats.totalRevenue > 0 ? (stats.totalRevenue / stats.total).toFixed(2) : "0"}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A9AD]" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search events..."
+            className="pl-10 bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white"
+          />
+        </div>
+        <select
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value)}
+          className="bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-2 text-sm text-white focus:border-[#C9A84C] focus:outline-none"
+        >
+          <option value="all">All Types</option>
+          <option value="single-day">Single-Day</option>
+          <option value="multi-day">Multi-Day</option>
+          <option value="camp">Camp</option>
+          <option value="tournament">Tournament</option>
+          <option value="in-house">In-House</option>
+        </select>
+      </div>
+
+      {/* Event List */}
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-[#C9A84C]" /></div>
-      ) : events.length === 0 ? (
-        <div className="border border-[#A8A9AD]/20 p-12 text-center">
-          <Calendar size={32} className="text-[#A8A9AD] mx-auto mb-3" />
-          <p className="text-[#A8A9AD]">No events yet.</p>
+      ) : filtered.length === 0 ? (
+        <div className="border border-[#A8A9AD]/20 bg-black p-12 text-center">
+          <Calendar size={40} className="mx-auto text-[#A8A9AD]/40 mb-4" />
+          <p className="text-sm text-[#A8A9AD]">No events found.</p>
+          <p className="text-xs text-[#A8A9AD]/60 mt-2">Create your first event to get started.</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {events.map((event) => {
-            const typeInfo = EVENT_TYPES[event.event_type] || EVENT_TYPES.seminar;
-            const eventDate = new Date(event.start_date);
-            return (
-              <div key={event.id} className="border border-[#A8A9AD]/20 p-5 flex items-center gap-4">
-                <div className="shrink-0 w-14 h-14 border-2 border-[#C9A84C] flex flex-col items-center justify-center">
-                  <span className="text-lg font-bold text-[#C9A84C] leading-none">{eventDate.toLocaleDateString("en-US", { day: "numeric" })}</span>
-                  <span className="text-[9px] tracking-widest uppercase text-[#A8A9AD]">{eventDate.toLocaleDateString("en-US", { month: "short" })}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] tracking-widest uppercase text-[#C9A84C] border border-[#C9A84C]/30 px-2 py-0.5">{typeInfo.label}</span>
-                    {event.is_public === false && <span className="text-[10px] text-[#A8A9AD]">· Members only</span>}
+        <div className="grid grid-cols-1 gap-4">
+          {filtered.map((event) => (
+            <div key={event.id} className="border border-[#A8A9AD]/20 bg-black p-4 hover:border-[#C9A84C]/30 transition-colors">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-lg font-bold text-white">{event.title}</h3>
+                    <span className={`px-2 py-0.5 text-xs uppercase tracking-wider rounded ${
+                      event.status === "active" ? "bg-green-900/30 text-green-400" :
+                      event.status === "cancelled" ? "bg-red-900/30 text-red-400" :
+                      "bg-gray-900/30 text-gray-400"
+                    }`}>
+                      {event.status}
+                    </span>
+                    {event.is_public && <span className="px-2 py-0.5 text-xs uppercase tracking-wider rounded bg-[#C9A84C]/20 text-[#C9A84C]">Public</span>}
                   </div>
-                  <h3 className="font-bold text-sm">{event.title}</h3>
-                  <p className="text-xs text-[#A8A9AD] mt-0.5">
-                    {eventDate.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                    {event.location && ` · ${event.location}`}
-                  </p>
+                  <div className="flex items-center gap-4 text-sm text-[#A8A9AD] mb-2">
+                    <span className="flex items-center gap-1">
+                      <Calendar size={14} />
+                      {new Date(event.start_date).toLocaleDateString()}
+                      {event.end_date && event.end_date !== event.start_date && ` - ${new Date(event.end_date).toLocaleDateString()}`}
+                    </span>
+                    <span className="capitalize">{event.event_type.replace("-", " ")}</span>
+                    {event.price > 0 && <span>${event.price}</span>}
+                    {event.max_capacity > 0 && <span>Max: {event.max_capacity}</span>}
+                  </div>
+                  {event.target_audience_rank_name && (
+                    <p className="text-xs text-[#C9A84C]">Rank Required: {event.target_audience_rank_name}</p>
+                  )}
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button onClick={() => handleEdit(event)} className="p-2 text-[#A8A9AD] hover:text-[#C9A84C] transition-colors"><Pencil size={16} /></button>
-                  <button onClick={() => handleDelete(event.id)} className="p-2 text-[#A8A9AD] hover:text-red-400 transition-colors"><Trash2 size={16} /></button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => setSelectedEvent(event)}
+                    variant="outline"
+                    className="border-[#A8A9AD]/30 text-[#A8A9AD] hover:text-white hover:border-[#C9A84C]/50"
+                  >
+                    <Users size={16} className="mr-2" />
+                    Roster
+                  </Button>
                 </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
 
-      {showForm && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 overflow-y-auto" onClick={() => setShowForm(false)}>
-          <div className="w-full max-w-2xl border border-[#C9A84C]/30 bg-[#0A0A0A] p-8 my-8" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">{editing ? "Edit Event" : "Add Event"}</h2>
-              <button onClick={() => setShowForm(false)} className="text-[#A8A9AD] hover:text-white"><X size={20} /></button>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Title *</label>
-                <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" required />
-              </div>
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Description</label>
-                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none resize-none" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Event Type</label>
-                  <select value={form.event_type} onChange={(e) => setForm({ ...form, event_type: e.target.value })} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
-                    {Object.entries(EVENT_TYPES).map(([key, val]) => <option key={key} value={key}>{val.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Location</label>
-                  <input type="text" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Start Date & Time *</label>
-                  <input type="datetime-local" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" required />
-                </div>
-                <div>
-                  <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">End Date & Time</label>
-                  <input type="datetime-local" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Registration URL</label>
-                <input type="url" value={form.registration_url} onChange={(e) => setForm({ ...form, registration_url: e.target.value })} placeholder="https://..." className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
-              </div>
-              <label className="flex items-center gap-2 text-sm text-white">
-                <input type="checkbox" checked={form.is_public} onChange={(e) => setForm({ ...form, is_public: e.target.checked })} className="accent-[#C9A84C]" />
-                Public (visible on website)
-              </label>
-              <button type="submit" disabled={submitting} className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-3 hover:bg-[#E0C97A] transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
-                {submitting ? <Loader2 size={18} className="animate-spin" /> : <>{editing ? "Update" : "Create"} Event</>}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      {showCreator && <EventCreatorWizard onClose={() => setShowCreator(false)} onEventCreated={() => { setShowCreator(false); load(); }} />}
+      {selectedEvent && <EventRoster event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
     </div>
   );
 }
