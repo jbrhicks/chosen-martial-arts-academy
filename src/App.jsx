@@ -55,6 +55,7 @@ import AdminMembershipRequests from '@/pages/admin/AdminMembershipRequests';
 import AdminExceptionRequests from '@/pages/admin/AdminExceptionRequests';
 import AdminProfileManager from '@/pages/admin/AdminProfileManager';
 import AdminBadges from '@/pages/admin/AdminBadges';
+import EventCheckIn from '@/pages/admin/EventCheckIn';
 import Progress from '@/pages/portal/Progress';
 import StudentCurriculum from '@/pages/portal/StudentCurriculum';
 import Messages from '@/pages/portal/Messages';
@@ -151,6 +152,7 @@ const AuthenticatedApp = () => {
             <Route path="/admin/exception-requests" element={<AdminExceptionRequests />} />
             <Route path="/admin/profile-manager" element={<AdminProfileManager />} />
             <Route path="/admin/badges" element={<AdminBadges />} />
+            <Route path="/admin/event-checkin" element={<EventCheckIn />} />
           </Route>
         </Route>
       </Route>

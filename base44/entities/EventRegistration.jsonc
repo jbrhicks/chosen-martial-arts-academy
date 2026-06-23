@@ -78,6 +78,9 @@
     "is_guest": {
       "type": "boolean",
       "default": false
+    },
+    "admin_comments": {
+      "type": "string"
     }
   },
   "required": [

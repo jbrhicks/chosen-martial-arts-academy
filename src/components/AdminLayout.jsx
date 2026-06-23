@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useState } from "react";
-import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, CalendarDays, UserPlus, LogOut, Menu, X, TrendingUp, ClipboardCheck, BarChart3, BookOpen, ListChecks, FormInput, Tag, Inbox, Tablet, ShieldAlert, UserSearch, Award } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, CalendarDays, UserPlus, LogOut, Menu, X, TrendingUp, ClipboardCheck, BarChart3, BookOpen, ListChecks, FormInput, Tag, Inbox, Tablet, ShieldAlert, UserSearch, Award, UserCheck } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 
 export default function AdminLayout() {
@@ -31,6 +31,7 @@ export default function AdminLayout() {
     { label: "Custom Fields", path: "/admin/custom-fields", icon: FormInput },
     { label: "Schedule", path: "/admin/schedule", icon: CalendarDays },
     { label: "Badges", path: "/admin/badges", icon: Award },
+    { label: "Event Check-In", path: "/admin/event-checkin", icon: UserCheck },
   ];
 
   const isActive = (path) => location.pathname === path;
