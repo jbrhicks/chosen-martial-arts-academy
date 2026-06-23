@@ -5,19 +5,18 @@
     "title": {
       "type": "string"
     },
-    "description": {
-      "type": "string"
-    },
     "event_type": {
       "type": "string",
       "enum": [
+        "single-day",
+        "multi-day",
+        "camp",
         "tournament",
-        "seminar",
-        "belt_test",
-        "workshop",
-        "social"
-      ],
-      "default": "seminar"
+        "in-house"
+      ]
+    },
+    "description": {
+      "type": "string"
     },
     "start_date": {
       "type": "string",
@@ -27,24 +26,58 @@
       "type": "string",
       "format": "date-time"
     },
-    "location": {
-      "type": "string"
+    "max_capacity": {
+      "type": "number",
+      "default": 0
     },
-    "registration_url": {
-      "type": "string"
+    "price": {
+      "type": "number",
+      "default": 0
     },
     "is_public": {
       "type": "boolean",
-      "default": true
+      "default": false
+    },
+    "target_audience_rank_id": {
+      "type": "string"
+    },
+    "target_audience_rank_name": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
     },
     "image_url": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "cancelled",
+        "completed"
+      ],
+      "default": "active"
+    },
+    "early_bird_price": {
+      "type": "number",
+      "default": 0
+    },
+    "early_bird_deadline": {
+      "type": "string",
+      "format": "date"
+    },
+    "created_by_id": {
+      "type": "string"
+    },
+    "created_by_name": {
       "type": "string"
     }
   },
   "required": [
     "title",
-    "start_date",
-    "event_type"
+    "event_type",
+    "start_date"
   ],
   "rls": {
     "create": {
@@ -56,11 +89,6 @@
       "$or": [
         {
           "data.is_public": true
-        },
-        {
-          "user_condition": {
-            "role": "student"
-          }
         },
         {
           "user_condition": {
