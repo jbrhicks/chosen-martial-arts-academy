@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import QRScanner from "@/components/kiosk/QRScanner";
-import { ChevronLeft, Search, QrCode, Phone, KeyRound, ShoppingCart, Trash2, Loader2, CheckCircle, CreditCard, Mail } from "lucide-react";
+import { ChevronLeft, Search, QrCode, Phone, KeyRound, ShoppingCart, Trash2, Loader2, CheckCircle, CreditCard, Mail, X } from "lucide-react";
 
 export default function KioskPOS({ onBack }) {
   const [stage, setStage] = useState("lookup");
@@ -15,6 +15,10 @@ export default function KioskPOS({ onBack }) {
   const [selectedCard, setSelectedCard] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [receipt, setReceipt] = useState(null);
+  const [discountCode, setDiscountCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState(null);
+  const [discountError, setDiscountError] = useState("");
+  const [applyingDiscount, setApplyingDiscount] = useState(false);
 
   useEffect(() => {
     base44.entities.Inventory.filter({ is_active: true }).then(setInventory).catch(() => {});
@@ -63,7 +67,32 @@ export default function KioskPOS({ onBack }) {
 
   const removeFromCart = (id) => setCart(prev => prev.filter(c => c.id !== id));
 
+  const applyDiscount = async () => {
+    if (!discountCode.trim()) return;
+    setApplyingDiscount(true);
+    setDiscountError("");
+    try {
+      const promos = await base44.entities.DiscountsPromos.filter({ promo_code: discountCode.trim(), is_active: true });
+      const promo = promos[0];
+      if (!promo) { setDiscountError("Invalid discount code."); setAppliedDiscount(null); return; }
+      if (promo.expiration_date && new Date(promo.expiration_date) < new Date()) { setDiscountError("This discount code has expired."); setAppliedDiscount(null); return; }
+      if (promo.usage_limit && (promo.usage_count || 0) >= promo.usage_limit) { setDiscountError("This discount code has reached its usage limit."); setAppliedDiscount(null); return; }
+      setAppliedDiscount(promo);
+    } catch (e) {
+      setDiscountError("Failed to validate discount code.");
+    }
+    setApplyingDiscount(false);
+  };
+
+  const removeDiscount = () => { setAppliedDiscount(null); setDiscountCode(""); setDiscountError(""); };
+
   const cartTotal = cart.reduce((sum, c) => sum + c.price * c.quantity, 0);
+  const discountAmount = appliedDiscount
+    ? appliedDiscount.discount_type === "percentage"
+      ? cartTotal * (appliedDiscount.amount / 100)
+      : Math.min(appliedDiscount.amount, cartTotal)
+    : 0;
+  const finalTotal = Math.max(0, cartTotal - discountAmount);
 
   const handleCheckout = async () => {
     setProcessing(true);
@@ -74,10 +103,11 @@ export default function KioskPOS({ onBack }) {
         user_name: member?.full_name,
         user_email: member?.email,
         payment_method: selectedCard ? `Card on file (${selectedCard.last4})` : "New card",
+        discount_code: appliedDiscount?.promo_code || "",
       });
       const data = res.data || res;
       if (data.success) {
-        setReceipt({ total: data.total, items: data.items, paymentMethod: selectedCard ? `Card ending ${selectedCard.last4}` : "New card" });
+        setReceipt({ total: data.total, items: data.items, paymentMethod: selectedCard ? `Card ending ${selectedCard.last4}` : "New card", discountAmount: data.discount_amount || 0, promoName: appliedDiscount?.promo_name });
         setStage("receipt");
       } else {
         alert(data.error || "Payment failed");
@@ -96,6 +126,9 @@ export default function KioskPOS({ onBack }) {
     setPinInput("");
     setSelectedCard(null);
     setReceipt(null);
+    setDiscountCode("");
+    setAppliedDiscount(null);
+    setDiscountError("");
   };
 
   // === LOOKUP STAGE ===
@@ -162,7 +195,12 @@ export default function KioskPOS({ onBack }) {
             {receipt.items.map((item, i) => (
               <div key={i} className="flex justify-between text-sm py-1"><span className="text-[#A8A9AD]">{item.name} x{item.quantity}</span><span>${item.lineTotal.toFixed(2)}</span></div>
             ))}
-            <div className="border-t border-[#A8A9AD]/20 mt-3 pt-3 flex justify-between font-bold text-lg"><span>Total</span><span className="text-[#C9A84C]">${receipt.total.toFixed(2)}</span></div>
+            {receipt.discountAmount > 0 && (
+              <div className="border-t border-[#A8A9AD]/20 mt-3 pt-3">
+                <div className="flex justify-between text-sm text-[#C9A84C] py-0.5"><span>Discount ({receipt.promoName})</span><span>−${receipt.discountAmount.toFixed(2)}</span></div>
+              </div>
+            )}
+            <div className="border-t border-[#A8A9AD]/20 mt-2 pt-2 flex justify-between font-bold text-lg"><span>Total</span><span className="text-[#C9A84C]">${receipt.total.toFixed(2)}</span></div>
             <p className="text-xs text-[#A8A9AD] mt-2">Paid via {receipt.paymentMethod}</p>
           </div>
           <button onClick={reset} className="w-full py-4 bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase hover:bg-[#E0C97A]">Done — Next Customer</button>
@@ -223,7 +261,42 @@ export default function KioskPOS({ onBack }) {
           </div>
           {cart.length > 0 && (
             <div className="p-4 border-t border-[#A8A9AD]/10">
-              <div className="flex justify-between mb-4"><span className="text-[#A8A9AD]">Total</span><span className="text-2xl font-bold text-[#C9A84C]">${cartTotal.toFixed(2)}</span></div>
+              {/* Discount code */}
+              <div className="mb-4">
+                {appliedDiscount ? (
+                  <div className="flex items-center justify-between bg-[#C9A84C]/10 border border-[#C9A84C]/30 p-3">
+                    <div>
+                      <p className="text-xs font-bold text-[#C9A84C]">{appliedDiscount.promo_name}</p>
+                      <p className="text-xs text-[#A8A9AD]">{appliedDiscount.discount_type === "percentage" ? `${appliedDiscount.amount}% off` : `$${appliedDiscount.amount} off`}</p>
+                    </div>
+                    <button onClick={removeDiscount} className="text-[#A8A9AD] hover:text-red-400"><X size={16} /></button>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Discount Code</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={discountCode}
+                        onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                        placeholder="Enter code"
+                        className="flex-1 bg-transparent border border-[#A8A9AD]/30 px-3 py-2 text-sm text-white focus:border-[#C9A84C] focus:outline-none"
+                      />
+                      <button onClick={applyDiscount} disabled={applyingDiscount} className="px-4 py-2 border border-[#C9A84C]/50 text-[#C9A84C] text-sm font-bold hover:bg-[#C9A84C]/10 disabled:opacity-50">
+                        {applyingDiscount ? <Loader2 size={16} className="animate-spin" /> : "Apply"}
+                      </button>
+                    </div>
+                    {discountError && <p className="text-xs text-red-400 mt-2">{discountError}</p>}
+                  </div>
+                )}
+              </div>
+              <div className="space-y-1 mb-4">
+                <div className="flex justify-between text-sm"><span className="text-[#A8A9AD]">Subtotal</span><span>${cartTotal.toFixed(2)}</span></div>
+                {appliedDiscount && (
+                  <div className="flex justify-between text-sm text-[#C9A84C]"><span>Discount</span><span>−${discountAmount.toFixed(2)}</span></div>
+                )}
+                <div className="flex justify-between font-bold text-lg pt-1"><span>Total</span><span className="text-[#C9A84C]">${finalTotal.toFixed(2)}</span></div>
+              </div>
               {/* Payment method selection */}
               <p className="text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Payment Method</p>
               <div className="space-y-2 mb-4">
@@ -239,7 +312,7 @@ export default function KioskPOS({ onBack }) {
                 </button>
               </div>
               <button onClick={handleCheckout} disabled={processing} className="w-full py-4 bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase hover:bg-[#E0C97A] transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                {processing ? <><Loader2 size={18} className="animate-spin" /> Processing...</> : `Charge $${cartTotal.toFixed(2)}`}
+                {processing ? <><Loader2 size={18} className="animate-spin" /> Processing...</> : `Charge $${finalTotal.toFixed(2)}`}
               </button>
             </div>
           )}
