@@ -59,6 +59,8 @@ import AdminBadges from '@/pages/admin/AdminBadges';
 import EventCheckIn from '@/pages/admin/EventCheckIn';
 import AdminReferralCampaigns from '@/pages/admin/AdminReferralCampaigns';
 import AdminReferralTracking from '@/pages/admin/AdminReferralTracking';
+import AdminBroadcasts from '@/pages/admin/AdminBroadcasts';
+import AdminInbox from '@/pages/admin/AdminInbox';
 import Progress from '@/pages/portal/Progress';
 import StudentCurriculum from '@/pages/portal/StudentCurriculum';
 import Messages from '@/pages/portal/Messages';
@@ -163,6 +165,8 @@ const AuthenticatedApp = () => {
             <Route path="/admin/event-checkin" element={<EventCheckIn />} />
             <Route path="/admin/referral-campaigns" element={<AdminReferralCampaigns />} />
             <Route path="/admin/referral-tracking" element={<AdminReferralTracking />} />
+            <Route path="/admin/broadcasts" element={<AdminBroadcasts />} />
+            <Route path="/admin/inbox" element={<AdminInbox />} />
           </Route>
         </Route>
       </Route>

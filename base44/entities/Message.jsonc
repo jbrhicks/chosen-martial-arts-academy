@@ -36,12 +36,13 @@
     "subject": {
       "type": "string"
     },
-    "broadcast_id": {
-      "type": "string"
-    },
-    "is_system_announcement": {
+    "is_read": {
       "type": "boolean",
       "default": false
+    },
+    "read_date": {
+      "type": "string",
+      "format": "date-time"
     }
   },
   "required": [

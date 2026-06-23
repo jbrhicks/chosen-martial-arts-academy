@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useState } from "react";
-import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, CalendarDays, UserPlus, LogOut, Menu, X, TrendingUp, ClipboardCheck, BarChart3, BookOpen, ListChecks, FormInput, Tag, Inbox, Tablet, ShieldAlert, UserSearch, Award, UserCheck, UsersRound } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, CalendarDays, UserPlus, LogOut, Menu, X, TrendingUp, ClipboardCheck, BarChart3, BookOpen, ListChecks, FormInput, Tag, Inbox, Tablet, ShieldAlert, UserSearch, Award, UserCheck, UsersRound, Mail } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 
 export default function AdminLayout() {
@@ -34,6 +34,8 @@ export default function AdminLayout() {
     { label: "Badges", path: "/admin/badges", icon: Award },
     { label: "Referral Campaigns", path: "/admin/referral-campaigns", icon: Tag },
     { label: "Referral Tracking", path: "/admin/referral-tracking", icon: TrendingUp },
+    { label: "Inbox", path: "/admin/inbox", icon: MessageSquare },
+    { label: "Broadcasts", path: "/admin/broadcasts", icon: Mail },
   ];
 
   const isActive = (path) => location.pathname === path;
