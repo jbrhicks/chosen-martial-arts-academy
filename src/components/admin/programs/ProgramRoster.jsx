@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, ChevronLeft, Mail, ArrowRightLeft, AlertTriangle, CheckCircle, Settings, Send, X } from "lucide-react";
+import { Loader2, ChevronLeft, Mail, ArrowRightLeft, AlertTriangle, CheckCircle, Settings, Send, X, Layers, ArrowUpCircle } from "lucide-react";
+import TierBuilder from "./TierBuilder";
+import TierUpgradeModal from "./TierUpgradeModal";
+import { BELT_RANKS } from "@/lib/constants";
 
 export default function ProgramRoster({ program, onBack }) {
   const [enrollments, setEnrollments] = useState([]);
@@ -11,21 +14,30 @@ export default function ProgramRoster({ program, onBack }) {
   const [showEmail, setShowEmail] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showTiers, setShowTiers] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [upgradeTarget, setUpgradeTarget] = useState(null);
+  const [tiers, setTiers] = useState([]);
   const [emailForm, setEmailForm] = useState({ subject: "", body: "" });
   const [transferTarget, setTransferTarget] = useState("");
   const [capacity, setCapacity] = useState(program.max_capacity || 0);
+  const [ageMin, setAgeMin] = useState(program.age_minimum || 0);
+  const [ageMax, setAgeMax] = useState(program.age_maximum || 0);
+  const [prereqRank, setPrereqRank] = useState(program.prerequisite_rank || "");
   const [sending, setSending] = useState(false);
 
   const load = async () => {
     try {
-      const [allEnroll, att, allPrograms] = await Promise.all([
+      const [allEnroll, att, allPrograms, allTiers] = await Promise.all([
         base44.entities.Enrollment.list(),
         base44.entities.AttendanceRecord.list().catch(() => []),
         base44.entities.Program.list(),
+        base44.entities.SubscriptionTier.filter({ linked_program_id: program.id }).catch(() => []),
       ]);
       setEnrollments(allEnroll.filter(e => e.program_id === program.id || e.program === program.program_name));
       setAttendance(att);
       setPrograms(allPrograms.filter(p => p.id !== program.id));
+      setTiers(allTiers);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -81,11 +93,13 @@ export default function ProgramRoster({ program, onBack }) {
 
   const saveCapacity = async () => {
     try {
-      await base44.entities.Program.update(program.id, { max_capacity: capacity });
-      alert("Capacity updated.");
+      await base44.entities.Program.update(program.id, { max_capacity: capacity, age_minimum: ageMin, age_maximum: ageMax, prerequisite_rank: prereqRank });
+      alert("Program settings updated.");
       setShowSettings(false);
-    } catch (e) { alert("Failed to update capacity."); }
+    } catch (e) { alert("Failed to update settings."); }
   };
+
+  const getTier = (enrollment) => tiers.find(t => t.id === enrollment.linked_tier_id);
 
   const activeCount = enrollments.filter(e => e.status === "active").length;
   const waitlist = enrollments.filter(e => e.status === "waitlist");
@@ -114,6 +128,9 @@ export default function ProgramRoster({ program, onBack }) {
         <button onClick={() => setShowTransfer(true)} disabled={selected.length === 0} className="flex items-center gap-2 px-3 py-2 border border-[#A8A9AD]/30 text-xs font-medium text-[#A8A9AD] hover:text-white disabled:opacity-30 transition-colors">
           <ArrowRightLeft size={14} /> Transfer
         </button>
+        <button onClick={() => setShowTiers(true)} className="flex items-center gap-2 px-3 py-2 border border-[#C9A84C]/30 text-xs font-medium text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors">
+          <Layers size={14} /> Manage Tiers
+        </button>
         <button onClick={() => setShowSettings(true)} className="flex items-center gap-2 px-3 py-2 border border-[#A8A9AD]/30 text-xs font-medium text-[#A8A9AD] hover:text-white transition-colors ml-auto">
           <Settings size={14} /> Settings
         </button>
@@ -138,9 +155,22 @@ export default function ProgramRoster({ program, onBack }) {
                   en.status === "waitlist" ? "text-[#C9A84C] border-[#C9A84C]/30" :
                   "text-[#A8A9AD] border-[#A8A9AD]/20"
                 }`}>{en.status}</span>
+                <div className="hidden md:flex flex-col items-end gap-0.5 shrink-0">
+                  {getTier(en) ? (
+                    <>
+                      <span className="text-[9px] tracking-widest uppercase text-[#C9A84C]">{getTier(en).tier_name}</span>
+                      <span className="text-xs text-[#A8A9AD]">${en.locked_in_price || getTier(en).price}/{getTier(en).billing_interval?.replace("_", " ")?.slice(0, 3)}</span>
+                    </>
+                  ) : (
+                    <span className="text-xs text-[#A8A9AD]">No tier</span>
+                  )}
+                </div>
+                <button onClick={() => { setUpgradeTarget(en); setShowUpgrade(true); }} className="p-2 text-[#A8A9AD] hover:text-[#C9A84C] shrink-0" title="Change tier">
+                  <ArrowUpCircle size={16} />
+                </button>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  {health.status === "flagged" && <><AlertTriangle size={14} className="text-red-400" /><span className="text-xs text-red-400 hidden sm:inline">{health.days}d ago</span></>}
-                  {health.status === "healthy" && <><CheckCircle size={14} className="text-green-400" /><span className="text-xs text-green-400 hidden sm:inline">{health.days}d ago</span></>}
+                  {health.status === "flagged" && <><AlertTriangle size={14} className="text-red-400" /><span className="text-xs text-red-400 hidden lg:inline">{health.days}d ago</span></>}
+                  {health.status === "healthy" && <><CheckCircle size={14} className="text-green-400" /><span className="text-xs text-green-400 hidden lg:inline">{health.days}d ago</span></>}
                   {health.status === "no_data" && <span className="text-xs text-[#A8A9AD]">No check-ins</span>}
                   {health.status === "pending" && <span className="text-xs text-[#A8A9AD]">Pending setup</span>}
                 </div>
@@ -206,11 +236,40 @@ export default function ProgramRoster({ program, onBack }) {
               <input type="number" value={capacity} onChange={e => setCapacity(parseInt(e.target.value) || 0)} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
               <p className="text-xs text-[#A8A9AD] mt-2">When capacity is reached, new enrollments are added to the waitlist.</p>
             </div>
+            <div className="border-t border-[#A8A9AD]/10 pt-4">
+              <p className="text-xs tracking-widest uppercase text-[#C9A84C] mb-3">Age & Prerequisite Gating</p>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Min Age (0 = none)</label>
+                  <input type="number" value={ageMin} onChange={e => setAgeMin(parseInt(e.target.value) || 0)} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Max Age (0 = none)</label>
+                  <input type="number" value={ageMax} onChange={e => setAgeMax(parseInt(e.target.value) || 0)} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Prerequisite Rank (blank = none)</label>
+                <select value={prereqRank} onChange={e => setPrereqRank(e.target.value)} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
+                  <option value="">No prerequisite</option>
+                  {BELT_RANKS.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+                <p className="text-xs text-[#A8A9AD] mt-2">Enrollments that don't meet the age range or rank requirement will be blocked with a recommendation.</p>
+              </div>
+            </div>
             <button onClick={saveCapacity} className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-3 hover:bg-[#E0C97A] transition-colors">
               Save Settings
             </button>
           </div>
         </Modal>
+      )}
+
+      {/* Tier Builder */}
+      {showTiers && <TierBuilder program={program} onBack={() => { setShowTiers(false); load(); }} />}
+
+      {/* Upgrade/Downgrade modal */}
+      {showUpgrade && upgradeTarget && (
+        <TierUpgradeModal enrollment={upgradeTarget} tiers={tiers} onClose={() => setShowUpgrade(false)} onDone={() => { setShowUpgrade(false); load(); }} />
       )}
     </div>
   );

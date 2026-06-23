@@ -13,7 +13,7 @@ const STEPS = ["Contact", "Emergency", "Programs", "Waiver", "Billing"];
 
 const createEmptyMember = () => ({
   firstName: "", lastName: "", dob: "", email: "", phone: "", address: "",
-  beltSize: "", uniformSize: "", medicalConditions: "",
+  beltSize: "", uniformSize: "", medicalConditions: "", beltRank: "White",
   emergencyContact: { name: "", relationship: "", phone: "", altPhone: "" },
   programs: [], startDate: "",
   customFields: {},
@@ -151,15 +151,22 @@ export default function AdminOnboarding() {
       }
 
       // 4. Create Enrollment records
+      const allPrograms = await base44.entities.Program.list();
+      const allTiers = await base44.entities.SubscriptionTier.list();
       for (const member of members) {
-        for (const program of member.programs) {
+        for (const programName of member.programs) {
+          const prog = allPrograms.find(p => p.program_name === programName);
+          const defaultTier = prog ? allTiers.filter(t => t.linked_program_id === prog.id && t.is_active !== false).sort((a, b) => (a.display_order || 0) - (b.display_order || 0))[0] : null;
           await base44.entities.Enrollment.create({
             user_email: member.email,
             user_name: `${member.firstName} ${member.lastName}`,
-            program,
+            program: programName,
+            program_id: prog?.id || "",
             start_date: member.startDate,
             status: "active",
             custom_fields_data: member.customFields ? JSON.stringify(member.customFields) : "",
+            linked_tier_id: defaultTier?.id || "",
+            locked_in_price: defaultTier?.price || 0,
           });
         }
       }

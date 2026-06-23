@@ -32,6 +32,17 @@
     },
     "description": {
       "type": "string"
+    },
+    "age_minimum": {
+      "type": "number",
+      "default": 0
+    },
+    "age_maximum": {
+      "type": "number",
+      "default": 0
+    },
+    "prerequisite_rank": {
+      "type": "string"
     }
   },
   "required": [

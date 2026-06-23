@@ -1,54 +1,51 @@
 {
-  "name": "Enrollment",
+  "name": "SubscriptionTier",
   "type": "object",
   "properties": {
-    "user_email": {
+    "linked_program_id": {
       "type": "string"
     },
-    "user_id": {
+    "program_name": {
       "type": "string"
     },
-    "user_name": {
+    "tier_name": {
       "type": "string"
     },
-    "program": {
-      "type": "string"
-    },
-    "program_id": {
-      "type": "string"
-    },
-    "belt_rank": {
-      "type": "string"
-    },
-    "start_date": {
-      "type": "string",
-      "format": "date"
-    },
-    "status": {
+    "billing_interval": {
       "type": "string",
       "enum": [
-        "active",
-        "paused",
-        "cancelled",
-        "waitlist"
+        "monthly",
+        "annually",
+        "one_time"
       ],
-      "default": "active"
+      "default": "monthly"
     },
-    "custom_fields_data": {
-      "type": "string"
+    "price": {
+      "type": "number",
+      "default": 0
     },
-    "linked_tier_id": {
-      "type": "string"
+    "classes_allowed_per_week": {
+      "type": "number",
+      "default": 0
     },
-    "locked_in_price": {
+    "classes_allowed_per_month": {
+      "type": "number",
+      "default": 0
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "display_order": {
       "type": "number",
       "default": 0
     }
   },
   "required": [
-    "user_email",
-    "program",
-    "start_date"
+    "linked_program_id",
+    "tier_name",
+    "billing_interval",
+    "price"
   ],
   "rls": {
     "create": {
@@ -59,7 +56,7 @@
     "read": {
       "$or": [
         {
-          "data.user_id": "{{user.id}}"
+          "data.is_active": true
         },
         {
           "user_condition": {

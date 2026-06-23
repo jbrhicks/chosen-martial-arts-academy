@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Search, RotateCcw, QrCode, KeyRound, User, ChevronLeft } from "lucide-react";
+import { Loader2, Search, RotateCcw, QrCode, KeyRound, User, ChevronLeft, AlertTriangle, ShieldCheck, TrendingUp } from "lucide-react";
 import QRScanner from "@/components/kiosk/QRScanner";
 import PinPad from "@/components/kiosk/PinPad";
 import CheckInSuccess from "@/components/kiosk/CheckInSuccess";
@@ -16,6 +16,7 @@ export default function Kiosk() {
   const [checking, setChecking] = useState(false);
   const [success, setSuccess] = useState(null);
   const [pinError, setPinError] = useState(false);
+  const [capAlert, setCapAlert] = useState(null);
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
@@ -54,16 +55,38 @@ export default function Kiosk() {
     }
   };
 
-  const handleCheckIn = async () => {
+  const handleCheckIn = async (override = false) => {
     if (!selectedUser || !selectedClass) return;
     setChecking(true);
     try {
+      if (!override) {
+        const enrollments = await base44.entities.Enrollment.filter({ user_id: selectedUser.id, status: "active" });
+        const enrollment = enrollments[0];
+        if (enrollment?.linked_tier_id) {
+          const allTiers = await base44.entities.SubscriptionTier.list();
+          const tier = allTiers.find(t => t.id === enrollment.linked_tier_id);
+          if (tier && tier.classes_allowed_per_week > 0) {
+            const now = new Date();
+            const day = now.getDay();
+            const weekStart = new Date(now);
+            weekStart.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+            weekStart.setHours(0, 0, 0, 0);
+            const weekAtt = await base44.entities.AttendanceRecord.filter({ user_id: selectedUser.id });
+            const thisWeek = weekAtt.filter(a => new Date(a.check_in_date) >= weekStart);
+            if (thisWeek.length >= tier.classes_allowed_per_week) {
+              setCapAlert({ tier, weekCount: thisWeek.length, limit: tier.classes_allowed_per_week });
+              setChecking(false);
+              return;
+            }
+          }
+        }
+      }
       await base44.entities.AttendanceRecord.create({
         user_id: selectedUser.id,
         user_name: selectedUser.full_name,
         class_name: selectedClass,
         check_in_date: new Date().toISOString(),
-        check_in_method: mode === "qr" ? "QR" : mode === "pin" ? "PIN" : "Manual",
+        check_in_method: override ? "Manual" : mode === "qr" ? "QR" : mode === "pin" ? "PIN" : "Manual",
       });
       setSuccess(selectedUser.full_name);
     } catch (e) {
@@ -71,6 +94,8 @@ export default function Kiosk() {
     }
     setChecking(false);
   };
+
+  const handleOverride = () => { setCapAlert(null); handleCheckIn(true); };
 
   const reset = () => {
     setSelectedUser(null);
@@ -96,6 +121,31 @@ export default function Kiosk() {
 
   if (success) {
     return <CheckInSuccess name={success} onDismiss={handleSuccessDismiss} />;
+  }
+
+  if (capAlert) {
+    return (
+      <div className="fixed inset-0 bg-[#0A0A0A] text-white flex items-center justify-center p-6">
+        <div className="w-full max-w-md text-center space-y-6">
+          <div className="w-20 h-20 border-2 border-[#C9A84C] flex items-center justify-center mx-auto">
+            <AlertTriangle size={40} className="text-[#C9A84C]" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold mb-2">Weekly Limit Reached</h2>
+            <p className="text-[#A8A9AD]">{selectedUser?.full_name} has attended <span className="text-white font-bold">{capAlert.weekCount}</span> class(es) this week on the "{capAlert.tier.tier_name}" tier, which allows <span className="text-white font-bold">{capAlert.limit}</span> per week.</p>
+          </div>
+          <div className="space-y-3">
+            <button onClick={handleOverride} className="w-full flex items-center justify-center gap-2 px-6 py-5 border-2 border-[#C9A84C] text-[#C9A84C] text-lg font-bold hover:bg-[#C9A84C]/10 transition-colors">
+              <ShieldCheck size={22} /> Staff Override — Allow Check-In
+            </button>
+            <button onClick={() => setCapAlert(null)} className="w-full flex items-center justify-center gap-2 px-6 py-5 bg-[#C9A84C] text-black text-lg font-bold tracking-wide uppercase hover:bg-[#E0C97A] transition-colors">
+              <TrendingUp size={22} /> Offer Membership Upgrade
+            </button>
+            <button onClick={() => { setCapAlert(null); reset(); }} className="w-full text-sm text-[#A8A9AD] hover:text-white py-2">Cancel & Start Over</button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
