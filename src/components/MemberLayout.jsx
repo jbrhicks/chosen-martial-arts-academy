@@ -29,7 +29,6 @@ function MemberLayoutContent() {
     { label: "My Profile", path: "/portal/profile", icon: UserCircle },
     { label: "Refer a Friend", path: "/portal/referrals", icon: Gift },
     ...(isGuardian ? [{ label: "Family", path: "/portal/family", icon: UserCog }] : []),
-    { label: "Refer a Friend", path: "/portal/referrals", icon: Share2 },
   ];
 
   const isActive = (path) => location.pathname === path;
