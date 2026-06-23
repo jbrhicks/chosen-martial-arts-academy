@@ -36,20 +36,21 @@
       ],
       "default": "pending"
     },
-    "read_receipt": {
-      "type": "boolean",
-      "default": false
+    "sent_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "delivered_date": {
+      "type": "string",
+      "format": "date-time"
     },
     "read_date": {
       "type": "string",
       "format": "date-time"
     },
-    "sent_date": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "error_message": {
-      "type": "string"
+    "is_read": {
+      "type": "boolean",
+      "default": false
     }
   },
   "required": [
@@ -59,9 +60,16 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "read": {
       "$or": [
@@ -71,6 +79,21 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "data.message_id": {
+            "$in": {
+              "_filter": {
+                "entity": "BroadcastMessage",
+                "field": "id",
+                "filter": {
+                  "user_condition": {
+                    "role": "admin"
+                  }
+                }
+              }
+            }
           }
         }
       ]
