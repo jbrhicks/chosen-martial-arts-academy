@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Plus, X, Calendar, Search, ExternalLink } from "lucide-react";
+import { Loader2, Plus, X, Calendar, Search, ExternalLink, CheckCircle } from "lucide-react";
 
 export default function AdminAttendance() {
   const [records, setRecords] = useState([]);
@@ -8,8 +8,11 @@ export default function AdminAttendance() {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showManual, setShowManual] = useState(false);
-  const [manualForm, setManualForm] = useState({ user_id: "", class_name: "" });
+  const [manualSearch, setManualSearch] = useState("");
+  const [manualUser, setManualUser] = useState(null);
+  const [manualClass, setManualClass] = useState("");
   const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(null);
   const [filterDate, setFilterDate] = useState(new Date().toISOString().split("T")[0]);
   const [filterUser, setFilterUser] = useState("");
 
@@ -30,26 +33,39 @@ export default function AdminAttendance() {
     load();
   }, []);
 
-  const handleManualCheckIn = async (e) => {
-    e.preventDefault();
-    if (!manualForm.user_id || !manualForm.class_name) return;
+  const manualFiltered = manualSearch.length >= 2
+    ? users.filter(u => u.full_name?.toLowerCase().includes(manualSearch.toLowerCase()) || u.email?.toLowerCase().includes(manualSearch.toLowerCase()))
+    : [];
+
+  const handleManualCheckIn = async () => {
+    if (!manualUser || !manualClass) return;
     setSaving(true);
     try {
-      const user = users.find((u) => u.id === manualForm.user_id);
       const created = await base44.entities.AttendanceRecord.create({
-        user_id: manualForm.user_id,
-        user_name: user?.full_name || "Unknown",
-        class_name: manualForm.class_name,
+        user_id: manualUser.id,
+        user_name: manualUser.full_name,
+        class_name: manualClass,
         check_in_date: new Date().toISOString(),
-        check_in_method: "manual",
+        check_in_method: "Manual",
       });
       setRecords([created, ...records]);
+      setSuccess(manualUser.full_name);
+      setTimeout(() => setSuccess(null), 2500);
+      setManualUser(null);
+      setManualClass("");
+      setManualSearch("");
       setShowManual(false);
-      setManualForm({ user_id: "", class_name: "" });
     } catch (e) {
       alert("Failed to record attendance.");
     }
     setSaving(false);
+  };
+
+  const closeManual = () => {
+    setShowManual(false);
+    setManualUser(null);
+    setManualClass("");
+    setManualSearch("");
   };
 
   const filtered = records.filter((r) => {
@@ -58,16 +74,21 @@ export default function AdminAttendance() {
     return dateMatch && userMatch;
   });
 
-  // Stats
   const todayCount = records.filter((r) => r.check_in_date?.startsWith(new Date().toISOString().split("T")[0])).length;
   const thisWeekCount = records.filter((r) => {
     const d = new Date(r.check_in_date);
-    const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     return d >= weekAgo;
   }).length;
 
   const kioskUrl = `${window.location.origin}/kiosk`;
+
+  const methodColor = (method) => {
+    if (method === "QR") return "text-[#C9A84C] border-[#C9A84C]/30";
+    if (method === "PIN") return "text-blue-400 border-blue-400/30";
+    if (method === "GPS") return "text-green-400 border-green-400/30";
+    return "text-[#A8A9AD] border-[#A8A9AD]/20";
+  };
 
   if (loading) {
     return <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-[#C9A84C]" /></div>;
@@ -169,9 +190,7 @@ export default function AdminAttendance() {
                   <td className="py-3 px-4 text-sm text-[#A8A9AD]">{r.class_name}</td>
                   <td className="py-3 px-4 text-sm text-[#A8A9AD]">{new Date(r.check_in_date).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}</td>
                   <td className="py-3 px-4">
-                    <span className={`text-[9px] tracking-widest uppercase px-2 py-1 border ${
-                      r.check_in_method === "kiosk" ? "text-[#C9A84C] border-[#C9A84C]/30" : "text-[#A8A9AD] border-[#A8A9AD]/20"
-                    }`}>{r.check_in_method}</span>
+                    <span className={`text-[9px] tracking-widest uppercase px-2 py-1 border ${methodColor(r.check_in_method)}`}>{r.check_in_method}</span>
                   </td>
                 </tr>
               ))
@@ -182,47 +201,94 @@ export default function AdminAttendance() {
 
       {/* Manual check-in modal */}
       {showManual && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setShowManual(false)}>
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={closeManual}>
           <div className="w-full max-w-md border border-[#C9A84C]/30 bg-[#0A0A0A] p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg font-bold">Manual Check-In</h3>
-              <button onClick={() => setShowManual(false)} className="text-[#A8A9AD] hover:text-white"><X size={18} /></button>
+              <button onClick={closeManual} className="text-[#A8A9AD] hover:text-white"><X size={18} /></button>
             </div>
-            <form onSubmit={handleManualCheckIn} className="space-y-4">
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Student *</label>
-                <select
-                  value={manualForm.user_id}
-                  onChange={(e) => setManualForm({ ...manualForm, user_id: e.target.value })}
-                  className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none"
-                  required
-                >
-                  <option value="">Select student...</option>
-                  {users.map((u) => <option key={u.id} value={u.id}>{u.full_name || u.email}</option>)}
-                </select>
+
+            {success && (
+              <div className="mb-4 border border-green-400/30 bg-green-400/10 p-3 flex items-center gap-2">
+                <CheckCircle size={18} className="text-green-400" />
+                <p className="text-sm text-green-400">{success} checked in!</p>
               </div>
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Class *</label>
-                <select
-                  value={manualForm.class_name}
-                  onChange={(e) => setManualForm({ ...manualForm, class_name: e.target.value })}
-                  className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none"
-                  required
-                >
-                  <option value="">Select class...</option>
-                  {[...new Set(classes.map((c) => c.class_name))].map((name) => (
-                    <option key={name} value={name}>{name}</option>
-                  ))}
-                </select>
+            )}
+
+            {/* Step 1: Search student */}
+            {!manualUser ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Search Student *</label>
+                  <div className="relative">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A9AD]" />
+                    <input
+                      value={manualSearch}
+                      onChange={(e) => setManualSearch(e.target.value)}
+                      autoFocus
+                      placeholder="Type student name..."
+                      className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 pl-9 pr-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none"
+                    />
+                  </div>
+                </div>
+                {manualFiltered.length > 0 && (
+                  <div className="border border-[#A8A9AD]/20 max-h-56 overflow-y-auto">
+                    {manualFiltered.map((u) => (
+                      <button
+                        key={u.id}
+                        onClick={() => { setManualUser(u); setManualSearch(""); }}
+                        className="w-full text-left px-4 py-3 border-b border-[#A8A9AD]/10 hover:bg-[#C9A84C]/10 transition-colors flex items-center gap-3"
+                      >
+                        <div className="w-9 h-9 bg-[#C9A84C]/10 border border-[#C9A84C]/30 flex items-center justify-center text-sm font-bold text-[#C9A84C] shrink-0">
+                          {u.full_name?.charAt(0) || "?"}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{u.full_name}</p>
+                          <p className="text-xs text-[#A8A9AD]">{u.email}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {manualSearch.length >= 2 && manualFiltered.length === 0 && (
+                  <p className="text-center text-[#A8A9AD] text-sm py-2">No students found.</p>
+                )}
               </div>
-              <button
-                type="submit"
-                disabled={saving}
-                className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-3 hover:bg-[#E0C97A] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {saving ? <Loader2 size={16} className="animate-spin" /> : "Record Attendance"}
-              </button>
-            </form>
+            ) : (
+              /* Step 2: Select class and confirm */
+              <div className="space-y-4">
+                <div className="border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-3 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#C9A84C]/10 border border-[#C9A84C]/30 flex items-center justify-center font-bold text-[#C9A84C]">
+                    {manualUser.full_name?.charAt(0) || "?"}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{manualUser.full_name}</p>
+                    <p className="text-xs text-[#A8A9AD]">{manualUser.email}</p>
+                  </div>
+                  <button onClick={() => setManualUser(null)} className="text-xs text-[#A8A9AD] hover:text-white">Change</button>
+                </div>
+                <div>
+                  <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Class *</label>
+                  <select
+                    value={manualClass}
+                    onChange={(e) => setManualClass(e.target.value)}
+                    className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none"
+                  >
+                    <option value="">Select class...</option>
+                    {[...new Set(classes.map((c) => c.class_name))].map((name) => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={handleManualCheckIn}
+                  disabled={!manualClass || saving}
+                  className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-3 hover:bg-[#E0C97A] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {saving ? <Loader2 size={16} className="animate-spin" /> : "Record Attendance"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

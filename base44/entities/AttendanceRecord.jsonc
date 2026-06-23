@@ -11,6 +11,9 @@
     "class_name": {
       "type": "string"
     },
+    "class_type": {
+      "type": "string"
+    },
     "check_in_date": {
       "type": "string",
       "format": "date-time"
@@ -18,10 +21,14 @@
     "check_in_method": {
       "type": "string",
       "enum": [
+        "QR",
+        "PIN",
+        "GPS",
+        "Manual",
         "kiosk",
         "manual"
       ],
-      "default": "manual"
+      "default": "Manual"
     }
   },
   "required": [

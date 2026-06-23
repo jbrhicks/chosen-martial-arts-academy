@@ -1,0 +1,24 @@
+{
+  "name": "LocationSettings",
+  "type": "object",
+  "properties": {
+    "academy_lat": {
+      "type": "number"
+    },
+    "academy_lng": {
+      "type": "number"
+    },
+    "geofence_radius": {
+      "type": "number",
+      "default": 50
+    },
+    "location_name": {
+      "type": "string",
+      "default": "Main Academy"
+    }
+  },
+  "required": [
+    "academy_lat",
+    "academy_lng"
+  ]
+}

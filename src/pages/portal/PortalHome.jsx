@@ -3,7 +3,9 @@ import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useFamily } from "@/lib/FamilyContext";
-import { Video, Users, Calendar, CreditCard, ChevronRight, TrendingUp } from "lucide-react";
+import { Video, Users, Calendar, CreditCard, ChevronRight, TrendingUp, QrCode } from "lucide-react";
+import IDCard from "@/components/portal/checkin/IDCard";
+import GPSCheckIn from "@/components/portal/checkin/GPSCheckIn";
 import BeltBadge from "@/components/BeltBadge";
 import { BELT_RANKS, getRankIndex } from "@/lib/constants";
 
@@ -13,6 +15,7 @@ export default function PortalHome() {
   const [stats, setStats] = useState({ videos: 0, posts: 0, events: 0, payments: 0 });
   const [nextRank, setNextRank] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showIDCard, setShowIDCard] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -54,6 +57,21 @@ export default function PortalHome() {
         {activeProfile?.belt_rank && <BeltBadge rank={activeProfile.belt_rank} size="lg" />}
       </div>
 
+      {/* ID Card / Check-in */}
+      <button
+        onClick={() => setShowIDCard(true)}
+        className="w-full flex items-center gap-4 border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-5 hover:bg-[#C9A84C]/10 transition-colors text-left"
+      >
+        <div className="w-12 h-12 border border-[#C9A84C]/30 flex items-center justify-center">
+          <QrCode size={24} className="text-[#C9A84C]" />
+        </div>
+        <div className="flex-1">
+          <h3 className="font-bold text-sm">My ID Card</h3>
+          <p className="text-xs text-[#A8A9AD]">Show your QR code at the front desk to check in</p>
+        </div>
+        <ChevronRight size={18} className="text-[#A8A9AD]" />
+      </button>
+
       {/* Belt progress */}
       {activeProfile?.belt_rank && nextRank && (
         <div className="border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-6">
@@ -73,6 +91,9 @@ export default function PortalHome() {
           <p className="text-xs text-[#A8A9AD] mt-2">Rank {getRankIndex(activeProfile.belt_rank) + 1} of {BELT_RANKS.length}</p>
         </div>
       )}
+
+      {/* GPS Check-In */}
+      <GPSCheckIn user={user} activeProfile={activeProfile} />
 
       {/* Quick links */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -108,6 +129,8 @@ export default function PortalHome() {
           </div>
         ))}
       </div>
+
+      {showIDCard && <IDCard user={activeProfile || user} onClose={() => setShowIDCard(false)} />}
     </div>
   );
 }
