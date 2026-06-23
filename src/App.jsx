@@ -58,6 +58,7 @@ import StudentCurriculum from '@/pages/portal/StudentCurriculum';
 import Messages from '@/pages/portal/Messages';
 import Family from '@/pages/portal/Family';
 import Wallet from '@/pages/portal/Wallet';
+import MyProfile from '@/pages/portal/MyProfile';
 import PortalSchedule from '@/pages/portal/Schedule';
 import Kiosk from '@/pages/Kiosk';
 
@@ -118,6 +119,7 @@ const AuthenticatedApp = () => {
           <Route path="/portal/events" element={<Events />} />
           <Route path="/portal/billing" element={<Billing />} />
           <Route path="/portal/wallet" element={<Wallet />} />
+          <Route path="/portal/profile" element={<MyProfile />} />
           <Route path="/portal/schedule" element={<PortalSchedule />} />
         </Route>
       </Route>
