@@ -26,7 +26,7 @@ export default function AdminMembershipRequests() {
       <div>
         <p className="text-xs tracking-widest uppercase text-[#C9A84C] mb-2">Retention Queue</p>
         <h1 className="text-3xl font-bold">Membership Requests</h1>
-        <p className="text-sm text-[#A8A9AD] mt-1">Review and process freeze/cancellation requests from members.</p>
+        <p className="text-sm text-[#A8A9AD] mt-1">Review and process freeze, cancellation, and tier change requests from members.</p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#A8A9AD]/20 border border-[#A8A9AD]/20">
@@ -63,9 +63,9 @@ export default function AdminMembershipRequests() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-1">
                   <p className="text-sm font-bold">{r.user_name}</p>
-                  <span className={`text-xs px-2 py-0.5 uppercase tracking-wider ${r.request_type === "freeze" ? "bg-blue-400/10 text-blue-400" : "bg-red-400/10 text-red-400"}`}>{r.request_type}</span>
+                  <span className={`text-xs px-2 py-0.5 uppercase tracking-wider ${r.request_type === "freeze" ? "bg-blue-400/10 text-blue-400" : r.request_type === "cancellation" ? "bg-red-400/10 text-red-400" : r.request_type === "upgrade" ? "bg-green-400/10 text-green-400" : "bg-[#C9A84C]/10 text-[#C9A84C]"}`}>{r.request_type}</span>
                 </div>
-                <p className="text-xs text-[#A8A9AD]">{r.program_name || "Program"} • Effective: {r.requested_effective_date ? new Date(r.requested_effective_date).toLocaleDateString() : "—"}</p>
+                <p className="text-xs text-[#A8A9AD]">{r.program_name || "Program"}{(r.request_type === "upgrade" || r.request_type === "downgrade") && r.requested_tier_name ? ` • ${r.current_tier_name || "No tier"} → ${r.requested_tier_name}` : ""} • Effective: {r.requested_effective_date ? new Date(r.requested_effective_date).toLocaleDateString() : "—"}</p>
                 <p className="text-xs text-[#A8A9AD] mt-1 truncate">"{r.reason}"</p>
               </div>
               <div className="text-right shrink-0">

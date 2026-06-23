@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { CreditCard, Plus, Trash2, Loader2, AlertCircle, Star } from "lucide-react";
 import AddCardModal from "@/components/portal/wallet/AddCardModal";
 import ManageMembership from "@/components/portal/wallet/ManageMembership";
+import TierChangeRequest from "@/components/portal/wallet/TierChangeRequest";
 
 export default function Wallet() {
   const { user } = useAuth();
@@ -117,6 +118,7 @@ export default function Wallet() {
       </div>
 
       <ManageMembership user={user} familyId={familyId} />
+      <TierChangeRequest user={user} familyId={familyId} />
 
       {showAddCard && <AddCardModal familyId={familyId} existingMethods={paymentMethods} onClose={() => setShowAddCard(false)} onSaved={() => { setShowAddCard(false); load(); }} />}
     </div>

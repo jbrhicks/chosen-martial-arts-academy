@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { X, Loader2, Snowflake, XCircle, CheckCircle, Phone } from "lucide-react";
+import { X, Loader2, Snowflake, XCircle, CheckCircle, Phone, TrendingUp, TrendingDown } from "lucide-react";
 
 export default function RequestDetail({ request, onClose, onProcessed }) {
   const [notes, setNotes] = useState(request.admin_notes || "");
@@ -67,6 +67,30 @@ export default function RequestDetail({ request, onClose, onProcessed }) {
     } catch (e) { alert("Failed to update."); }
   };
 
+  const handleApproveTierChange = async () => {
+    if (!request.requested_tier_id || !request.enrollment_id) { alert("Missing tier or enrollment data."); return; }
+    if (!confirm(`Approve ${request.request_type} to "${request.requested_tier_name}"? This will update the student's tier and locked-in price.`)) return;
+    setProcessing(true);
+    try {
+      const allTiers = await base44.entities.SubscriptionTier.list();
+      const targetTier = allTiers.find(t => t.id === request.requested_tier_id);
+      if (!targetTier) throw new Error("Requested tier no longer exists.");
+      await base44.entities.Enrollment.update(request.enrollment_id, {
+        linked_tier_id: targetTier.id,
+        locked_in_price: targetTier.price,
+      });
+      const billings = await base44.entities.BillingRecord.filter({ user_email: request.user_email, status: "active" });
+      for (const b of billings) {
+        if (targetTier.billing_interval === "monthly") {
+          await base44.entities.BillingRecord.update(b.id, { recurring_amount: targetTier.price });
+        }
+      }
+      await updateRequest({ status: "approved", processed_date: new Date().toISOString() });
+      onProcessed();
+    } catch (e) { alert("Failed to process tier change: " + e.message); }
+    setProcessing(false);
+  };
+
   const isProcessed = request.status === "approved" || request.status === "saved";
 
   return (
@@ -83,13 +107,26 @@ export default function RequestDetail({ request, onClose, onProcessed }) {
         <div className="grid grid-cols-2 gap-4 mb-5">
           <div className="border border-[#A8A9AD]/20 p-3">
             <p className="text-[10px] tracking-widest uppercase text-[#A8A9AD]">Request Type</p>
-            <p className={`text-sm font-bold ${request.request_type === "freeze" ? "text-blue-400" : "text-red-400"}`}>{request.request_type === "freeze" ? "Freeze Account" : "Cancel Membership"}</p>
+            <p className={`text-sm font-bold ${request.request_type === "freeze" ? "text-blue-400" : request.request_type === "cancellation" ? "text-red-400" : request.request_type === "upgrade" ? "text-green-400" : "text-[#C9A84C]"}`}>
+              {request.request_type === "freeze" ? "Freeze Account" : request.request_type === "cancellation" ? "Cancel Membership" : request.request_type === "upgrade" ? "Upgrade Tier" : "Downgrade Tier"}
+            </p>
           </div>
           <div className="border border-[#A8A9AD]/20 p-3">
             <p className="text-[10px] tracking-widest uppercase text-[#A8A9AD]">Effective Date</p>
             <p className="text-sm font-bold">{request.requested_effective_date ? new Date(request.requested_effective_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "—"}</p>
           </div>
         </div>
+
+        {(request.request_type === "upgrade" || request.request_type === "downgrade") && (
+          <div className="border border-[#A8A9AD]/20 p-4 mb-5">
+            <p className="text-[10px] tracking-widest uppercase text-[#A8A9AD] mb-2">Tier Change Details</p>
+            <div className="flex items-center gap-3 text-sm">
+              <span className="text-[#A8A9AD]">{request.current_tier_name || "No tier"}</span>
+              {request.request_type === "upgrade" ? <TrendingUp size={16} className="text-green-400" /> : <TrendingDown size={16} className="text-[#C9A84C]" />}
+              <span className="text-white font-medium">{request.requested_tier_name}</span>
+            </div>
+          </div>
+        )}
 
         <div className="border border-[#A8A9AD]/20 p-4 mb-5">
           <p className="text-[10px] tracking-widest uppercase text-[#A8A9AD] mb-2">Reason Provided</p>
@@ -124,6 +161,11 @@ export default function RequestDetail({ request, onClose, onProcessed }) {
             {request.request_type === "cancellation" && (
               <button onClick={handleApproveCancellation} disabled={processing} className="flex items-center justify-center gap-2 border border-red-400/30 text-red-400 hover:bg-red-400/10 py-3 text-sm font-medium tracking-wide uppercase transition-colors disabled:opacity-50">
                 {processing ? <Loader2 size={15} className="animate-spin" /> : <><XCircle size={15} /> Approve Cancellation</>}
+              </button>
+            )}
+            {(request.request_type === "upgrade" || request.request_type === "downgrade") && (
+              <button onClick={handleApproveTierChange} disabled={processing} className={`flex items-center justify-center gap-2 border py-3 text-sm font-medium tracking-wide uppercase transition-colors disabled:opacity-50 ${request.request_type === "upgrade" ? "border-green-400/30 text-green-400 hover:bg-green-400/10" : "border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/10"}`}>
+                {processing ? <Loader2 size={15} className="animate-spin" /> : <>{request.request_type === "upgrade" ? <TrendingUp size={15} /> : <TrendingDown size={15} />} Approve {request.request_type === "upgrade" ? "Upgrade" : "Downgrade"}</>}
               </button>
             )}
             <button onClick={handleMarkSaved} className="flex items-center justify-center gap-2 border border-green-400/30 text-green-400 hover:bg-green-400/10 py-3 text-sm font-medium tracking-wide uppercase transition-colors col-span-2">

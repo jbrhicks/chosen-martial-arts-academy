@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Search, RotateCcw, QrCode, KeyRound, User, ChevronLeft, AlertTriangle, ShieldCheck, TrendingUp } from "lucide-react";
+import { Loader2, Search, RotateCcw, QrCode, KeyRound, User, ChevronLeft, AlertTriangle, ShieldCheck, TrendingUp, CreditCard } from "lucide-react";
 import QRScanner from "@/components/kiosk/QRScanner";
 import PinPad from "@/components/kiosk/PinPad";
 import CheckInSuccess from "@/components/kiosk/CheckInSuccess";
@@ -17,6 +17,7 @@ export default function Kiosk() {
   const [success, setSuccess] = useState(null);
   const [pinError, setPinError] = useState(false);
   const [capAlert, setCapAlert] = useState(null);
+  const [dropInProcessing, setDropInProcessing] = useState(false);
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
@@ -97,6 +98,40 @@ export default function Kiosk() {
 
   const handleOverride = () => { setCapAlert(null); handleCheckIn(true); };
 
+  const handleDropInPurchase = async () => {
+    if (!selectedUser || !selectedClass) return;
+    setDropInProcessing(true);
+    try {
+      const enrollments = await base44.entities.Enrollment.filter({ user_id: selectedUser.id, status: "active" });
+      const enrollment = enrollments[0];
+      const allPrograms = await base44.entities.Program.list();
+      const program = enrollment ? allPrograms.find(p => p.id === enrollment.program_id) : null;
+      const dropInPrice = program?.drop_in_price || 0;
+      if (dropInPrice === 0) {
+        alert("Drop-in class purchase is not available for this program. Please see the front desk.");
+        setDropInProcessing(false);
+        return;
+      }
+      await base44.entities.AttendanceRecord.create({
+        user_id: selectedUser.id,
+        user_name: selectedUser.full_name,
+        class_name: selectedClass,
+        check_in_date: new Date().toISOString(),
+        check_in_method: "kiosk",
+      });
+      await base44.entities.GeneralLedger.create({
+        type: "income",
+        amount: dropInPrice,
+        date: new Date().toISOString(),
+        category: "tuition",
+        description: `Drop-in class: ${selectedClass} — ${selectedUser.full_name}`,
+      });
+      setSuccess(`${selectedUser.full_name} — Drop-in class purchased ($${dropInPrice.toFixed(2)})`);
+      setCapAlert(null);
+    } catch (e) { alert("Drop-in purchase failed. Please see the front desk."); }
+    setDropInProcessing(false);
+  };
+
   const reset = () => {
     setSelectedUser(null);
     setSelectedClass("");
@@ -135,10 +170,13 @@ export default function Kiosk() {
             <p className="text-[#A8A9AD]">{selectedUser?.full_name} has attended <span className="text-white font-bold">{capAlert.weekCount}</span> class(es) this week on the "{capAlert.tier.tier_name}" tier, which allows <span className="text-white font-bold">{capAlert.limit}</span> per week.</p>
           </div>
           <div className="space-y-3">
+            <button onClick={handleDropInPurchase} disabled={dropInProcessing} className="w-full flex items-center justify-center gap-2 px-6 py-5 bg-[#C9A84C] text-black text-lg font-bold tracking-wide uppercase hover:bg-[#E0C97A] transition-colors disabled:opacity-50">
+              {dropInProcessing ? <Loader2 size={22} className="animate-spin" /> : <><CreditCard size={22} /> Purchase Drop-In Class</>}
+            </button>
             <button onClick={handleOverride} className="w-full flex items-center justify-center gap-2 px-6 py-5 border-2 border-[#C9A84C] text-[#C9A84C] text-lg font-bold hover:bg-[#C9A84C]/10 transition-colors">
               <ShieldCheck size={22} /> Staff Override — Allow Check-In
             </button>
-            <button onClick={() => setCapAlert(null)} className="w-full flex items-center justify-center gap-2 px-6 py-5 bg-[#C9A84C] text-black text-lg font-bold tracking-wide uppercase hover:bg-[#E0C97A] transition-colors">
+            <button onClick={() => setCapAlert(null)} className="w-full flex items-center justify-center gap-2 px-6 py-5 border border-[#A8A9AD]/30 text-[#A8A9AD] text-lg font-bold tracking-wide uppercase hover:text-white hover:border-[#A8A9AD]/50 transition-colors">
               <TrendingUp size={22} /> Offer Membership Upgrade
             </button>
             <button onClick={() => { setCapAlert(null); reset(); }} className="w-full text-sm text-[#A8A9AD] hover:text-white py-2">Cancel & Start Over</button>

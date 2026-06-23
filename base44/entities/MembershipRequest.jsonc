@@ -24,7 +24,9 @@
       "type": "string",
       "enum": [
         "freeze",
-        "cancellation"
+        "cancellation",
+        "upgrade",
+        "downgrade"
       ]
     },
     "reason": {
@@ -54,6 +56,22 @@
     "processed_date": {
       "type": "string",
       "format": "date-time"
+    },
+    "enrollment_id": {
+      "type": "string"
+    },
+    "current_tier_name": {
+      "type": "string"
+    },
+    "requested_tier_id": {
+      "type": "string"
+    },
+    "requested_tier_name": {
+      "type": "string"
+    },
+    "prorated_amount": {
+      "type": "number",
+      "default": 0
     }
   },
   "required": [

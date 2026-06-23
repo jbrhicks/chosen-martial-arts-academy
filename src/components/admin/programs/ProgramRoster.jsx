@@ -24,6 +24,7 @@ export default function ProgramRoster({ program, onBack }) {
   const [ageMin, setAgeMin] = useState(program.age_minimum || 0);
   const [ageMax, setAgeMax] = useState(program.age_maximum || 0);
   const [prereqRank, setPrereqRank] = useState(program.prerequisite_rank || "");
+  const [dropInPrice, setDropInPrice] = useState(program.drop_in_price || 0);
   const [sending, setSending] = useState(false);
 
   const load = async () => {
@@ -93,7 +94,7 @@ export default function ProgramRoster({ program, onBack }) {
 
   const saveCapacity = async () => {
     try {
-      await base44.entities.Program.update(program.id, { max_capacity: capacity, age_minimum: ageMin, age_maximum: ageMax, prerequisite_rank: prereqRank });
+      await base44.entities.Program.update(program.id, { max_capacity: capacity, age_minimum: ageMin, age_maximum: ageMax, prerequisite_rank: prereqRank, drop_in_price: dropInPrice });
       alert("Program settings updated.");
       setShowSettings(false);
     } catch (e) { alert("Failed to update settings."); }
@@ -255,6 +256,14 @@ export default function ProgramRoster({ program, onBack }) {
                   {BELT_RANKS.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
                 <p className="text-xs text-[#A8A9AD] mt-2">Enrollments that don't meet the age range or rank requirement will be blocked with a recommendation.</p>
+              </div>
+            </div>
+            <div className="border-t border-[#A8A9AD]/10 pt-4">
+              <p className="text-xs tracking-widest uppercase text-[#C9A84C] mb-3">Drop-In Class Pricing</p>
+              <div>
+                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Drop-In Price ($)</label>
+                <input type="number" step="0.01" value={dropInPrice} onChange={e => setDropInPrice(parseFloat(e.target.value) || 0)} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
+                <p className="text-xs text-[#A8A9AD] mt-2">When a student reaches their weekly class limit at the kiosk, they can purchase an individual drop-in class at this price. Set to 0 to disable.</p>
               </div>
             </div>
             <button onClick={saveCapacity} className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-3 hover:bg-[#E0C97A] transition-colors">

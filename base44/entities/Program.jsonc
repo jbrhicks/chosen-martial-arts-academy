@@ -43,6 +43,10 @@
     },
     "prerequisite_rank": {
       "type": "string"
+    },
+    "drop_in_price": {
+      "type": "number",
+      "default": 0
     }
   },
   "required": [
