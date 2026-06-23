@@ -62,6 +62,9 @@
     "max_trials_allowed": {
       "type": "number",
       "default": 2
+    },
+    "linked_program_id": {
+      "type": "string"
     }
   },
   "required": [
