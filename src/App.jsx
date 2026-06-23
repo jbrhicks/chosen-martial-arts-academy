@@ -51,6 +51,7 @@ import AdminPrograms from '@/pages/admin/AdminPrograms';
 import AdminCustomFields from '@/pages/admin/AdminCustomFields';
 import AdminDiscounts from '@/pages/admin/AdminDiscounts';
 import AdminMembershipRequests from '@/pages/admin/AdminMembershipRequests';
+import AdminExceptionRequests from '@/pages/admin/AdminExceptionRequests';
 import Progress from '@/pages/portal/Progress';
 import StudentCurriculum from '@/pages/portal/StudentCurriculum';
 import Messages from '@/pages/portal/Messages';
@@ -141,6 +142,7 @@ const AuthenticatedApp = () => {
             <Route path="/admin/custom-fields" element={<AdminCustomFields />} />
             <Route path="/admin/discounts" element={<AdminDiscounts />} />
             <Route path="/admin/membership-requests" element={<AdminMembershipRequests />} />
+            <Route path="/admin/exception-requests" element={<AdminExceptionRequests />} />
           </Route>
         </Route>
       </Route>

@@ -1,7 +1,19 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Plus, CheckCircle, Layers, TrendingDown } from "lucide-react";
+import { Loader2, Plus, CheckCircle, Layers, TrendingDown, Lock } from "lucide-react";
 import { calculateMultiProgramDiscount, resolveProgramPrice } from "@/lib/multiProgramDiscount";
+import AgeGateModal from "@/components/portal/AgeGateModal";
+
+function calculateAge(dob) {
+  if (!dob) return null;
+  const birth = new Date(dob);
+  if (isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const m = now.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+  return age;
+}
 
 export default function ProgramAddOn({ user, familyId }) {
   const [enrollments, setEnrollments] = useState([]);
@@ -11,6 +23,7 @@ export default function ProgramAddOn({ user, familyId }) {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
+  const [ageGate, setAgeGate] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -108,6 +121,12 @@ export default function ProgramAddOn({ user, familyId }) {
           <div className="space-y-3">
             {availablePrograms.map(program => {
               const preview = previewDiscount(program);
+              const studentAge = calculateAge(user.dob);
+              const hasOverride = (user.approved_program_overrides || []).includes(program.id);
+              const ageBlocked = !hasOverride && studentAge !== null && (
+                (program.age_minimum > 0 && studentAge < program.age_minimum) ||
+                (program.age_maximum > 0 && studentAge > program.age_maximum)
+              );
               return (
                 <div key={program.id} className="border border-[#A8A9AD]/20 p-4">
                   <div className="flex items-start justify-between mb-2">
@@ -115,9 +134,15 @@ export default function ProgramAddOn({ user, familyId }) {
                       <p className="text-sm font-medium">{program.program_name}</p>
                       <p className="text-xs text-[#A8A9AD]">{program.age_group} • ${program.default_monthly_rate || 0}/mo</p>
                     </div>
-                    <button onClick={() => handleAdd(program)} disabled={adding === program.id} className="flex items-center gap-2 px-4 py-2 bg-[#C9A84C] text-black font-bold text-xs tracking-wide uppercase hover:bg-[#E0C97A] disabled:opacity-50">
-                      {adding === program.id ? <Loader2 size={14} className="animate-spin" /> : <><Plus size={14} /> Add</>}
-                    </button>
+                    {ageBlocked ? (
+                      <button onClick={() => setAgeGate(program)} className="flex items-center gap-2 px-4 py-2 border border-[#A8A9AD]/40 text-[#A8A9AD] font-bold text-xs tracking-wide uppercase hover:border-[#C9A84C] hover:text-[#C9A84C] transition-colors">
+                        <Lock size={14} /> Request Override
+                      </button>
+                    ) : (
+                      <button onClick={() => handleAdd(program)} disabled={adding === program.id} className="flex items-center gap-2 px-4 py-2 bg-[#C9A84C] text-black font-bold text-xs tracking-wide uppercase hover:bg-[#E0C97A] disabled:opacity-50">
+                        {adding === program.id ? <Loader2 size={14} className="animate-spin" /> : <><Plus size={14} /> Add</>}
+                      </button>
+                    )}
                   </div>
                   {multiDiscount && preview.discountAmount > 0 && (
                     <div className="flex items-center gap-2 text-xs text-green-400 mt-2 border-t border-[#A8A9AD]/10 pt-2">
@@ -130,6 +155,18 @@ export default function ProgramAddOn({ user, familyId }) {
             })}
           </div>
         </>
+      )}
+
+      {ageGate && (
+        <AgeGateModal
+          studentName={user.full_name}
+          studentAge={calculateAge(user.dob)}
+          programName={ageGate.program_name}
+          programId={ageGate.id}
+          studentId={user.id}
+          familyId={familyId}
+          onClose={() => setAgeGate(null)}
+        />
       )}
     </div>
   );

@@ -104,6 +104,13 @@
         "active"
       ],
       "default": "active"
+    },
+    "approved_program_overrides": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
     }
   },
   "required": [

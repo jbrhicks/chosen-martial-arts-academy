@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useState } from "react";
-import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, CalendarDays, UserPlus, LogOut, Menu, X, TrendingUp, ClipboardCheck, BarChart3, BookOpen, ListChecks, FormInput, Tag, Inbox, Tablet } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, CalendarDays, UserPlus, LogOut, Menu, X, TrendingUp, ClipboardCheck, BarChart3, BookOpen, ListChecks, FormInput, Tag, Inbox, Tablet, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 
 export default function AdminLayout() {
@@ -24,6 +24,7 @@ export default function AdminLayout() {
     { label: "Attendance", path: "/admin/attendance", icon: ClipboardCheck },
     { label: "Front Desk Kiosk", path: "/front-desk", icon: Tablet, external: true },
     { label: "Membership Requests", path: "/admin/membership-requests", icon: Inbox },
+    { label: "Age Overrides", path: "/admin/exception-requests", icon: ShieldAlert },
     { label: "Community", path: "/admin/community", icon: MessageSquare },
     { label: "Events", path: "/admin/events", icon: Calendar },
     { label: "Custom Fields", path: "/admin/custom-fields", icon: FormInput },
