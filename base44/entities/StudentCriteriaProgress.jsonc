@@ -1,0 +1,48 @@
+{
+  "name": "StudentCriteriaProgress",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string"
+    },
+    "student_name": {
+      "type": "string"
+    },
+    "criteria_id": {
+      "type": "string"
+    },
+    "criteria_title": {
+      "type": "string"
+    },
+    "rank_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "practicing",
+        "mastered"
+      ],
+      "default": "not_started"
+    },
+    "instructor_notes": {
+      "type": "string"
+    },
+    "date_mastered": {
+      "type": "string",
+      "format": "date"
+    },
+    "evaluator_id": {
+      "type": "string"
+    },
+    "evaluator_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "student_id",
+    "criteria_id",
+    "status"
+  ]
+}

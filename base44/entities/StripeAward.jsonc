@@ -1,0 +1,37 @@
+{
+  "name": "StripeAward",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string"
+    },
+    "student_name": {
+      "type": "string"
+    },
+    "rank_id": {
+      "type": "string"
+    },
+    "stripe_number": {
+      "type": "number",
+      "default": 1
+    },
+    "awarded_by_id": {
+      "type": "string"
+    },
+    "awarded_by_name": {
+      "type": "string"
+    },
+    "awarded_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "student_id",
+    "rank_id",
+    "stripe_number"
+  ]
+}

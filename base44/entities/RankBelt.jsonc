@@ -1,0 +1,32 @@
+{
+  "name": "RankBelt",
+  "type": "object",
+  "properties": {
+    "program_id": {
+      "type": "string"
+    },
+    "program_name": {
+      "type": "string"
+    },
+    "belt_name": {
+      "type": "string"
+    },
+    "rank_order": {
+      "type": "number",
+      "default": 1
+    },
+    "min_classes_required": {
+      "type": "number",
+      "default": 20
+    },
+    "min_time_in_grade": {
+      "type": "number",
+      "default": 8
+    }
+  },
+  "required": [
+    "program_id",
+    "belt_name",
+    "rank_order"
+  ]
+}
