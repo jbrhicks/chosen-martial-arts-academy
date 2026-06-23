@@ -2,6 +2,16 @@
   "name": "EventRegistration",
   "type": "object",
   "properties": {
+    "event_id": {
+      "type": "string"
+    },
+    "event_title": {
+      "type": "string"
+    },
+    "event_date": {
+      "type": "string",
+      "format": "date-time"
+    },
     "user_id": {
       "type": "string"
     },
@@ -14,17 +24,13 @@
     "family_id": {
       "type": "string"
     },
-    "event_id": {
+    "student_id": {
       "type": "string"
     },
-    "event_title": {
+    "student_name": {
       "type": "string"
     },
-    "event_date": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "event_type": {
+    "student_belt_rank": {
       "type": "string"
     },
     "payment_status": {
@@ -32,7 +38,8 @@
       "enum": [
         "paid",
         "pending",
-        "unpaid"
+        "unpaid",
+        "refunded"
       ],
       "default": "unpaid"
     },
@@ -43,12 +50,36 @@
     "registration_date": {
       "type": "string",
       "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "registered",
+        "waitlisted",
+        "cancelled",
+        "checked-in"
+      ],
+      "default": "registered"
+    },
+    "waitlist_position": {
+      "type": "number"
+    },
+    "checked_in_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "promo_code_used": {
+      "type": "string"
+    },
+    "discount_applied": {
+      "type": "number",
+      "default": 0
     }
   },
   "required": [
-    "user_id",
     "event_id",
-    "event_title"
+    "user_id",
+    "student_id"
   ],
   "rls": {
     "create": {
@@ -82,9 +113,16 @@
       ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "delete": {
       "user_condition": {
