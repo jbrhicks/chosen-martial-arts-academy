@@ -28,10 +28,10 @@ export default function AdminLayout() {
     { label: "Age Overrides", path: "/admin/exception-requests", icon: ShieldAlert },
     { label: "Community", path: "/admin/community", icon: MessageSquare },
     { label: "Events", path: "/admin/events", icon: Calendar },
+    { label: "Event Check-In", path: "/admin/event-checkin", icon: UserCheck },
     { label: "Custom Fields", path: "/admin/custom-fields", icon: FormInput },
     { label: "Schedule", path: "/admin/schedule", icon: CalendarDays },
     { label: "Badges", path: "/admin/badges", icon: Award },
-    { label: "Event Check-In", path: "/admin/event-checkin", icon: UserCheck },
   ];
 
   const isActive = (path) => location.pathname === path;
