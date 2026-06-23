@@ -332,13 +332,13 @@ export default function AdminBroadcasts() {
                   <SelectTrigger className="bg-[#0A0A0A] border-[#A8A9AD]/20 text-white mt-2">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-black border-[#A8A9AD]/20">
-                    <SelectItem value="all_active">All Active Students</SelectItem>
-                    <SelectItem value="all_inactive">All Inactive Students</SelectItem>
-                    <SelectItem value="program">By Program</SelectItem>
-                    <SelectItem value="belt_rank">By Belt Rank</SelectItem>
-                    <SelectItem value="event_registered">Event Registrants</SelectItem>
-                    <SelectItem value="custom">Manually Select Users</SelectItem>
+                  <SelectContent className="bg-black border-[#A8A9AD]/20 text-white">
+                    <SelectItem value="all_active" className="text-white hover:bg-[#C9A84C]/20">All Active Students</SelectItem>
+                    <SelectItem value="all_inactive" className="text-white hover:bg-[#C9A84C]/20">All Inactive Students</SelectItem>
+                    <SelectItem value="program" className="text-white hover:bg-[#C9A84C]/20">By Program</SelectItem>
+                    <SelectItem value="belt_rank" className="text-white hover:bg-[#C9A84C]/20">By Belt Rank</SelectItem>
+                    <SelectItem value="event_registered" className="text-white hover:bg-[#C9A84C]/20">Event Registrants</SelectItem>
+                    <SelectItem value="custom" className="text-white hover:bg-[#C9A84C]/20">Manually Select Users</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -353,9 +353,9 @@ export default function AdminBroadcasts() {
                     <SelectTrigger className="bg-[#0A0A0A] border-[#A8A9AD]/20 text-white mt-2">
                       <SelectValue placeholder="Select a program" />
                     </SelectTrigger>
-                    <SelectContent className="bg-black border-[#A8A9AD]/20">
+                    <SelectContent className="bg-black border-[#A8A9AD]/20 text-white">
                       {programs.map((program) => (
-                        <SelectItem key={program.id} value={program.id}>
+                        <SelectItem key={program.id} value={program.id} className="text-white hover:bg-[#C9A84C]/20">
                           {program.program_name}
                         </SelectItem>
                       ))}
@@ -393,9 +393,9 @@ export default function AdminBroadcasts() {
                     <SelectTrigger className="bg-[#0A0A0A] border-[#A8A9AD]/20 text-white mt-2">
                       <SelectValue placeholder="Select an event" />
                     </SelectTrigger>
-                    <SelectContent className="bg-black border-[#A8A9AD]/20">
+                    <SelectContent className="bg-black border-[#A8A9AD]/20 text-white">
                       {events.map((event) => (
-                        <SelectItem key={event.id} value={event.id}>
+                        <SelectItem key={event.id} value={event.id} className="text-white hover:bg-[#C9A84C]/20">
                           {event.title} ({new Date(event.start_date).toLocaleDateString()})
                         </SelectItem>
                       ))}
