@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Plus, X, Calendar, Search, ExternalLink, CheckCircle } from "lucide-react";
+import { Loader2, Plus, X, Calendar, Search, ExternalLink, CheckCircle, MapPin } from "lucide-react";
+import GeofenceManager from "@/components/admin/attendance/GeofenceManager";
 
 export default function AdminAttendance() {
   const [records, setRecords] = useState([]);
@@ -13,6 +14,7 @@ export default function AdminAttendance() {
   const [manualClass, setManualClass] = useState("");
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(null);
+  const [showGeofence, setShowGeofence] = useState(false);
   const [filterDate, setFilterDate] = useState(new Date().toISOString().split("T")[0]);
   const [filterUser, setFilterUser] = useState("");
 
@@ -107,6 +109,12 @@ export default function AdminAttendance() {
             className="flex items-center gap-2 px-4 py-2.5 border border-[#C9A84C]/40 text-[#C9A84C] font-bold text-sm tracking-wide uppercase hover:bg-[#C9A84C]/10 transition-colors"
           >
             <ExternalLink size={16} /> Open Kiosk
+          </button>
+          <button
+            onClick={() => setShowGeofence(true)}
+            className="flex items-center gap-2 px-4 py-2.5 border border-[#A8A9AD]/30 text-[#A8A9AD] font-bold text-sm tracking-wide uppercase hover:text-white hover:border-[#C9A84C]/30 transition-colors"
+          >
+            <MapPin size={16} /> Geofence
           </button>
           <button
             onClick={() => setShowManual(true)}
@@ -292,6 +300,8 @@ export default function AdminAttendance() {
           </div>
         </div>
       )}
+
+      {showGeofence && <GeofenceManager onClose={() => setShowGeofence(false)} />}
     </div>
   );
 }
