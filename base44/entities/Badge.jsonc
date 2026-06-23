@@ -1,0 +1,79 @@
+{
+  "name": "Badge",
+  "type": "object",
+  "properties": {
+    "badge_name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "character",
+        "performance",
+        "attendance",
+        "leadership",
+        "improvement",
+        "special"
+      ],
+      "default": "character"
+    },
+    "icon_color": {
+      "type": "string",
+      "default": "#C9A84C"
+    },
+    "icon_symbol": {
+      "type": "string",
+      "default": "star"
+    },
+    "points_value": {
+      "type": "number",
+      "default": 10
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "display_order": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "badge_name",
+    "category"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "student"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "name": "StudentBadge",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string"
+    },
+    "student_name": {
+      "type": "string"
+    },
+    "student_email": {
+      "type": "string"
+    },
+    "badge_id": {
+      "type": "string"
+    },
+    "badge_name": {
+      "type": "string"
+    },
+    "badge_category": {
+      "type": "string"
+    },
+    "badge_icon_color": {
+      "type": "string"
+    },
+    "badge_icon_symbol": {
+      "type": "string"
+    },
+    "points_value": {
+      "type": "number",
+      "default": 10
+    },
+    "awarded_by_id": {
+      "type": "string"
+    },
+    "awarded_by_name": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "awarded_date": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "student_id",
+    "badge_id",
+    "awarded_by_id",
+    "reason"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "data.student_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "data.student_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
