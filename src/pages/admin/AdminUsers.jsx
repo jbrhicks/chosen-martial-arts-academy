@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { BELT_RANKS } from "@/lib/constants";
 import BeltBadge from "@/components/BeltBadge";
-import { Loader2, UserPlus, X, Mail, Send } from "lucide-react";
+import { Loader2, UserPlus, X, Mail, Send, KeyRound } from "lucide-react";
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -11,6 +11,8 @@ export default function AdminUsers() {
   const [inviteForm, setInviteForm] = useState({ email: "", role: "student", belt_rank: "White" });
   const [inviting, setInviting] = useState(false);
   const [search, setSearch] = useState("");
+  const [editingPin, setEditingPin] = useState(null);
+  const [pinValue, setPinValue] = useState("");
 
   const loadUsers = useCallback(async () => {
     try {
@@ -58,6 +60,21 @@ export default function AdminUsers() {
     setInviting(false);
   };
 
+  const updatePin = async (userId) => {
+    if (pinValue.length < 4 || pinValue.length > 6 || !/^\d+$/.test(pinValue)) {
+      alert("PIN must be 4-6 digits (numbers only).");
+      return;
+    }
+    try {
+      await base44.entities.User.update(userId, { pin_code: pinValue });
+      setUsers(users.map((u) => u.id === userId ? { ...u, pin_code: pinValue } : u));
+      setEditingPin(null);
+      setPinValue("");
+    } catch (e) {
+      alert("Failed to update PIN: " + e.message);
+    }
+  };
+
   const filtered = users.filter((u) =>
     !search || u.full_name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase())
   );
@@ -86,6 +103,14 @@ export default function AdminUsers() {
         className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none transition-colors"
       />
 
+      <div className="border border-[#C9A84C]/20 bg-[#C9A84C]/5 p-4 flex items-start gap-3">
+        <KeyRound size={18} className="text-[#C9A84C] shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-medium text-white">Kiosk PIN Management</p>
+          <p className="text-xs text-[#A8A9AD] mt-1">Set a 4-6 digit PIN for each admin to unlock the Front Desk Kiosk. Students use the same PIN for self check-in at the kiosk. Click "Set PIN" or "Change" next to any user to manage their code.</p>
+        </div>
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-[#C9A84C]" /></div>
       ) : (
@@ -97,6 +122,7 @@ export default function AdminUsers() {
                 <th className="py-3 px-4 text-[10px] tracking-widest uppercase text-[#A8A9AD] font-medium">Email</th>
                 <th className="py-3 px-4 text-[10px] tracking-widest uppercase text-[#A8A9AD] font-medium">Belt Rank</th>
                 <th className="py-3 px-4 text-[10px] tracking-widest uppercase text-[#A8A9AD] font-medium">Role</th>
+                <th className="py-3 px-4 text-[10px] tracking-widest uppercase text-[#A8A9AD] font-medium">Kiosk PIN</th>
               </tr>
             </thead>
             <tbody>
@@ -129,6 +155,32 @@ export default function AdminUsers() {
                       <option value="student">Student</option>
                       <option value="admin">Admin</option>
                     </select>
+                  </td>
+                  <td className="py-4 px-4">
+                    {editingPin === u.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="password"
+                          inputMode="numeric"
+                          maxLength={6}
+                          value={pinValue}
+                          onChange={(e) => setPinValue(e.target.value.replace(/\D/g, ""))}
+                          placeholder="4-6 digits"
+                          className="w-24 bg-[#0A0A0A] border border-[#C9A84C]/50 px-2 py-1.5 text-xs text-white focus:outline-none"
+                          autoFocus
+                          onKeyDown={(e) => { if (e.key === "Enter") updatePin(u.id); if (e.key === "Escape") { setEditingPin(null); setPinValue(""); } }}
+                        />
+                        <button onClick={() => updatePin(u.id)} className="text-xs text-[#C9A84C] font-bold hover:text-[#E0C97A]">Save</button>
+                        <button onClick={() => { setEditingPin(null); setPinValue(""); }} className="text-xs text-[#A8A9AD] hover:text-white">Cancel</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setEditingPin(u.id); setPinValue(""); }}
+                        className={`text-xs font-medium ${u.pin_code ? "text-[#C9A84C] hover:text-[#E0C97A]" : "text-[#A8A9AD] hover:text-white"}`}
+                      >
+                        {u.pin_code ? "•••• Change" : "Set PIN"}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
