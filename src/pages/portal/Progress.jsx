@@ -7,6 +7,7 @@ import BeltBadge from "@/components/BeltBadge";
 import { Loader2, CheckCircle, Circle, Clock, Target, TrendingUp, Calendar } from "lucide-react";
 import { useCommunityAccess } from "@/lib/CommunityAccessContext";
 import LockedCurriculum from "@/components/portal/community/LockedCurriculum";
+import BadgeCollection from "@/components/portal/progress/BadgeCollection";
 
 export default function Progress() {
   const { user } = useAuth();
@@ -158,6 +159,9 @@ export default function Progress() {
           );
         })
       )}
+
+      {/* Badge Collection */}
+      <BadgeCollection studentId={activeProfile?.id} />
 
       {/* Recent attendance */}
       {attendance.length > 0 && (

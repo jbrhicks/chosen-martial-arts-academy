@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Loader2, ChevronLeft } from "lucide-react";
 import EvaluationChecklist from "@/components/admin/curriculum/EvaluationChecklist";
 import TestingBadge from "@/components/admin/curriculum/TestingBadge";
-import StripePanel from "@/components/admin/curriculum/StripePanel";
+import BadgePanel from "@/components/admin/evaluation/BadgePanel";
 import RecentFeedback from "@/components/admin/evaluation/RecentFeedback";
 import RankUpPanel from "@/components/admin/evaluation/RankUpPanel";
 
@@ -13,23 +13,23 @@ export default function StudentDetail({ student, evaluator, sessionId, enrollmen
   const [criteria, setCriteria] = useState([]);
   const [progress, setProgress] = useState([]);
   const [attendance, setAttendance] = useState([]);
-  const [stripes, setStripes] = useState([]);
+  const [badges, setBadges] = useState([]);
   const [detailLoading, setDetailLoading] = useState(false);
 
   const loadBeltData = async (belt) => {
     if (!belt || !student) return;
     try {
-      const [crit, prog, att, str] = await Promise.all([
+      const [crit, prog, att, allBadges] = await Promise.all([
         base44.entities.CurriculumCriteria.filter({ rank_id: belt.id }),
         base44.entities.StudentCriteriaProgress.filter({ student_id: student.id }),
         base44.entities.AttendanceRecord.filter({ user_id: student.id }).catch(() => []),
-        base44.entities.StripeAward.filter({ student_id: student.id, rank_id: belt.id }).catch(() => []),
+        base44.entities.Badge.filter({ is_active: true }).catch(() => []),
       ]);
       crit.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
       setCriteria(crit);
       setProgress(prog);
       setAttendance(att);
-      setStripes(str);
+      setBadges(allBadges);
     } catch (e) { console.error(e); }
   };
 
@@ -41,7 +41,7 @@ export default function StudentDetail({ student, evaluator, sessionId, enrollmen
       setCriteria([]);
       setProgress([]);
       setAttendance([]);
-      setStripes([]);
+      setBadges([]);
       try {
         const studentEnrollments = enrollments.filter(e => e.user_id === student.id || e.user_email === student.email);
         const studentProgramId = studentEnrollments[0]?.program_id;
@@ -112,7 +112,7 @@ export default function StudentDetail({ student, evaluator, sessionId, enrollmen
             <h3 className="text-sm font-bold tracking-widest uppercase text-[#C9A84C] mb-3">Criteria Checklist</h3>
             <EvaluationChecklist criteria={criteria} progress={progress} student={student} evaluator={evaluator} sessionId={sessionId} onProgressUpdate={() => loadBeltData(selectedBelt)} />
           </div>
-          <StripePanel student={student} rankId={selectedBelt.id} stripes={stripes} onUpdate={() => loadBeltData(selectedBelt)} />
+          <BadgePanel student={student} badges={badges} onBadgeAwarded={() => loadBeltData(selectedBelt)} />
           <RankUpPanel student={student} belts={belts} currentBelt={selectedBelt} onUpdate={onStudentUpdated} />
         </>
       )}

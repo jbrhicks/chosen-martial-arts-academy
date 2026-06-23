@@ -1,8 +1,12 @@
 import PersonalInfoForm from "@/components/portal/profile/PersonalInfoForm";
 import EmergencyContactsManager from "@/components/portal/profile/EmergencyContactsManager";
 import NoteToAdmin from "@/components/portal/profile/NoteToAdmin";
+import BadgeDisplay from "@/components/portal/profile/BadgeDisplay";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function MyProfile() {
+  const { user } = useAuth();
+
   return (
     <div className="space-y-6">
       <div>
@@ -12,6 +16,7 @@ export default function MyProfile() {
       </div>
       <PersonalInfoForm />
       <EmergencyContactsManager />
+      <BadgeDisplay studentId={user.id} />
       <NoteToAdmin />
     </div>
   );
