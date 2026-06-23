@@ -106,6 +106,18 @@ export default function ProgramRoster({ program, onBack }) {
   const waitlist = enrollments.filter(e => e.status === "waitlist");
   const isFull = program.max_capacity > 0 && activeCount >= program.max_capacity;
 
+  const programTiers = tiers.filter(t => t.linked_program_id === program.id && t.is_active !== false).sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+  const priceLabel = programTiers.length > 0
+    ? (() => {
+        const prices = programTiers.map(t => t.price);
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        return min === max
+          ? `$${min}/${programTiers[0].billing_interval?.replace("_", " ") || "mo"}`
+          : `$${min}–$${max}/${programTiers[0].billing_interval?.replace("_", " ") || "mo"} (${programTiers.length} tiers)`;
+      })()
+    : `$${program.default_monthly_rate || 0}/mo${program.drop_in_price ? ` • Drop-in $${program.drop_in_price}` : ""}`;
+
   if (loading) return <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-[#C9A84C]" /></div>;
 
   return (
@@ -116,7 +128,7 @@ export default function ProgramRoster({ program, onBack }) {
         </button>
         <div>
           <h2 className="text-xl font-bold">{program.program_name}</h2>
-          <p className="text-xs text-[#A8A9AD]">{program.age_group} • ${program.default_monthly_rate}/mo • {activeCount} active{isFull ? " — FULL" : ""}</p>
+          <p className="text-xs text-[#A8A9AD]">{program.age_group} • {priceLabel} • {activeCount} active{isFull ? " — FULL" : ""}</p>
         </div>
       </div>
 
