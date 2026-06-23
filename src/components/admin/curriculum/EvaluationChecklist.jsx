@@ -1,25 +1,45 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Mic, Loader2, CheckCircle, Circle, Clock } from "lucide-react";
+import { Mic, Loader2 } from "lucide-react";
 
-const STATUS_CYCLE = { not_started: "practicing", practicing: "mastered", mastered: "not_started" };
-const STATUS_CONFIG = {
-  not_started: { label: "Not Started", color: "text-[#A8A9AD]", bg: "bg-transparent", icon: Circle },
-  practicing: { label: "Practicing", color: "text-blue-400", bg: "bg-blue-400/10", icon: Clock },
-  mastered: { label: "Mastered", color: "text-[#C9A84C]", bg: "bg-[#C9A84C]/10", icon: CheckCircle },
-};
+const STATUS_TO_SCORE = { not_started: "needs_work", practicing: "practicing", mastered: "mastered" };
+const SCORE_TO_STATUS = { needs_work: "not_started", practicing: "practicing", mastered: "mastered" };
 
-export default function EvaluationChecklist({ criteria, progress, student, evaluator, onProgressUpdate }) {
+const SCORE_BUTTONS = [
+  { score: "needs_work", label: "Needs Work", activeClass: "bg-red-500 text-white border-red-500", idleClass: "border-red-500/30 text-red-400 hover:bg-red-500/10" },
+  { score: "practicing", label: "Practicing", activeClass: "bg-yellow-500 text-black border-yellow-500", idleClass: "border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10" },
+  { score: "mastered", label: "Mastered", activeClass: "bg-[#C9A84C] text-black border-[#C9A84C]", idleClass: "border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/10" },
+];
+
+export default function EvaluationChecklist({ criteria, progress, student, evaluator, sessionId, onProgressUpdate }) {
   const [notes, setNotes] = useState({});
   const [saving, setSaving] = useState(null);
   const [dictating, setDictating] = useState(null);
 
   const getProgress = (criteriaId) => progress.find(p => p.criteria_id === criteriaId);
   const getStatus = (criteriaId) => getProgress(criteriaId)?.status || "not_started";
+  const getScore = (criteriaId) => STATUS_TO_SCORE[getStatus(criteriaId)];
 
-  const cycleStatus = async (criterion) => {
+  const logEvaluation = async (criterion, score, noteText) => {
+    await base44.entities.EvaluationLog.create({
+      student_id: student.id,
+      student_name: student.full_name,
+      session_id: sessionId || undefined,
+      criteria_id: criterion.id,
+      criteria_title: criterion.title,
+      rank_id: criterion.rank_id,
+      score: score,
+      instructor_notes: noteText || undefined,
+      instructor_id: evaluator.id,
+      instructor_name: evaluator.full_name,
+      timestamp: new Date().toISOString(),
+    }).catch(() => {});
+  };
+
+  const setScore = async (criterion, score) => {
+    const newStatus = SCORE_TO_STATUS[score];
     const current = getProgress(criterion.id);
-    const newStatus = STATUS_CYCLE[current?.status || "not_started"];
+    if (current?.status === newStatus) return;
     setSaving(criterion.id);
     try {
       if (current?.id) {
@@ -39,6 +59,7 @@ export default function EvaluationChecklist({ criteria, progress, student, evalu
           date_mastered: newStatus === "mastered" ? new Date().toISOString().split("T")[0] : undefined,
         });
       }
+      await logEvaluation(criterion, score);
       onProgressUpdate();
     } catch (e) { alert("Failed to update status."); }
     setSaving(null);
@@ -64,6 +85,9 @@ export default function EvaluationChecklist({ criteria, progress, student, evalu
           evaluator_id: evaluator.id,
           evaluator_name: evaluator.full_name,
         });
+      }
+      if (noteText) {
+        await logEvaluation(criterion, STATUS_TO_SCORE[getStatus(criterion.id)], noteText);
       }
       onProgressUpdate();
     } catch (e) { alert("Failed to save notes."); }
@@ -94,23 +118,31 @@ export default function EvaluationChecklist({ criteria, progress, student, evalu
   return (
     <div className="space-y-2">
       {criteria.map(c => {
-        const status = getStatus(c.id);
-        const config = STATUS_CONFIG[status];
-        const StatusIcon = config.icon;
+        const score = getScore(c.id);
         const current = getProgress(c.id);
         return (
-          <div key={c.id} className={`border p-4 transition-colors ${status === "mastered" ? "border-[#C9A84C]/40 bg-[#C9A84C]/5" : "border-[#A8A9AD]/20 bg-black"}`}>
-            <div className="flex items-center gap-3">
-              <button onClick={() => cycleStatus(c)} disabled={saving === c.id} className="shrink-0">
-                {saving === c.id ? <Loader2 size={22} className="animate-spin text-[#C9A84C]" /> : <StatusIcon size={22} className={config.color} />}
-              </button>
+          <div key={c.id} className={`border p-4 transition-colors ${score === "mastered" ? "border-[#C9A84C]/40 bg-[#C9A84C]/5" : score === "needs_work" ? "border-red-500/20 bg-red-500/5" : "border-[#A8A9AD]/20 bg-black"}`}>
+            <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium">{c.title}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[9px] tracking-widest uppercase text-[#A8A9AD] border border-[#A8A9AD]/20 px-2 py-0.5">{c.category}</span>
-                  <span className={`text-[10px] tracking-widest uppercase ${config.color}`}>{config.label}</span>
-                </div>
+                <span className="text-[9px] tracking-widest uppercase text-[#A8A9AD] border border-[#A8A9AD]/20 px-2 py-0.5 mt-1 inline-block">{c.category}</span>
               </div>
+              {saving === c.id && <Loader2 size={16} className="animate-spin text-[#C9A84C] shrink-0" />}
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {SCORE_BUTTONS.map(btn => {
+                const active = score === btn.score;
+                return (
+                  <button
+                    key={btn.score}
+                    onClick={() => setScore(c, btn.score)}
+                    disabled={saving === c.id}
+                    className={`py-3 text-xs font-bold tracking-wide uppercase border-2 transition-all ${active ? btn.activeClass : btn.idleClass} disabled:opacity-50`}
+                  >
+                    {btn.label}
+                  </button>
+                );
+              })}
             </div>
             <div className="flex items-start gap-2 mt-3">
               <input

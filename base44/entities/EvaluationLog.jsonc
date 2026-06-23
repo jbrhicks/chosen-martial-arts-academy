@@ -1,0 +1,79 @@
+{
+  "name": "EvaluationLog",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string"
+    },
+    "student_name": {
+      "type": "string"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "criteria_id": {
+      "type": "string"
+    },
+    "criteria_title": {
+      "type": "string"
+    },
+    "rank_id": {
+      "type": "string"
+    },
+    "score": {
+      "type": "string",
+      "enum": [
+        "needs_work",
+        "practicing",
+        "mastered"
+      ],
+      "default": "practicing"
+    },
+    "instructor_notes": {
+      "type": "string"
+    },
+    "instructor_id": {
+      "type": "string"
+    },
+    "instructor_name": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "student_id",
+    "score"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.student_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

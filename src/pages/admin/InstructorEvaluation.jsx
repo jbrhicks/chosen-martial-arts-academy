@@ -1,97 +1,165 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import EvaluationChecklist from "@/components/admin/curriculum/EvaluationChecklist";
-import TestingBadge from "@/components/admin/curriculum/TestingBadge";
-import StripePanel from "@/components/admin/curriculum/StripePanel";
-import { Loader2, Search, User } from "lucide-react";
+import SessionBar from "@/components/admin/evaluation/SessionBar";
+import LiveMatGrid from "@/components/admin/evaluation/LiveMatGrid";
+import StudentDetail from "@/components/admin/evaluation/StudentDetail";
+import { Loader2 } from "lucide-react";
 
 export default function InstructorEvaluation() {
   const { user } = useAuth();
   const [students, setStudents] = useState([]);
-  const [search, setSearch] = useState("");
-  const [selectedStudent, setSelectedStudent] = useState(null);
   const [programs, setPrograms] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
-  const [belts, setBelts] = useState([]);
-  const [selectedBelt, setSelectedBelt] = useState(null);
-  const [criteria, setCriteria] = useState([]);
-  const [progress, setProgress] = useState([]);
-  const [attendance, setAttendance] = useState([]);
-  const [stripes, setStripes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [session, setSession] = useState(null);
+  const [starting, setStarting] = useState(false);
+  const [selectedProgramId, setSelectedProgramId] = useState("");
+  const [checkedInStudents, setCheckedInStudents] = useState([]);
+  const [readinessMap, setReadinessMap] = useState({});
+  const [gridLoading, setGridLoading] = useState(false);
 
   const load = async () => {
     try {
-      const [users, progs, allEnroll] = await Promise.all([
+      const [users, progs, allEnroll, activeSessions] = await Promise.all([
         base44.entities.User.list(),
         base44.entities.Program.list(),
         base44.entities.Enrollment.list(),
+        base44.entities.LiveClassSession.filter({ status: "active", instructor_id: user.id }).catch(() => []),
       ]);
       setStudents(users.filter(u => u.role !== "admin"));
       setPrograms(progs);
       setEnrollments(allEnroll);
+      setSession(activeSessions[0] || null);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
-  const loadStudentData = async (student) => {
-    if (!student) return;
-    setDetailLoading(true);
-    setSelectedBelt(null);
+  const computeReadiness = async (checkedIn) => {
+    if (checkedIn.length === 0) { setReadinessMap({}); return; }
     try {
-      const studentEnrollments = enrollments.filter(e => e.user_id === student.id || e.user_email === student.email);
-      const studentProgramId = studentEnrollments[0]?.program_id;
-      const allBelts = await base44.entities.RankBelt.filter({ program_id: studentProgramId });
-      allBelts.sort((a, b) => (a.rank_order || 0) - (b.rank_order || 0));
-      setBelts(allBelts);
-      const matchingBelt = allBelts.find(b => b.belt_name === student.belt_rank) || allBelts[0];
-      if (matchingBelt) {
-        setSelectedBelt(matchingBelt);
-        await loadBeltData(student, matchingBelt);
-      }
+      const studentIds = checkedIn.map(s => s.id);
+      const studentEnrollments = enrollments.filter(e => studentIds.includes(e.user_id) || checkedIn.some(s => s.email === e.user_email));
+      const programIds = [...new Set(studentEnrollments.map(e => e.program_id).filter(Boolean))];
+
+      const [beltBatches, allProgress, ...attendanceArrays] = await Promise.all([
+        programIds.length > 0 ? Promise.all(programIds.map(pid => base44.entities.RankBelt.filter({ program_id: pid }).catch(() => []))) : Promise.resolve([]),
+        base44.entities.StudentCriteriaProgress.list('-updated_date', 1000).catch(() => []),
+        ...checkedIn.map(s => base44.entities.AttendanceRecord.filter({ user_id: s.id }).catch(() => [])),
+      ]);
+
+      const flatBelts = beltBatches.flat();
+      const beltIds = flatBelts.map(b => b.id);
+      const criteriaBatches = beltIds.length > 0
+        ? await Promise.all(beltIds.map(bid => base44.entities.CurriculumCriteria.filter({ rank_id: bid }).catch(() => [])))
+        : [];
+      const allCriteria = criteriaBatches.flat();
+
+      const map = {};
+      checkedIn.forEach((s, idx) => {
+        const studentEnroll = studentEnrollments.find(e => e.user_id === s.id || e.user_email === s.email);
+        const programId = studentEnroll?.program_id;
+        const programBelts = flatBelts.filter(b => b.program_id === programId);
+        const currentBelt = programBelts.find(b => b.belt_name === s.belt_rank) || programBelts[0];
+        if (!currentBelt) { map[s.id] = { ready: false }; return; }
+
+        const beltCriteria = allCriteria.filter(c => c.rank_id === currentBelt.id);
+        const studentProgress = allProgress.filter(p => p.student_id === s.id && beltCriteria.some(c => c.id === p.criteria_id));
+        const masteredCount = studentProgress.filter(p => p.status === "mastered").length;
+        const classCount = attendanceArrays[idx]?.length || 0;
+        const weeksEnrolled = s.join_date ? Math.floor((new Date() - new Date(s.join_date)) / (7 * 24 * 60 * 60 * 1000)) : 0;
+
+        const criteriaMet = beltCriteria.length > 0 && masteredCount >= beltCriteria.length;
+        const classesMet = classCount >= (currentBelt.min_classes_required || 0);
+        const timeMet = weeksEnrolled >= (currentBelt.min_time_in_grade || 0);
+
+        map[s.id] = { ready: criteriaMet && classesMet && timeMet };
+      });
+
+      setReadinessMap(map);
     } catch (e) { console.error(e); }
-    setDetailLoading(false);
   };
 
-  const loadBeltData = async (student, belt) => {
-    if (!belt) return;
+  const loadCheckedInStudents = useCallback(async () => {
+    if (students.length === 0) return;
+    setGridLoading(true);
     try {
-      const [crit, prog, att, str] = await Promise.all([
-        base44.entities.CurriculumCriteria.filter({ rank_id: belt.id }),
-        base44.entities.StudentCriteriaProgress.filter({ student_id: student.id }),
-        base44.entities.AttendanceRecord.filter({ user_id: student.id }).catch(() => []),
-        base44.entities.StripeAward.filter({ student_id: student.id, rank_id: belt.id }).catch(() => []),
-      ]);
-      crit.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
-      setCriteria(crit);
-      setProgress(prog);
-      setAttendance(att);
-      setStripes(str);
+      const todayStr = new Date().toISOString().split("T")[0];
+      const recentAtt = await base44.entities.AttendanceRecord.list('-check_in_date', 500);
+      const todayAtt = recentAtt.filter(a => {
+        if (!a.check_in_date) return false;
+        return new Date(a.check_in_date).toISOString().split("T")[0] === todayStr;
+      });
+      const checkedInIds = [...new Set(todayAtt.map(a => a.user_id))];
+      const checkedIn = students.filter(s => checkedInIds.includes(s.id));
+      setCheckedInStudents(checkedIn);
+      await computeReadiness(checkedIn);
     } catch (e) { console.error(e); }
+    setGridLoading(false);
+  }, [students]);
+
+  useEffect(() => {
+    if (students.length > 0) loadCheckedInStudents();
+  }, [loadCheckedInStudents]);
+
+  useEffect(() => {
+    const unsubscribe = base44.entities.AttendanceRecord.subscribe(() => {
+      loadCheckedInStudents();
+    });
+    return unsubscribe;
+  }, [loadCheckedInStudents]);
+
+  const handleStartSession = async () => {
+    setStarting(true);
+    try {
+      const program = programs.find(p => p.id === selectedProgramId);
+      const newSession = await base44.entities.LiveClassSession.create({
+        program_id: selectedProgramId || undefined,
+        program_name: program?.program_name,
+        instructor_id: user.id,
+        instructor_name: user.full_name,
+        start_time: new Date().toISOString(),
+        status: "active",
+      });
+      setSession(newSession);
+      setSelectedProgramId("");
+    } catch (e) { alert("Failed to start session."); }
+    setStarting(false);
+  };
+
+  const handleEndSession = async () => {
+    if (!session) return;
+    if (!confirm("End this class session?")) return;
+    try {
+      await base44.entities.LiveClassSession.update(session.id, { status: "completed", end_time: new Date().toISOString() });
+      setSession(null);
+    } catch (e) { alert("Failed to end session."); }
   };
 
   const selectStudent = (student) => {
     setSelectedStudent(student);
-    loadStudentData(student);
+    setSearch("");
   };
 
-  const selectBelt = (belt) => {
-    setSelectedBelt(belt);
-    if (selectedStudent) loadBeltData(selectedStudent, belt);
+  const handleStudentUpdated = async () => {
+    const users = await base44.entities.User.list();
+    const newStudents = users.filter(u => u.role !== "admin");
+    setStudents(newStudents);
+    const updated = newStudents.find(u => u.id === selectedStudent?.id);
+    if (updated) setSelectedStudent(updated);
   };
 
-  const filteredStudents = students.filter(s => {
-    const name = (s.full_name || "").toLowerCase();
-    return name.includes(search.toLowerCase()) || (s.email || "").toLowerCase().includes(search.toLowerCase());
-  });
-
-  const masteredCount = progress.filter(p => p.status === "mastered" && criteria.some(c => c.id === p.criteria_id)).length;
-  const classCount = attendance.length;
-  const weeksEnrolled = selectedStudent?.join_date ? Math.floor((new Date() - new Date(selectedStudent.join_date)) / (7 * 24 * 60 * 60 * 1000)) : 0;
+  const searchResults = search.length >= 1
+    ? students.filter(s => {
+        const name = (s.full_name || "").toLowerCase();
+        const email = (s.email || "").toLowerCase();
+        return name.includes(search.toLowerCase()) || email.includes(search.toLowerCase());
+      }).slice(0, 8)
+    : [];
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-[#C9A84C]" /></div>;
 
@@ -102,89 +170,37 @@ export default function InstructorEvaluation() {
         <h1 className="text-3xl font-bold">Instructor Evaluation Dashboard</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Student selector */}
-        <div className="lg:col-span-1">
-          <div className="border border-[#A8A9AD]/20 bg-black">
-            <div className="p-4 border-b border-[#A8A9AD]/10">
-              <div className="flex items-center gap-2 border border-[#A8A9AD]/20 px-3 py-2">
-                <Search size={14} className="text-[#A8A9AD]" />
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search students..." className="bg-transparent text-sm text-white focus:outline-none flex-1" />
-              </div>
-            </div>
-            <div className="max-h-[60vh] overflow-y-auto divide-y divide-[#A8A9AD]/10">
-              {filteredStudents.length === 0 ? (
-                <p className="text-center py-8 text-[#A8A9AD] text-sm">No students found.</p>
-              ) : (
-                filteredStudents.map(s => (
-                  <button key={s.id} onClick={() => selectStudent(s)} className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-colors ${selectedStudent?.id === s.id ? "bg-[#C9A84C]/10" : "hover:bg-white/5"}`}>
-                    <div className="w-8 h-8 bg-[#C9A84C]/10 border border-[#C9A84C]/30 flex items-center justify-center shrink-0">
-                      <span className="text-[#C9A84C] font-bold text-xs">{s.full_name?.charAt(0) || "?"}</span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{s.full_name}</p>
-                      <p className="text-xs text-[#A8A9AD] truncate">{s.belt_rank || "No belt"}</p>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
+      <SessionBar
+        session={session}
+        onStart={handleStartSession}
+        onEnd={handleEndSession}
+        starting={starting}
+        search={search}
+        onSearchChange={setSearch}
+        searchResults={searchResults}
+        onSelectStudent={selectStudent}
+        programs={programs}
+        onProgramSelect={setSelectedProgramId}
+        selectedProgramId={selectedProgramId}
+      />
 
-        {/* Evaluation panel */}
-        <div className="lg:col-span-2 space-y-4">
-          {!selectedStudent ? (
-            <div className="border border-[#A8A9AD]/20 bg-black p-12 text-center">
-              <User size={32} className="text-[#A8A9AD] mx-auto mb-3" />
-              <p className="text-[#A8A9AD]">Select a student to begin evaluation.</p>
-            </div>
-          ) : detailLoading ? (
-            <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-[#C9A84C]" /></div>
-          ) : (
-            <>
-              {/* Student info */}
-              <div className="border border-[#A8A9AD]/20 bg-black p-5">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-[#C9A84C]/10 border border-[#C9A84C]/30 flex items-center justify-center">
-                    <span className="text-[#C9A84C] font-bold text-lg">{selectedStudent.full_name?.charAt(0) || "?"}</span>
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold">{selectedStudent.full_name}</h2>
-                    <p className="text-xs text-[#A8A9AD]">{selectedStudent.belt_rank || "No belt assigned"} • {classCount} classes attended</p>
-                  </div>
-                </div>
-                {belts.length > 0 && (
-                  <div>
-                    <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Evaluating Belt</label>
-                    <select value={selectedBelt?.id || ""} onChange={e => selectBelt(belts.find(b => b.id === e.target.value))} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
-                      {belts.map(b => <option key={b.id} value={b.id}>{b.belt_name} (Rank {b.rank_order})</option>)}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              {selectedBelt && (
-                <>
-                  <TestingBadge
-                    criteriaCount={criteria.length}
-                    masteredCount={masteredCount}
-                    minClasses={selectedBelt.min_classes_required}
-                    actualClasses={classCount}
-                    minTime={selectedBelt.min_time_in_grade}
-                    actualTime={weeksEnrolled}
-                  />
-                  <div>
-                    <h3 className="text-sm font-bold tracking-widest uppercase text-[#C9A84C] mb-3">Criteria Checklist</h3>
-                    <EvaluationChecklist criteria={criteria} progress={progress} student={selectedStudent} evaluator={user} onProgressUpdate={() => loadBeltData(selectedStudent, selectedBelt)} />
-                  </div>
-                  <StripePanel student={selectedStudent} rankId={selectedBelt.id} stripes={stripes} onUpdate={() => loadBeltData(selectedStudent, selectedBelt)} />
-                </>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+      {selectedStudent ? (
+        <StudentDetail
+          student={selectedStudent}
+          evaluator={user}
+          sessionId={session?.id}
+          enrollments={enrollments}
+          onBack={() => setSelectedStudent(null)}
+          onStudentUpdated={handleStudentUpdated}
+        />
+      ) : (
+        <LiveMatGrid
+          students={checkedInStudents}
+          readinessMap={readinessMap}
+          onSelect={selectStudent}
+          loading={gridLoading}
+        />
+      )}
     </div>
   );
 }
