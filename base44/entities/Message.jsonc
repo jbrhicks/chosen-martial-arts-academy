@@ -13,6 +13,35 @@
     },
     "content": {
       "type": "string"
+    },
+    "message_type": {
+      "type": "string",
+      "enum": [
+        "broadcast",
+        "group",
+        "private"
+      ],
+      "default": "private"
+    },
+    "channel_used": {
+      "type": "string",
+      "enum": [
+        "email",
+        "sms",
+        "in_app",
+        "all"
+      ],
+      "default": "in_app"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "broadcast_id": {
+      "type": "string"
+    },
+    "is_system_announcement": {
+      "type": "boolean",
+      "default": false
     }
   },
   "required": [

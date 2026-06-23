@@ -45,6 +45,14 @@
     "send_to_both_households": {
       "type": "boolean",
       "default": true
+    },
+    "opt_in_email": {
+      "type": "boolean",
+      "default": true
+    },
+    "opt_in_sms": {
+      "type": "boolean",
+      "default": true
     }
   },
   "required": [

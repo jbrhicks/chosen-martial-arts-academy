@@ -1,0 +1,109 @@
+{
+  "name": "BroadcastMessage",
+  "type": "object",
+  "properties": {
+    "subject": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    },
+    "created_by_id": {
+      "type": "string"
+    },
+    "created_by_name": {
+      "type": "string"
+    },
+    "channel_email": {
+      "type": "boolean",
+      "default": false
+    },
+    "channel_sms": {
+      "type": "boolean",
+      "default": false
+    },
+    "channel_in_app": {
+      "type": "boolean",
+      "default": true
+    },
+    "target_type": {
+      "type": "string",
+      "enum": [
+        "all",
+        "program",
+        "belt_rank",
+        "custom"
+      ],
+      "default": "all"
+    },
+    "target_program_id": {
+      "type": "string"
+    },
+    "target_program_name": {
+      "type": "string"
+    },
+    "target_belt_rank": {
+      "type": "string"
+    },
+    "target_user_ids": {
+      "type": "string"
+    },
+    "sent_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "scheduled",
+        "sent",
+        "cancelled"
+      ],
+      "default": "draft"
+    },
+    "total_recipients": {
+      "type": "number",
+      "default": 0
+    },
+    "email_sent_count": {
+      "type": "number",
+      "default": 0
+    },
+    "sms_sent_count": {
+      "type": "number",
+      "default": 0
+    },
+    "in_app_sent_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "subject",
+    "body",
+    "created_by_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
