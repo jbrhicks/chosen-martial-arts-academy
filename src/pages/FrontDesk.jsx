@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Loader2, Lock, Delete } from "lucide-react";
 import KioskOnboarding from "@/components/frontdesk/KioskOnboarding";
 import KioskPOS from "@/components/frontdesk/KioskPOS";
+import KioskEventCheckIn from "@/components/frontdesk/KioskEventCheckIn";
 
 export default function FrontDesk() {
   const [unlocked, setUnlocked] = useState(false);
@@ -13,6 +14,7 @@ export default function FrontDesk() {
   const [adminName, setAdminName] = useState("");
   const [sessionId, setSessionId] = useState("");
   const [view, setView] = useState("home");
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [tapCount, setTapCount] = useState(0);
   const tapTimer = useRef(null);
   const lastActivity = useRef(Date.now());
@@ -142,7 +144,7 @@ export default function FrontDesk() {
           <button onClick={handleLock} className="flex items-center gap-2 px-4 py-2 border border-[#A8A9AD]/30 text-xs text-[#A8A9AD] hover:text-white hover:border-[#A8A9AD]/60 transition-colors"><Lock size={14} /> Lock Kiosk</button>
         </div>
         <div className="flex-1 flex items-center justify-center p-8">
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl w-full">
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl w-full">
             <button onClick={() => setView("onboarding")} className="group bg-[#C9A84C] text-black p-10 md:p-14 text-center hover:bg-[#E0C97A] transition-colors flex flex-col items-center justify-center min-h-[280px]">
               <div className="w-16 h-16 border-2 border-black/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><span className="text-3xl">🥋</span></div>
               <h2 className="text-2xl md:text-3xl font-bold mb-2">New to Chosen?</h2>
@@ -152,6 +154,11 @@ export default function FrontDesk() {
               <div className="w-16 h-16 border-2 border-[#A8A9AD]/40 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><span className="text-3xl">🛒</span></div>
               <h2 className="text-2xl md:text-3xl font-bold mb-2">Current Member</h2>
               <p className="text-sm md:text-base font-medium text-[#A8A9AD]">Shop & Checkout</p>
+            </button>
+            <button onClick={() => setView("event-checkin")} className="group bg-[#1a1a1a] border-2 border-[#A8A9AD]/40 text-white p-10 md:p-14 text-center hover:border-[#C9A84C]/60 transition-colors flex flex-col items-center justify-center min-h-[280px]">
+              <div className="w-16 h-16 border-2 border-[#A8A9AD]/40 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><span className="text-3xl">📋</span></div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-2">Event Check-In</h2>
+              <p className="text-sm md:text-base font-medium text-[#A8A9AD]">Check In Attendees</p>
             </button>
           </div>
         </div>
@@ -168,6 +175,11 @@ export default function FrontDesk() {
   // === POS FLOW ===
   if (unlocked && view === "pos") {
     return <KioskPOS onBack={() => setView("home")} />;
+  }
+
+  // === EVENT CHECK-IN FLOW ===
+  if (unlocked && view === "event-checkin") {
+    return <KioskEventCheckIn onBack={() => { setView("home"); setSelectedEvent(null); }} selectedEvent={selectedEvent} setSelectedEvent={setSelectedEvent} />;
   }
 
   return null;
