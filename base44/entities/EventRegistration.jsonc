@@ -85,21 +85,7 @@
     "event_title"
   ],
   "rls": {
-    "create": {
-      "$or": [
-        {
-          "data.user_id": "{{user.id}}"
-        },
-        {
-          "data.family_id": "{{user.family_id}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
-    },
+    "create": {},
     "read": {
       "$or": [
         {
@@ -107,6 +93,9 @@
         },
         {
           "data.family_id": "{{user.family_id}}"
+        },
+        {
+          "data.is_guest": true
         },
         {
           "user_condition": {
