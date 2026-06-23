@@ -47,6 +47,15 @@
     "drop_in_price": {
       "type": "number",
       "default": 0
+    },
+    "beginner_max_rank": {
+      "type": "string"
+    },
+    "intermediate_max_rank": {
+      "type": "string"
+    },
+    "advanced_max_rank": {
+      "type": "string"
     }
   },
   "required": [
