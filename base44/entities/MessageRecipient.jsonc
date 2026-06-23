@@ -80,21 +80,6 @@
           "user_condition": {
             "role": "admin"
           }
-        },
-        {
-          "data.message_id": {
-            "$in": {
-              "_filter": {
-                "entity": "BroadcastMessage",
-                "field": "id",
-                "filter": {
-                  "user_condition": {
-                    "role": "admin"
-                  }
-                }
-              }
-            }
-          }
         }
       ]
     },

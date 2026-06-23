@@ -95,16 +95,25 @@
       "data.author_id": "{{user.id}}"
     },
     "read": {
-      "$or": [
+      "$and": [
         {
           "data.is_deleted": {
             "$ne": true
           }
         },
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "student"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            }
+          ]
         }
       ]
     },
