@@ -1,0 +1,23 @@
+{
+  "name": "Message",
+  "type": "object",
+  "properties": {
+    "thread_id": {
+      "type": "string"
+    },
+    "sender_id": {
+      "type": "string"
+    },
+    "sender_name": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "thread_id",
+    "sender_id",
+    "content"
+  ]
+}

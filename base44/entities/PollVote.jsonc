@@ -1,0 +1,20 @@
+{
+  "name": "PollVote",
+  "type": "object",
+  "properties": {
+    "post_id": {
+      "type": "string"
+    },
+    "option_index": {
+      "type": "number"
+    },
+    "user_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "post_id",
+    "option_index",
+    "user_id"
+  ]
+}

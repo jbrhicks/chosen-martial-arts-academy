@@ -1,0 +1,39 @@
+{
+  "name": "ChallengeSubmission",
+  "type": "object",
+  "properties": {
+    "post_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "video_url": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending"
+    },
+    "badge_type": {
+      "type": "string",
+      "enum": [
+        "gold",
+        "silver"
+      ],
+      "default": "gold"
+    }
+  },
+  "required": [
+    "post_id",
+    "user_id"
+  ]
+}

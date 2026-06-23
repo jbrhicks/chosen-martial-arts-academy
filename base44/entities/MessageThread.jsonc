@@ -1,0 +1,23 @@
+{
+  "name": "MessageThread",
+  "type": "object",
+  "properties": {
+    "thread_name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "dm",
+        "group"
+      ],
+      "default": "dm"
+    },
+    "created_by_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "type"
+  ]
+}

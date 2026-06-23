@@ -47,6 +47,7 @@ import AdminOnboarding from '@/pages/admin/AdminOnboarding';
 import AdminPrograms from '@/pages/admin/AdminPrograms';
 import Progress from '@/pages/portal/Progress';
 import StudentCurriculum from '@/pages/portal/StudentCurriculum';
+import Messages from '@/pages/portal/Messages';
 import Family from '@/pages/portal/Family';
 import Kiosk from '@/pages/Kiosk';
 
@@ -96,6 +97,7 @@ const AuthenticatedApp = () => {
           <Route path="/portal/community" element={<Community />} />
           <Route path="/portal/progress" element={<Progress />} />
           <Route path="/portal/journey" element={<StudentCurriculum />} />
+          <Route path="/portal/messages" element={<Messages />} />
           <Route path="/portal/family" element={<Family />} />
           <Route path="/portal/events" element={<Events />} />
           <Route path="/portal/billing" element={<Billing />} />

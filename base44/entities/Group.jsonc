@@ -1,0 +1,25 @@
+{
+  "name": "Group",
+  "type": "object",
+  "properties": {
+    "group_name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "is_private": {
+      "type": "boolean",
+      "default": false
+    },
+    "created_by_id": {
+      "type": "string"
+    },
+    "created_by_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "group_name"
+  ]
+}

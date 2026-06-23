@@ -53,6 +53,37 @@
     "comment_count": {
       "type": "number",
       "default": 0
+    },
+    "group_id": {
+      "type": "string"
+    },
+    "post_type": {
+      "type": "string",
+      "enum": [
+        "standard",
+        "poll",
+        "challenge",
+        "broadcast"
+      ],
+      "default": "standard"
+    },
+    "poll_options": {
+      "type": "string"
+    },
+    "challenge_badge": {
+      "type": "string",
+      "enum": [
+        "gold",
+        "silver"
+      ],
+      "default": "gold"
+    },
+    "challenge_description": {
+      "type": "string"
+    },
+    "share_count": {
+      "type": "number",
+      "default": 0
     }
   },
   "required": [

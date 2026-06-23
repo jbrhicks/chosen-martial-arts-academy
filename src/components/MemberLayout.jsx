@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useState } from "react";
-import { Home, Video, Users, Calendar, CreditCard, LogOut, Menu, TrendingUp, UserCog, Eye, Map } from "lucide-react";
+import { Home, Video, Users, Calendar, CreditCard, LogOut, Menu, TrendingUp, UserCog, Eye, Map, MessageCircle } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { FamilyProvider, useFamily } from "@/lib/FamilyContext";
 import BeltBadge from "@/components/BeltBadge";
@@ -18,6 +18,7 @@ function MemberLayoutContent() {
     { label: "Curriculum", path: "/portal/curriculum", icon: Video },
     { label: "Progression", path: "/portal/progress", icon: TrendingUp },
     { label: "My Journey", path: "/portal/journey", icon: Map },
+    { label: "Messages", path: "/portal/messages", icon: MessageCircle },
     { label: "Community", path: "/portal/community", icon: Users },
     { label: "Events", path: "/portal/events", icon: Calendar },
     { label: "Billing", path: "/portal/billing", icon: CreditCard },
