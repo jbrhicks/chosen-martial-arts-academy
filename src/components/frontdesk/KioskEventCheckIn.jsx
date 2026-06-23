@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, CheckCircle, ArrowLeft, Search, Calendar } from "lucide-react";
+import { Loader2, CheckCircle, ArrowLeft, Search, Calendar, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,6 +17,7 @@ export default function KioskEventCheckIn({ onBack, selectedEvent, setSelectedEv
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [checkingIn, setCheckingIn] = useState(null);
+  const [checkedInName, setCheckedInName] = useState("");
 
   useEffect(() => {
     if (!selectedEvent) {
@@ -58,7 +59,11 @@ export default function KioskEventCheckIn({ onBack, selectedEvent, setSelectedEv
         status: "checked-in",
         checked_in_date: new Date().toISOString(),
       });
-      loadRegistrations(selectedEvent);
+      setCheckedInName(reg.student_name);
+      setTimeout(() => {
+        setCheckedInName("");
+        loadRegistrations(selectedEvent);
+      }, 2000);
     } catch (e) {
       alert("Failed to check in: " + e.message);
     }
@@ -74,6 +79,8 @@ export default function KioskEventCheckIn({ onBack, selectedEvent, setSelectedEv
     }
     return true;
   });
+
+  const canCheckIn = filtered.filter((reg) => reg.status === "registered").length;
 
   if (loading) {
     return (
@@ -92,8 +99,8 @@ export default function KioskEventCheckIn({ onBack, selectedEvent, setSelectedEv
             Back to Home
           </button>
 
-          <h1 className="text-3xl font-bold text-white mb-2">Select Event</h1>
-          <p className="text-[#A8A9AD] mb-8">Choose an event to check in attendees</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Event Check-In</h1>
+          <p className="text-[#A8A9AD] mb-8">Select your event to check in</p>
 
           <div className="grid md:grid-cols-2 gap-4">
             {events.map((event) => {
@@ -123,6 +130,21 @@ export default function KioskEventCheckIn({ onBack, selectedEvent, setSelectedEv
     );
   }
 
+  if (checkedInName) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="w-24 h-24 border-4 border-[#C9A84C] rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle size={48} className="text-[#C9A84C]" />
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-2">You're Checked In!</h1>
+          <p className="text-xl text-[#C9A84C] mb-8">{checkedInName}</p>
+          <p className="text-[#A8A9AD]">Thank you for attending {selectedEvent.title}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] p-8">
       <div className="max-w-4xl mx-auto">
@@ -139,15 +161,21 @@ export default function KioskEventCheckIn({ onBack, selectedEvent, setSelectedEv
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name or email..."
+            placeholder="Search by your name or email..."
             className="pl-12 bg-[#1a1a1a] border border-[#A8A9AD]/30 text-white h-14 text-lg"
             autoFocus
           />
         </div>
 
-        {filtered.length === 0 ? (
+        {canCheckIn === 0 && filtered.length === 0 ? (
           <div className="border border-[#A8A9AD]/20 p-12 text-center bg-[#1a1a1a]">
             <p className="text-[#A8A9AD] text-lg">No registrations found.</p>
+          </div>
+        ) : canCheckIn === 0 ? (
+          <div className="border border-[#A8A9AD]/20 p-12 text-center bg-[#1a1a1a]">
+            <UserCheck size={48} className="mx-auto mb-4 text-green-400" />
+            <p className="text-white text-lg font-bold mb-2">Already Checked In</p>
+            <p className="text-[#A8A9AD]">You are already checked in for this event.</p>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-4">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, CheckCircle, X, Search, Calendar, Users, UserCheck } from "lucide-react";
+import { Loader2, CheckCircle, X, Search, Calendar, Users, UserCheck, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -137,10 +137,20 @@ export default function EventCheckIn() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-xs tracking-widest uppercase text-[#C9A84C] mb-2">Event Attendance</p>
-        <h1 className="text-3xl font-bold">Event Check-In</h1>
-        <p className="text-[#A8A9AD] text-sm mt-1">Manage event registrations and check-ins.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs tracking-widest uppercase text-[#C9A84C] mb-2">Event Attendance</p>
+          <h1 className="text-3xl font-bold">Event Check-In</h1>
+          <p className="text-[#A8A9AD] text-sm mt-1">Manage event registrations and check-ins.</p>
+        </div>
+        <a
+          href="/front-desk"
+          target="_blank"
+          className="flex items-center gap-2 px-4 py-3 bg-[#1a1a1a] border border-[#A8A9AD]/30 text-[#A8A9AD] hover:text-[#C9A84C] hover:border-[#C9A84C]/50 transition-colors"
+        >
+          <Monitor size={18} />
+          <span className="text-sm font-medium">Open Kiosk Check-In</span>
+        </a>
       </div>
 
       {!selectedEvent ? (
