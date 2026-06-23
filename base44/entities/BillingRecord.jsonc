@@ -48,5 +48,46 @@
     "family_id",
     "recurring_amount",
     "billing_cycle"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.family_id": "{{user.family_id}}",
+          "$or": [
+            {
+              "user_condition": {
+                "family_role": "primary_guardian"
+              }
+            },
+            {
+              "user_condition": {
+                "family_role": "secondary_guardian"
+              }
+            }
+          ]
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }
