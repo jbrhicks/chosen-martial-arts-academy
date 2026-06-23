@@ -42,6 +42,7 @@ import AdminSchedule from '@/pages/admin/AdminSchedule';
 import AdminProgress from '@/pages/admin/AdminProgress';
 import AdminAttendance from '@/pages/admin/AdminAttendance';
 import Progress from '@/pages/portal/Progress';
+import Family from '@/pages/portal/Family';
 import Kiosk from '@/pages/Kiosk';
 
 const AuthenticatedApp = () => {
@@ -89,6 +90,7 @@ const AuthenticatedApp = () => {
           <Route path="/portal/curriculum" element={<Curriculum />} />
           <Route path="/portal/community" element={<Community />} />
           <Route path="/portal/progress" element={<Progress />} />
+          <Route path="/portal/family" element={<Family />} />
           <Route path="/portal/events" element={<Events />} />
           <Route path="/portal/billing" element={<Billing />} />
         </Route>

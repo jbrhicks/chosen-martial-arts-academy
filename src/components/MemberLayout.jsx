@@ -1,14 +1,17 @@
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useState } from "react";
-import { Home, Video, Users, Calendar, CreditCard, LogOut, Menu, X, ChevronRight, TrendingUp } from "lucide-react";
+import { Home, Video, Users, Calendar, CreditCard, LogOut, Menu, TrendingUp, UserCog, Eye } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
+import { FamilyProvider, useFamily } from "@/lib/FamilyContext";
 import BeltBadge from "@/components/BeltBadge";
+import ProfileSwitcher from "@/components/family/ProfileSwitcher";
 
-export default function MemberLayout() {
+function MemberLayoutContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { isGuardian, isViewingAsChild, activeProfile, resetProfile } = useFamily();
 
   const navItems = [
     { label: "Dashboard", path: "/portal", icon: Home },
@@ -17,6 +20,7 @@ export default function MemberLayout() {
     { label: "Community", path: "/portal/community", icon: Users },
     { label: "Events", path: "/portal/events", icon: Calendar },
     { label: "Billing", path: "/portal/billing", icon: CreditCard },
+    ...(isGuardian ? [{ label: "Family", path: "/portal/family", icon: UserCog }] : []),
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -29,10 +33,10 @@ export default function MemberLayout() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white flex">
       {/* Sidebar */}
-      <aside className={`fixed lg:sticky top-0 left-0 h-screen w-64 bg-black border-r border-[#A8A9AD]/20 z-50 transition-transform duration-300 ${
+      <aside className={`fixed lg:sticky top-0 left-0 h-screen w-64 bg-black border-r border-[#A8A9AD]/20 z-50 transition-transform duration-300 flex flex-col ${
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       }`}>
-        <div className="h-20 flex items-center px-6 border-b border-[#A8A9AD]/20">
+        <div className="h-20 flex items-center px-6 border-b border-[#A8A9AD]/20 shrink-0">
           <Link to="/" className="flex items-center gap-3">
             <div className="w-9 h-9 border-2 border-[#C9A84C] flex items-center justify-center">
               <span className="text-[#C9A84C] font-bold text-lg">C</span>
@@ -45,7 +49,7 @@ export default function MemberLayout() {
         </div>
 
         {/* User card */}
-        <div className="p-4 border-b border-[#A8A9AD]/20">
+        <div className="p-4 border-b border-[#A8A9AD]/20 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#C9A84C]/10 border border-[#C9A84C]/30 flex items-center justify-center">
               <span className="text-[#C9A84C] font-bold text-sm">
@@ -59,7 +63,10 @@ export default function MemberLayout() {
           </div>
         </div>
 
-        <nav className="p-4 flex flex-col gap-1">
+        {/* Profile Switcher */}
+        <ProfileSwitcher />
+
+        <nav className="p-4 flex flex-col gap-1 flex-1 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -80,7 +87,7 @@ export default function MemberLayout() {
           })}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#A8A9AD]/20">
+        <div className="p-4 border-t border-[#A8A9AD]/20 shrink-0">
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#A8A9AD] hover:text-white transition-colors w-full"
@@ -107,9 +114,31 @@ export default function MemberLayout() {
         </header>
 
         <div className="p-6 lg:p-8 max-w-6xl mx-auto">
+          {isViewingAsChild && (
+            <div className="mb-6 border border-[#C9A84C]/30 bg-[#C9A84C]/10 p-4 flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <Eye size={18} className="text-[#C9A84C] shrink-0" />
+                <div>
+                  <p className="text-sm font-medium">Viewing as {activeProfile?.full_name}</p>
+                  <p className="text-xs text-[#A8A9AD]">Curriculum and progress are filtered to their rank.</p>
+                </div>
+              </div>
+              <button onClick={resetProfile} className="text-xs text-[#C9A84C] tracking-widest uppercase font-medium hover:text-[#E0C97A]">
+                Back to My Profile
+              </button>
+            </div>
+          )}
           <Outlet />
         </div>
       </div>
     </div>
+  );
+}
+
+export default function MemberLayout() {
+  return (
+    <FamilyProvider>
+      <MemberLayoutContent />
+    </FamilyProvider>
   );
 }

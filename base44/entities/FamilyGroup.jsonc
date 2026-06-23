@@ -1,0 +1,34 @@
+{
+  "name": "FamilyGroup",
+  "type": "object",
+  "properties": {
+    "family_name": {
+      "type": "string"
+    },
+    "primary_contact_id": {
+      "type": "string"
+    },
+    "billing_status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "past_due",
+        "none"
+      ],
+      "default": "none"
+    },
+    "cc_emails": {
+      "type": "string"
+    },
+    "cc_phones": {
+      "type": "string"
+    },
+    "invite_code": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "family_name",
+    "primary_contact_id"
+  ]
+}

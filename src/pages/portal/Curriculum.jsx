@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { useFamily } from "@/lib/FamilyContext";
 import { canAccessRank, BELT_RANKS } from "@/lib/constants";
 import BeltBadge from "@/components/BeltBadge";
 import VideoPlayer from "@/components/VideoPlayer";
@@ -10,6 +11,7 @@ const CATEGORIES = ["All", "Basics", "Kata", "Kumite", "Self-Defense", "Conditio
 
 export default function Curriculum() {
   const { user } = useAuth();
+  const { activeProfile } = useFamily();
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeVideo, setActiveVideo] = useState(null);
@@ -26,7 +28,7 @@ export default function Curriculum() {
   }, []);
 
   // Filter videos: only show videos at or below the user's belt rank
-  const accessibleVideos = videos.filter((v) => canAccessRank(user?.belt_rank, v.belt_rank_required));
+  const accessibleVideos = videos.filter((v) => canAccessRank(activeProfile?.belt_rank, v.belt_rank_required));
   const filtered = accessibleVideos.filter((v) => {
     const matchCat = category === "All" || v.category === category;
     const matchSearch = !search || v.title?.toLowerCase().includes(search.toLowerCase()) || v.description?.toLowerCase().includes(search.toLowerCase());
@@ -45,9 +47,9 @@ export default function Curriculum() {
         <p className="text-xs tracking-widest uppercase text-[#C9A84C] mb-2">Training Library</p>
         <h1 className="text-3xl font-bold mb-2">Curriculum Video Vault</h1>
         <p className="text-[#A8A9AD] text-sm">Videos organized by belt rank. You have access to your current rank and below.</p>
-        {user?.belt_rank && (
+        {activeProfile?.belt_rank && (
           <div className="mt-3">
-            <BeltBadge rank={user.belt_rank} size="md" />
+            <BeltBadge rank={activeProfile.belt_rank} size="md" />
           </div>
         )}
       </div>

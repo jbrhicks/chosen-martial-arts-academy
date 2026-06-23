@@ -55,6 +55,21 @@
     "is_active": {
       "type": "boolean",
       "default": true
+    },
+    "family_id": {
+      "type": "string"
+    },
+    "family_role": {
+      "type": "string",
+      "enum": [
+        "primary_guardian",
+        "secondary_guardian",
+        "student"
+      ],
+      "default": "student"
+    },
+    "pin_code": {
+      "type": "string"
     }
   },
   "required": [

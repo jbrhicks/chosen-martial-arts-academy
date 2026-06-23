@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { useFamily } from "@/lib/FamilyContext";
 import { Video, Users, Calendar, CreditCard, ChevronRight, TrendingUp } from "lucide-react";
 import BeltBadge from "@/components/BeltBadge";
 import { BELT_RANKS, getRankIndex } from "@/lib/constants";
 
 export default function PortalHome() {
   const { user } = useAuth();
+  const { activeProfile } = useFamily();
   const [stats, setStats] = useState({ videos: 0, posts: 0, events: 0, payments: 0 });
   const [nextRank, setNextRank] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -17,7 +19,7 @@ export default function PortalHome() {
       base44.entities.Video.filter({ is_published: true }).catch(() => []),
       base44.entities.Post.filter({ is_deleted: false }).catch(() => []),
       base44.entities.Event.list().catch(() => []),
-      base44.entities.Payment.filter({ user_id: user?.id, status: "succeeded" }).catch(() => []),
+      base44.entities.Payment.filter({ user_id: activeProfile?.id, status: "succeeded" }).catch(() => []),
     ]).then(([videos, posts, events, payments]) => {
       setStats({
         videos: videos.length,
@@ -27,14 +29,14 @@ export default function PortalHome() {
       });
       setLoading(false);
     });
-  }, [user]);
+  }, [activeProfile?.id]);
 
   useEffect(() => {
-    if (user?.belt_rank) {
-      const idx = getRankIndex(user.belt_rank);
+    if (activeProfile?.belt_rank) {
+      const idx = getRankIndex(activeProfile.belt_rank);
       if (idx < BELT_RANKS.length - 1) setNextRank(BELT_RANKS[idx + 1]);
     }
-  }, [user]);
+  }, [activeProfile?.belt_rank]);
 
   const quickLinks = [
     { label: "Curriculum", path: "/portal/curriculum", icon: Video, desc: "Watch training videos" },
@@ -48,27 +50,27 @@ export default function PortalHome() {
       {/* Welcome */}
       <div>
         <p className="text-xs tracking-widest uppercase text-[#C9A84C] mb-2">Welcome Back</p>
-        <h1 className="text-3xl font-bold mb-2">{user?.full_name || "Student"}</h1>
-        {user?.belt_rank && <BeltBadge rank={user.belt_rank} size="lg" />}
+        <h1 className="text-3xl font-bold mb-2">{activeProfile?.full_name || "Student"}</h1>
+        {activeProfile?.belt_rank && <BeltBadge rank={activeProfile.belt_rank} size="lg" />}
       </div>
 
       {/* Belt progress */}
-      {user?.belt_rank && nextRank && (
+      {activeProfile?.belt_rank && nextRank && (
         <div className="border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-6">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp size={18} className="text-[#C9A84C]" />
             <h2 className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">Next Belt</h2>
           </div>
           <p className="text-lg">
-            You're currently at <span className="font-bold text-white">{user.belt_rank}</span>. Your next rank is <span className="text-[#C9A84C] font-bold">{nextRank}</span>.
+            You're currently at <span className="font-bold text-white">{activeProfile.belt_rank}</span>. Your next rank is <span className="text-[#C9A84C] font-bold">{nextRank}</span>.
           </p>
           <div className="mt-4 h-2 bg-white/10">
             <div
               className="h-full bg-[#C9A84C] transition-all duration-500"
-              style={{ width: `${((getRankIndex(user.belt_rank) + 1) / BELT_RANKS.length) * 100}%` }}
+              style={{ width: `${((getRankIndex(activeProfile.belt_rank) + 1) / BELT_RANKS.length) * 100}%` }}
             />
           </div>
-          <p className="text-xs text-[#A8A9AD] mt-2">Rank {getRankIndex(user.belt_rank) + 1} of {BELT_RANKS.length}</p>
+          <p className="text-xs text-[#A8A9AD] mt-2">Rank {getRankIndex(activeProfile.belt_rank) + 1} of {BELT_RANKS.length}</p>
         </div>
       )}
 

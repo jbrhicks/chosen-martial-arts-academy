@@ -1,0 +1,58 @@
+{
+  "name": "FamilyDocument",
+  "type": "object",
+  "properties": {
+    "family_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "waiver",
+        "permission_slip",
+        "testing_form",
+        "other"
+      ],
+      "default": "waiver"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "signed",
+        "expired"
+      ],
+      "default": "pending"
+    },
+    "signed_by": {
+      "type": "string"
+    },
+    "signed_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "family_id",
+    "user_id",
+    "user_name",
+    "title",
+    "document_type"
+  ]
+}

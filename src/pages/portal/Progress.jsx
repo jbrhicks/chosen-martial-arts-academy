@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { useFamily } from "@/lib/FamilyContext";
 import { BELT_RANKS } from "@/lib/constants";
 import BeltBadge from "@/components/BeltBadge";
 import { Loader2, CheckCircle, Circle, Clock, Target, TrendingUp, Calendar } from "lucide-react";
 
 export default function Progress() {
   const { user } = useAuth();
+  const { activeProfile } = useFamily();
   const [goals, setGoals] = useState([]);
   const [progress, setProgress] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const currentRank = user?.belt_rank || "White";
+  const currentRank = activeProfile?.belt_rank || "White";
   const currentIndex = BELT_RANKS.indexOf(currentRank);
   const nextRank = currentIndex < BELT_RANKS.length - 1 ? BELT_RANKS[currentIndex + 1] : null;
 
@@ -21,8 +23,8 @@ export default function Progress() {
       try {
         const [g, p, a] = await Promise.all([
           base44.entities.ProgressGoal.filter({ belt_rank: currentRank }),
-          base44.entities.StudentProgress.filter({ user_id: user?.id, belt_rank: currentRank }),
-          base44.entities.AttendanceRecord.filter({ user_id: user?.id }),
+          base44.entities.StudentProgress.filter({ user_id: activeProfile?.id, belt_rank: currentRank }),
+          base44.entities.AttendanceRecord.filter({ user_id: activeProfile?.id }),
         ]);
         setGoals(g);
         setProgress(p);
@@ -30,8 +32,8 @@ export default function Progress() {
       } catch (e) { console.error(e); }
       setLoading(false);
     };
-    if (user) load();
-  }, [user, currentRank]);
+    if (activeProfile) load();
+  }, [activeProfile?.id, currentRank]);
 
   const getGoalStatus = (goalId) => {
     const p = progress.find((pr) => pr.goal_id === goalId);
