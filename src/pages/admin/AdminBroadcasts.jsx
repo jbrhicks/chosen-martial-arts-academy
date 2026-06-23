@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Send, Mail, MessageSquare, Bell, Users, Filter, Plus, Trash2, Eye } from "lucide-react";
+import { Send, Mail, MessageSquare, Bell, Users, Filter, Plus, Trash2, Eye, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,17 +16,24 @@ import toast from "react-hot-toast";
 export default function AdminBroadcasts() {
   const [broadcasts, setBroadcasts] = useState([]);
   const [programs, setPrograms] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showComposer, setShowComposer] = useState(false);
+  const [showUserPicker, setShowUserPicker] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
   const [formData, setFormData] = useState({
     subject: "",
     body: "",
     channel_email: false,
     channel_sms: false,
     channel_in_app: true,
-    target_type: "all",
+    target_type: "all_active",
     target_program_id: "",
-    target_belt_rank: ""
+    target_belt_rank: "",
+    target_event_id: "",
+    target_event_title: "",
+    target_user_ids: ""
   });
 
   useEffect(() => {
@@ -35,18 +42,37 @@ export default function AdminBroadcasts() {
 
   const fetchData = async () => {
     try {
-      const [broadcastsData, programsData] = await Promise.all([
+      const [broadcastsData, programsData, eventsData, usersData] = await Promise.all([
         base44.entities.BroadcastMessage.list("-created_date"),
-        base44.entities.Program.list()
+        base44.entities.Program.list(),
+        base44.entities.Event.filter({ status: "active" }),
+        base44.entities.User.list()
       ]);
       setBroadcasts(broadcastsData);
       setPrograms(programsData);
+      setEvents(eventsData);
+      setAllUsers(usersData);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
   };
+
+  const handleUserToggle = (userId) => {
+    const currentIds = formData.target_user_ids ? formData.target_user_ids.split(",") : [];
+    const newIds = currentIds.includes(userId)
+      ? currentIds.filter(id => id !== userId)
+      : [...currentIds, userId];
+    setFormData({ ...formData, target_user_ids: newIds.join(",") });
+  };
+
+  const filteredUsers = allUsers.filter(user =>
+    user.full_name?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+    user.email?.toLowerCase().includes(userSearchQuery.toLowerCase())
+  );
+
+  const selectedUserCount = formData.target_user_ids ? formData.target_user_ids.split(",").length : 0;
 
   const handleSendBroadcast = async () => {
     if (!formData.subject || !formData.body) {
@@ -78,9 +104,12 @@ export default function AdminBroadcasts() {
         channel_email: false,
         channel_sms: false,
         channel_in_app: true,
-        target_type: "all",
+        target_type: "all_active",
         target_program_id: "",
-        target_belt_rank: ""
+        target_belt_rank: "",
+        target_event_id: "",
+        target_event_title: "",
+        target_user_ids: ""
       });
       fetchData();
     } catch (error) {
@@ -304,9 +333,12 @@ export default function AdminBroadcasts() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-black border-[#A8A9AD]/20">
-                    <SelectItem value="all">All Active Students</SelectItem>
+                    <SelectItem value="all_active">All Active Students</SelectItem>
+                    <SelectItem value="all_inactive">All Inactive Students</SelectItem>
                     <SelectItem value="program">By Program</SelectItem>
                     <SelectItem value="belt_rank">By Belt Rank</SelectItem>
+                    <SelectItem value="event_registered">Event Registrants</SelectItem>
+                    <SelectItem value="custom">Manually Select Users</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -344,6 +376,66 @@ export default function AdminBroadcasts() {
                 </div>
               )}
 
+              {formData.target_type === "event_registered" && (
+                <div>
+                  <Label className="text-[#A8A9AD]">Select Event</Label>
+                  <Select
+                    value={formData.target_event_id}
+                    onValueChange={(value) => {
+                      const event = events.find(e => e.id === value);
+                      setFormData({ 
+                        ...formData, 
+                        target_event_id: value,
+                        target_event_title: event?.title || ""
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="bg-[#0A0A0A] border-[#A8A9AD]/20 text-white mt-2">
+                      <SelectValue placeholder="Select an event" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-black border-[#A8A9AD]/20">
+                      {events.map((event) => (
+                        <SelectItem key={event.id} value={event.id}>
+                          {event.title} ({new Date(event.start_date).toLocaleDateString()})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {formData.target_type === "custom" && (
+                <div>
+                  <Label className="text-[#A8A9AD]">Select Users</Label>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowUserPicker(true)}
+                      className="border-[#A8A9AD]/20 flex-1 justify-between"
+                    >
+                      <span className="text-white">
+                        {selectedUserCount > 0 
+                          ? `${selectedUserCount} user${selectedUserCount > 1 ? 's' : ''} selected`
+                          : "Choose users..."
+                        }
+                      </span>
+                      <Users size={16} className="text-[#A8A9AD]" />
+                    </Button>
+                    {selectedUserCount > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setFormData({ ...formData, target_user_ids: "" })}
+                        className="border-[#A8A9AD]/20"
+                      >
+                        <X size={16} />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2 pt-4">
                 <Button onClick={handleSendBroadcast} className="flex-1 bg-[#C9A84C] hover:bg-[#C9A84C]/90">
                   <Send size={18} />
@@ -354,6 +446,64 @@ export default function AdminBroadcasts() {
                 </Button>
               </div>
             </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {showUserPicker && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <Card className="bg-black border-[#A8A9AD]/20 w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            <CardHeader className="shrink-0">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white">Select Users</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setShowUserPicker(false)}>
+                  <X size={18} />
+                </Button>
+              </div>
+            </CardHeader>
+            <div className="p-4 border-b border-[#A8A9AD]/20 shrink-0">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A9AD]" size={18} />
+                <Input
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  placeholder="Search by name or email..."
+                  className="bg-[#0A0A0A] border-[#A8A9AD]/20 text-white pl-10"
+                />
+              </div>
+            </div>
+            <div className="overflow-y-auto flex-1 p-4">
+              <div className="space-y-2">
+                {filteredUsers.map((user) => {
+                  const isSelected = formData.target_user_ids?.split(",").includes(user.id);
+                  return (
+                    <div
+                      key={user.id}
+                      onClick={() => handleUserToggle(user.id)}
+                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                        isSelected
+                          ? "bg-[#C9A84C]/20 border border-[#C9A84C]/30"
+                          : "bg-[#0A0A0A] hover:bg-[#0A0A0A]/80 border border-[#A8A9AD]/10"
+                      }`}
+                    >
+                      <Checkbox checked={isSelected} onChange={() => {}} />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-white">{user.full_name}</p>
+                        <p className="text-xs text-[#A8A9AD]">{user.email}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="p-4 border-t border-[#A8A9AD]/20 shrink-0 flex gap-2">
+              <Button
+                onClick={() => setShowUserPicker(false)}
+                className="flex-1 bg-[#C9A84C] hover:bg-[#C9A84C]/90"
+              >
+                Done ({selectedUserCount} selected)
+              </Button>
+            </div>
           </Card>
         </div>
       )}

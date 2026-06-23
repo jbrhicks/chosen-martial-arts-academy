@@ -42,17 +42,25 @@
     "target_type": {
       "type": "string",
       "enum": [
-        "all",
+        "all_active",
+        "all_inactive",
         "program",
         "belt_rank",
+        "event_registered",
         "custom"
       ],
-      "default": "all"
+      "default": "all_active"
     },
     "target_program_id": {
       "type": "string"
     },
     "target_belt_rank": {
+      "type": "string"
+    },
+    "target_event_id": {
+      "type": "string"
+    },
+    "target_event_title": {
       "type": "string"
     },
     "target_user_ids": {

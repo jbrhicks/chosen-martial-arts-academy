@@ -15,9 +15,12 @@ Deno.serve(async (req) => {
 
     let targetUsers = [];
 
-    if (broadcast.target_type === 'all') {
+    if (broadcast.target_type === 'all_active') {
       const allUsers = await base44.entities.User.list();
-      targetUsers = allUsers.filter(u => u.role === 'student' || u.role === 'user');
+      targetUsers = allUsers.filter(u => (u.role === 'student' || u.role === 'user') && u.status !== 'inactive');
+    } else if (broadcast.target_type === 'all_inactive') {
+      const allUsers = await base44.entities.User.list();
+      targetUsers = allUsers.filter(u => (u.role === 'student' || u.role === 'user') && u.status === 'inactive');
     } else if (broadcast.target_type === 'program' && broadcast.target_program_id) {
       const enrollments = await base44.entities.Enrollment.filter({ 
         program_id: broadcast.target_program_id,
@@ -29,8 +32,17 @@ Deno.serve(async (req) => {
     } else if (broadcast.target_type === 'belt_rank' && broadcast.target_belt_rank) {
       const allUsers = await base44.entities.User.list();
       targetUsers = allUsers.filter(u => u.belt_rank === broadcast.target_belt_rank);
+    } else if (broadcast.target_type === 'event_registered' && broadcast.target_event_id) {
+      const registrations = await base44.entities.EventRegistration.filter({ 
+        event_id: broadcast.target_event_id
+      });
+      const userIds = [...new Set(registrations.map(r => r.user_id).filter(id => id))];
+      if (userIds.length > 0) {
+        const allUsers = await base44.entities.User.list();
+        targetUsers = allUsers.filter(u => userIds.includes(u.id));
+      }
     } else if (broadcast.target_type === 'custom' && broadcast.target_user_ids) {
-      const userIds = JSON.parse(broadcast.target_user_ids);
+      const userIds = broadcast.target_user_ids.split(',').filter(id => id);
       const allUsers = await base44.entities.User.list();
       targetUsers = allUsers.filter(u => userIds.includes(u.id));
     }
