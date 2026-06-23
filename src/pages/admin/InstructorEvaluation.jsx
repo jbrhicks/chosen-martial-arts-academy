@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/AuthContext";
 import SessionBar from "@/components/admin/evaluation/SessionBar";
 import LiveMatGrid from "@/components/admin/evaluation/LiveMatGrid";
 import StudentDetail from "@/components/admin/evaluation/StudentDetail";
+import ClassFilter from "@/components/admin/evaluation/ClassFilter";
 import { Loader2 } from "lucide-react";
 
 export default function InstructorEvaluation() {
@@ -20,24 +21,59 @@ export default function InstructorEvaluation() {
   const [checkedInStudents, setCheckedInStudents] = useState([]);
   const [readinessMap, setReadinessMap] = useState({});
   const [gridLoading, setGridLoading] = useState(false);
+  const [todayClasses, setTodayClasses] = useState([]);
+  const [todayAttendance, setTodayAttendance] = useState([]);
+  const [selectedClassFilter, setSelectedClassFilter] = useState("all");
+  const [currentClassName, setCurrentClassName] = useState(null);
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
   const load = async () => {
     try {
-      const [users, progs, allEnroll, activeSessions] = await Promise.all([
+      const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
+      const [users, progs, allEnroll, activeSessions, todaySched] = await Promise.all([
         base44.entities.User.list(),
         base44.entities.Program.list(),
         base44.entities.Enrollment.list(),
         base44.entities.LiveClassSession.filter({ status: "active", instructor_id: user.id }).catch(() => []),
+        base44.entities.ClassSchedule.filter({ is_active: true, day_of_week: today }).catch(() => []),
       ]);
       setStudents(users.filter(u => u.role !== "admin"));
       setPrograms(progs);
       setEnrollments(allEnroll);
       setSession(activeSessions[0] || null);
+      setTodayClasses(todaySched.sort((a, b) => (a.start_time || "").localeCompare(b.start_time || "")));
     } catch (e) { console.error(e); }
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
+  const detectCurrentClass = (classes) => {
+    const now = new Date();
+    const currentTime = now.toTimeString().slice(0, 5);
+    return classes.find(c => {
+      if (!c.start_time) return false;
+      const start = c.start_time.slice(0, 5);
+      const end = c.end_time ? c.end_time.slice(0, 5) : null;
+      if (end) return currentTime >= start && currentTime <= end;
+      const [h, m] = start.split(":").map(Number);
+      const startMin = h * 60 + m;
+      const [ch, cm] = currentTime.split(":").map(Number);
+      const currentMin = ch * 60 + cm;
+      return currentMin >= startMin && currentMin <= startMin + 90;
+    });
+  };
+
+  useEffect(() => {
+    if (todayClasses.length > 0 && !hasAutoSelected) {
+      const current = detectCurrentClass(todayClasses);
+      if (current) {
+        setCurrentClassName(current.class_name);
+        setSelectedClassFilter(current.class_name);
+      }
+      setHasAutoSelected(true);
+    }
+  }, [todayClasses, hasAutoSelected]);
 
   const computeReadiness = async (checkedIn) => {
     if (checkedIn.length === 0) { setReadinessMap({}); return; }
@@ -94,6 +130,7 @@ export default function InstructorEvaluation() {
         if (!a.check_in_date) return false;
         return new Date(a.check_in_date).toISOString().split("T")[0] === todayStr;
       });
+      setTodayAttendance(todayAtt);
       const checkedInIds = [...new Set(todayAtt.map(a => a.user_id))];
       const checkedIn = students.filter(s => checkedInIds.includes(s.id));
       setCheckedInStudents(checkedIn);
@@ -161,6 +198,10 @@ export default function InstructorEvaluation() {
       }).slice(0, 8)
     : [];
 
+  const displayedStudents = selectedClassFilter === "all"
+    ? checkedInStudents
+    : checkedInStudents.filter(s => todayAttendance.some(a => a.user_id === s.id && a.class_name === selectedClassFilter));
+
   if (loading) return <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-[#C9A84C]" /></div>;
 
   return (
@@ -194,12 +235,20 @@ export default function InstructorEvaluation() {
           onStudentUpdated={handleStudentUpdated}
         />
       ) : (
-        <LiveMatGrid
-          students={checkedInStudents}
-          readinessMap={readinessMap}
-          onSelect={selectStudent}
-          loading={gridLoading}
-        />
+        <>
+          <ClassFilter
+            todayClasses={todayClasses}
+            selectedClass={selectedClassFilter}
+            onSelectClass={setSelectedClassFilter}
+            currentClassName={currentClassName}
+          />
+          <LiveMatGrid
+            students={displayedStudents}
+            readinessMap={readinessMap}
+            onSelect={selectStudent}
+            loading={gridLoading}
+          />
+        </>
       )}
     </div>
   );
