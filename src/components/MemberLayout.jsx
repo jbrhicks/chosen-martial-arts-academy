@@ -1,10 +1,11 @@
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useState } from "react";
-import { Home, Video, Users, Calendar, CreditCard, LogOut, Menu, TrendingUp, UserCog, Eye, Map, MessageCircle } from "lucide-react";
+import { Home, Video, Users, Calendar, CreditCard, LogOut, Menu, TrendingUp, UserCog, Eye, Map, MessageCircle, Lock } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { FamilyProvider, useFamily } from "@/lib/FamilyContext";
 import BeltBadge from "@/components/BeltBadge";
 import ProfileSwitcher from "@/components/family/ProfileSwitcher";
+import { CommunityAccessProvider, useCommunityAccess } from "@/lib/CommunityAccessContext";
 
 function MemberLayoutContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -12,14 +13,15 @@ function MemberLayoutContent() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { isGuardian, isViewingAsChild, activeProfile, resetProfile } = useFamily();
+  const { hasAccess: hasCommunityAccess } = useCommunityAccess();
 
   const navItems = [
     { label: "Dashboard", path: "/portal", icon: Home },
     { label: "Curriculum", path: "/portal/curriculum", icon: Video },
     { label: "Progression", path: "/portal/progress", icon: TrendingUp },
     { label: "My Journey", path: "/portal/journey", icon: Map },
-    { label: "Messages", path: "/portal/messages", icon: MessageCircle },
-    { label: "Community", path: "/portal/community", icon: Users },
+    { label: "Messages", path: "/portal/messages", icon: MessageCircle, communityAccess: true },
+    { label: "Community", path: "/portal/community", icon: Users, communityAccess: true },
     { label: "Events", path: "/portal/events", icon: Calendar },
     { label: "Billing", path: "/portal/billing", icon: CreditCard },
     ...(isGuardian ? [{ label: "Family", path: "/portal/family", icon: UserCog }] : []),
@@ -84,6 +86,7 @@ function MemberLayoutContent() {
               >
                 <Icon size={18} />
                 {item.label}
+                {item.communityAccess && !hasCommunityAccess && <Lock size={12} className="ml-auto text-[#A8A9AD]" />}
               </Link>
             );
           })}
@@ -140,7 +143,9 @@ function MemberLayoutContent() {
 export default function MemberLayout() {
   return (
     <FamilyProvider>
-      <MemberLayoutContent />
+      <CommunityAccessProvider>
+        <MemberLayoutContent />
+      </CommunityAccessProvider>
     </FamilyProvider>
   );
 }

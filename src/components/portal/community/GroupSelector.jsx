@@ -1,23 +1,7 @@
-import { useEffect, useState } from "react";
-import { base44 } from "@/api/base44Client";
-import { Users, Globe, Lock } from "lucide-react";
+import { Users, Globe } from "lucide-react";
 
-export default function GroupSelector({ currentUser, selectedGroup, onSelectGroup }) {
-  const [groups, setGroups] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const memberships = await base44.entities.GroupMember.filter({ user_id: currentUser.id });
-        setGroups(memberships);
-      } catch (e) { console.error(e); }
-      setLoading(false);
-    };
-    load();
-  }, [currentUser.id]);
-
-  if (loading || groups.length === 0) return null;
+export default function GroupSelector({ groups, selectedGroup, onSelectGroup }) {
+  if (!groups || groups.length === 0) return null;
 
   return (
     <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-2">

@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Loader2, Send, MessageCircle, Plus, X, Search, ChevronLeft, Eye, Users } from "lucide-react";
+import { useCommunityAccess } from "@/lib/CommunityAccessContext";
+import LockedCommunity from "@/components/portal/community/LockedCommunity";
 
 const isMinor = (dob) => {
   if (!dob) return false;
@@ -11,6 +13,7 @@ const isMinor = (dob) => {
 
 export default function Messages() {
   const { user } = useAuth();
+  const { hasAccess, isChecking } = useCommunityAccess();
   const [threads, setThreads] = useState([]);
   const [selectedThread, setSelectedThread] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -145,6 +148,9 @@ export default function Messages() {
   };
 
   const filteredUsers = allUsers.filter(u => (u.full_name || "").toLowerCase().includes(search.toLowerCase()));
+
+  if (isChecking) return <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-[#C9A84C]" /></div>;
+  if (!hasAccess) return <LockedCommunity />;
 
   return (
     <div className="space-y-6">

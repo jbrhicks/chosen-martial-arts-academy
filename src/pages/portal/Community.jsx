@@ -1,13 +1,18 @@
 import { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { useFamily } from "@/lib/FamilyContext";
+import { useCommunityAccess } from "@/lib/CommunityAccessContext";
 import PostComposer from "@/components/PostComposer";
 import PostCard from "@/components/PostCard";
 import GroupSelector from "@/components/portal/community/GroupSelector";
+import LockedCommunity from "@/components/portal/community/LockedCommunity";
 import { Loader2 } from "lucide-react";
 
 export default function Community() {
   const { user } = useAuth();
+  const { isGuardian, members } = useFamily();
+  const { hasAccess, isChecking, childGroupIds } = useCommunityAccess();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState(null);
@@ -29,16 +34,51 @@ export default function Community() {
   }, []);
 
   const loadGroups = async () => {
-    try {
-      const memberships = await base44.entities.GroupMember.filter({ user_id: user.id });
-      setUserGroups(memberships);
-    } catch (e) { console.error(e); }
+    let memberships = [];
+    if (isGuardian) {
+      // Guardian mirroring: load groups from children's memberships
+      const children = (members || []).filter(m => m.family_role === "student");
+      for (const child of children) {
+        const m = await base44.entities.GroupMember.filter({ user_id: child.id });
+        memberships = [...memberships, ...m];
+      }
+      const seen = new Set();
+      memberships = memberships.filter(m => {
+        if (seen.has(m.group_id)) return false;
+        seen.add(m.group_id);
+        return true;
+      });
+    } else {
+      memberships = await base44.entities.GroupMember.filter({ user_id: user.id });
+    }
+    setUserGroups(memberships);
   };
 
-  useEffect(() => { loadPosts(); loadGroups(); }, [loadPosts]);
+  useEffect(() => {
+    if (hasAccess && !isChecking) {
+      loadPosts();
+      loadGroups();
+    } else if (!isChecking) {
+      setLoading(false);
+    }
+  }, [loadPosts, hasAccess, isChecking, isGuardian, members?.length]);
 
   const handlePostDeleted = (id) => setPosts(posts.filter(p => p.id !== id));
-  const filteredPosts = selectedGroup ? posts.filter(p => p.group_id === selectedGroup) : posts.filter(p => !p.group_id);
+
+  // Guardian mirroring: main feed includes children's group posts
+  const filteredPosts = selectedGroup
+    ? posts.filter(p => p.group_id === selectedGroup)
+    : isGuardian && childGroupIds.length > 0
+      ? posts.filter(p => !p.group_id || childGroupIds.includes(p.group_id))
+      : posts.filter(p => !p.group_id);
+
+  if (isChecking) {
+    return <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-[#C9A84C]" /></div>;
+  }
+
+  if (!hasAccess) {
+    return <LockedCommunity />;
+  }
 
   return (
     <div className="space-y-6">
@@ -48,7 +88,7 @@ export default function Community() {
         <p className="text-[#A8A9AD] text-sm mt-1">Share your training, encourage your peers, stay connected.</p>
       </div>
 
-      <GroupSelector currentUser={user} selectedGroup={selectedGroup} onSelectGroup={setSelectedGroup} />
+      <GroupSelector groups={userGroups} selectedGroup={selectedGroup} onSelectGroup={setSelectedGroup} />
 
       <PostComposer currentUser={user} onPosted={loadPosts} groups={userGroups} />
 
