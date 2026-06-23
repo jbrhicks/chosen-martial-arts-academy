@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import SessionBar from "@/components/admin/evaluation/SessionBar";
@@ -25,7 +25,9 @@ export default function InstructorEvaluation() {
   const [todayAttendance, setTodayAttendance] = useState([]);
   const [selectedClassFilter, setSelectedClassFilter] = useState("all");
   const [currentClassName, setCurrentClassName] = useState(null);
-  const [hasAutoSelected, setHasAutoSelected] = useState(false);
+  const sessionRef = useRef(null);
+  const hasAutoSelectedRef = useRef(false);
+  useEffect(() => { sessionRef.current = session; }, [session]);
 
   const load = async () => {
     try {
@@ -65,15 +67,62 @@ export default function InstructorEvaluation() {
   };
 
   useEffect(() => {
-    if (todayClasses.length > 0 && !hasAutoSelected) {
+    if (todayClasses.length === 0 || !user) return;
+
+    const check = async () => {
       const current = detectCurrentClass(todayClasses);
-      if (current) {
-        setCurrentClassName(current.class_name);
-        setSelectedClassFilter(current.class_name);
+      const currentName = current?.class_name || null;
+      setCurrentClassName(currentName);
+
+      if (!hasAutoSelectedRef.current) {
+        if (currentName) setSelectedClassFilter(currentName);
+        hasAutoSelectedRef.current = true;
       }
-      setHasAutoSelected(true);
-    }
-  }, [todayClasses, hasAutoSelected]);
+
+      const currentSession = sessionRef.current;
+      const isAutoSession = currentSession?.class_name;
+
+      if (currentName) {
+        if (!currentSession) {
+          const newSession = await base44.entities.LiveClassSession.create({
+            class_name: current.class_name,
+            program_id: current.linked_program_id || undefined,
+            instructor_id: user.id,
+            instructor_name: user.full_name,
+            start_time: new Date().toISOString(),
+            status: "active",
+          }).catch(() => null);
+          if (newSession) setSession(newSession);
+        } else if (isAutoSession && currentSession.class_name !== currentName) {
+          await base44.entities.LiveClassSession.update(currentSession.id, {
+            status: "completed",
+            end_time: new Date().toISOString(),
+          }).catch(() => {});
+          const newSession = await base44.entities.LiveClassSession.create({
+            class_name: current.class_name,
+            program_id: current.linked_program_id || undefined,
+            instructor_id: user.id,
+            instructor_name: user.full_name,
+            start_time: new Date().toISOString(),
+            status: "active",
+          }).catch(() => null);
+          if (newSession) setSession(newSession);
+        }
+      } else {
+        if (isAutoSession) {
+          await base44.entities.LiveClassSession.update(currentSession.id, {
+            status: "completed",
+            end_time: new Date().toISOString(),
+          }).catch(() => {});
+          setSession(null);
+        }
+      }
+    };
+
+    check();
+    const interval = setInterval(check, 30000);
+    return () => clearInterval(interval);
+  }, [todayClasses, user]);
 
   const computeReadiness = async (checkedIn) => {
     if (checkedIn.length === 0) { setReadinessMap({}); return; }
