@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useState } from "react";
-import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, CalendarDays, UserPlus, LogOut, Menu, X, TrendingUp, ClipboardCheck, BarChart3, BookOpen, ListChecks, FormInput, Tag, Inbox } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, CalendarDays, UserPlus, LogOut, Menu, X, TrendingUp, ClipboardCheck, BarChart3, BookOpen, ListChecks, FormInput, Tag, Inbox, Tablet } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 
 export default function AdminLayout() {
@@ -22,6 +22,7 @@ export default function AdminLayout() {
     { label: "Progress", path: "/admin/progress", icon: TrendingUp },
     { label: "Evaluation", path: "/admin/evaluation", icon: ListChecks },
     { label: "Attendance", path: "/admin/attendance", icon: ClipboardCheck },
+    { label: "Front Desk Kiosk", path: "/front-desk", icon: Tablet, external: true },
     { label: "Membership Requests", path: "/admin/membership-requests", icon: Inbox },
     { label: "Community", path: "/admin/community", icon: MessageSquare },
     { label: "Events", path: "/admin/events", icon: Calendar },
@@ -71,17 +72,21 @@ export default function AdminLayout() {
         <nav className="p-4 flex flex-col gap-1 flex-1 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
+            const linkClass = `flex items-center gap-3 px-4 py-3 text-sm font-medium tracking-wide transition-all ${
+              isActive(item.path)
+                ? "bg-[#C9A84C]/10 text-[#C9A84C] border-l-2 border-[#C9A84C]"
+                : "text-[#A8A9AD] hover:text-white hover:bg-white/5 border-l-2 border-transparent"
+            }`;
+            if (item.external) {
+              return (
+                <a key={item.path} href={item.path} target="_blank" rel="noopener noreferrer" onClick={() => setSidebarOpen(false)} className={linkClass}>
+                  <Icon size={18} />
+                  {item.label}
+                </a>
+              );
+            }
             return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 text-sm font-medium tracking-wide transition-all ${
-                  isActive(item.path)
-                    ? "bg-[#C9A84C]/10 text-[#C9A84C] border-l-2 border-[#C9A84C]"
-                    : "text-[#A8A9AD] hover:text-white hover:bg-white/5 border-l-2 border-transparent"
-                }`}
-              >
+              <Link key={item.path} to={item.path} onClick={() => setSidebarOpen(false)} className={linkClass}>
                 <Icon size={18} />
                 {item.label}
               </Link>
