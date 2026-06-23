@@ -5,9 +5,6 @@
     "badge_name": {
       "type": "string"
     },
-    "description": {
-      "type": "string"
-    },
     "category": {
       "type": "string",
       "enum": [
@@ -16,9 +13,12 @@
         "attendance",
         "leadership",
         "improvement",
+        "academic",
         "special"
-      ],
-      "default": "character"
+      ]
+    },
+    "description": {
+      "type": "string"
     },
     "icon_color": {
       "type": "string",
@@ -26,19 +26,19 @@
     },
     "icon_symbol": {
       "type": "string",
-      "default": "star"
+      "default": "\u2605"
     },
     "points_value": {
       "type": "number",
       "default": 10
     },
-    "is_active": {
-      "type": "boolean",
-      "default": true
-    },
     "display_order": {
       "type": "number",
       "default": 0
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
     }
   },
   "required": [
@@ -51,20 +51,7 @@
         "role": "admin"
       }
     },
-    "read": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "student"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
-    },
+    "read": {},
     "update": {
       "user_condition": {
         "role": "admin"
