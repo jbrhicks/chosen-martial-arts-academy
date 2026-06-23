@@ -9,7 +9,7 @@ export default function StepBilling({ billing, setBilling, members, onSubmit, su
   const [promoError, setPromoError] = useState("");
 
   useEffect(() => {
-    base44.entities.DiscountsPromos.filter({ is_active: true }).then(setDiscounts).catch(() => {});
+    base44.entities.DiscountsPromos.filter({ is_active: true }).then(data => setDiscounts(data.filter(d => !d.is_automated))).catch(() => {});
   }, []);
 
   const update = (field, value) => setBilling({ ...billing, [field]: value });
@@ -30,27 +30,44 @@ export default function StepBilling({ billing, setBilling, members, onSubmit, su
   const siblingDiscountPercent = billing.siblingDiscountEnabled ? 10 : 0;
   const siblingDiscountAmount = siblingCount > 1 ? (monthlyRate * siblingDiscountPercent / 100) * (siblingCount - 1) : 0;
 
+  const annualAmount = monthlyRate * 12;
+  const payInFullDiscount = billing.payInFull ? annualAmount * 0.10 : 0;
+  const tuitionAmount = billing.payInFull
+    ? annualAmount - payInFullDiscount
+    : (billing.prorateEnabled ? proration.total : (billing.firstMonthTuition || 0));
+  const subtotal = (billing.registrationFee || 0) + tuitionAmount + (billing.equipmentPackage || 0);
+
   const appliedDiscount = discounts.find(d => d.id === billing.appliedDiscountId);
   let discountAmount = 0;
   if (appliedDiscount) {
+    const categoryAmount = appliedDiscount.applies_to === "retail" ? (billing.equipmentPackage || 0)
+      : appliedDiscount.applies_to === "signup_fee" ? (billing.registrationFee || 0)
+      : appliedDiscount.applies_to === "tuition" ? tuitionAmount
+      : subtotal;
     discountAmount = appliedDiscount.discount_type === "percentage"
-      ? (billing.firstMonthTuition || 0) * appliedDiscount.amount / 100
-      : appliedDiscount.amount;
+      ? categoryAmount * appliedDiscount.amount / 100
+      : Math.min(appliedDiscount.amount, categoryAmount);
   }
 
   const applyPromo = () => {
     const promo = discounts.find(d => d.promo_code?.toLowerCase() === promoInput.toLowerCase());
-    if (promo && (!promo.expiration_date || new Date(promo.expiration_date) >= new Date())) {
-      update("appliedDiscountId", promo.id);
-      setPromoError("");
-      setPromoInput("");
-    } else {
-      setPromoError("Invalid or expired promo code.");
-    }
+    if (!promo) { setPromoError("Invalid promo code."); return; }
+    if (!promo.is_active) { setPromoError("This promo code has been disabled."); return; }
+    if (promo.start_date && new Date(promo.start_date) > new Date()) { setPromoError("This promo code is not yet active."); return; }
+    if (promo.expiration_date && new Date(promo.expiration_date) < new Date()) { setPromoError("This promo code has expired."); return; }
+    if (promo.usage_limit && (promo.usage_count || 0) >= promo.usage_limit) { setPromoError("This promo code has reached its usage limit."); return; }
+    const hasTuition = tuitionAmount > 0;
+    const hasRetail = (billing.equipmentPackage || 0) > 0;
+    const hasSignupFee = (billing.registrationFee || 0) > 0;
+    if (promo.applies_to === "tuition" && !hasTuition) { setPromoError("This code only applies to tuition."); return; }
+    if (promo.applies_to === "retail" && !hasRetail) { setPromoError("This code only applies to retail items."); return; }
+    if (promo.applies_to === "signup_fee" && !hasSignupFee) { setPromoError("This code only applies to the sign-up fee."); return; }
+    if (promo.applies_to === "event") { setPromoError("This code only applies to event registrations."); return; }
+    update("appliedDiscountId", promo.id);
+    setPromoError("");
+    setPromoInput("");
   };
 
-  const tuitionAmount = billing.prorateEnabled ? proration.total : (billing.firstMonthTuition || 0);
-  const subtotal = (billing.registrationFee || 0) + tuitionAmount + (billing.equipmentPackage || 0);
   const totalDue = Math.max(0, subtotal - discountAmount - siblingDiscountAmount);
 
   const ratioA = billing.splitBillingEnabled ? (billing.splitRatioA || 50) : 100;
@@ -181,6 +198,15 @@ export default function StepBilling({ billing, setBilling, members, onSubmit, su
                 </select>
               </div>
             </div>
+            <div className="flex items-center justify-between border border-[#A8A9AD]/20 p-4">
+              <div>
+                <p className="text-sm font-medium">Pay Annually (Save 10%)</p>
+                <p className="text-xs text-[#A8A9AD]">Pay 12 months upfront instead of monthly — saves ${payInFullDiscount.toFixed(2)}</p>
+              </div>
+              <button onClick={() => update("payInFull", !billing.payInFull)} className={`w-12 h-6 rounded-full transition-colors ${billing.payInFull ? "bg-[#C9A84C]" : "bg-[#A8A9AD]/30"}`}>
+                <div className={`w-5 h-5 bg-white rounded-full transition-transform mx-0.5 ${billing.payInFull ? "translate-x-6" : "translate-x-0"}`} />
+              </button>
+            </div>
             <PaymentMethodFields billing={billing} update={update} prefix="" />
             <div className="border-t border-[#A8A9AD]/20 pt-4">
               <div className="flex items-center justify-between mb-4">
@@ -220,7 +246,7 @@ export default function StepBilling({ billing, setBilling, members, onSubmit, su
       <div className="border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-6">
         <div className="space-y-2 mb-4">
           <LineItem label="Registration Fee" amount={billing.registrationFee || 0} />
-          <LineItem label={billing.prorateEnabled ? "Prorated Tuition" : "First Month Tuition"} amount={tuitionAmount} />
+          <LineItem label={billing.payInFull ? "Annual Tuition (10% off)" : billing.prorateEnabled ? "Prorated Tuition" : "First Month Tuition"} amount={tuitionAmount} />
           {(billing.equipmentPackage || 0) > 0 && <LineItem label="Equipment" amount={billing.equipmentPackage || 0} />}
           {discountAmount > 0 && <LineItem label="Discount" amount={-discountAmount} className="text-green-400" />}
           {siblingDiscountAmount > 0 && <LineItem label="Sibling Discount" amount={-siblingDiscountAmount} className="text-green-400" />}

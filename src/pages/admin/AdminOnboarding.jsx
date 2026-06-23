@@ -24,7 +24,7 @@ const defaultBilling = {
   autoPay: true, monthlyAmount: 120, billingCycle: "1st", billingCycleDate: 1,
   paymentType: "credit_card", cardName: "", cardNumber: "", cardExpiry: "", cardCvc: "",
   achName: "", achAccount: "", achRouting: "",
-  prorateEnabled: true, siblingDiscountEnabled: true,
+  prorateEnabled: true, siblingDiscountEnabled: true, payInFull: false,
   appliedDiscountId: "", splitBillingEnabled: false, splitRatioA: 50,
   secondPaymentType: "credit_card", secondCardName: "", secondCardNumber: "", secondCardExpiry: "", secondCardCvc: "",
   secondAchName: "", secondAchAccount: "", secondAchRouting: "",
@@ -219,7 +219,9 @@ export default function AdminOnboarding() {
       }
 
       // 7. Create Payment record for one-time charges
-      const tuitionAmount = billing.prorateEnabled ? proratedAmount : (billing.firstMonthTuition || 0);
+      const annualAmount = (billing.monthlyAmount || 0) * 12;
+      const payInFullDiscount = billing.payInFull ? annualAmount * 0.10 : 0;
+      const tuitionAmount = billing.payInFull ? annualAmount - payInFullDiscount : (billing.prorateEnabled ? proratedAmount : (billing.firstMonthTuition || 0));
       const siblingDiscount = members.length > 1 && billing.siblingDiscountEnabled ? (billing.monthlyAmount * 0.10) * (members.length - 1) : 0;
       const totalDue = Math.max(0, (billing.registrationFee || 0) + tuitionAmount + (billing.equipmentPackage || 0) - siblingDiscount);
       if (totalDue > 0) {
@@ -232,6 +234,18 @@ export default function AdminOnboarding() {
           status: "succeeded",
           payment_date: new Date().toISOString(),
         });
+      }
+
+      // 8. Track discount redemption
+      if (billing.appliedDiscountId) {
+        try {
+          await base44.entities.DiscountRedemption.create({
+            discount_id: billing.appliedDiscountId,
+            user_name: `${members[0].firstName} ${members[0].lastName}`,
+            user_email: members[0].email,
+            date_redeemed: new Date().toISOString(),
+          });
+        } catch (e) { console.error("Redemption tracking failed", e); }
       }
 
       setConfirmation({ familyGroup, members, totalDue });

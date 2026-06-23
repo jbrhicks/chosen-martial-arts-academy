@@ -46,6 +46,7 @@ import AdminAttendance from '@/pages/admin/AdminAttendance';
 import AdminOnboarding from '@/pages/admin/AdminOnboarding';
 import AdminPrograms from '@/pages/admin/AdminPrograms';
 import AdminCustomFields from '@/pages/admin/AdminCustomFields';
+import AdminDiscounts from '@/pages/admin/AdminDiscounts';
 import Progress from '@/pages/portal/Progress';
 import StudentCurriculum from '@/pages/portal/StudentCurriculum';
 import Messages from '@/pages/portal/Messages';
@@ -124,6 +125,7 @@ const AuthenticatedApp = () => {
             <Route path="/admin/onboarding" element={<AdminOnboarding />} />
             <Route path="/admin/programs" element={<AdminPrograms />} />
             <Route path="/admin/custom-fields" element={<AdminCustomFields />} />
+            <Route path="/admin/discounts" element={<AdminDiscounts />} />
           </Route>
         </Route>
       </Route>
