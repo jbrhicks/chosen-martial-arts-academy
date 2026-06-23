@@ -1,0 +1,41 @@
+{
+  "name": "Program",
+  "type": "object",
+  "properties": {
+    "program_name": {
+      "type": "string"
+    },
+    "age_group": {
+      "type": "string",
+      "enum": [
+        "Youth",
+        "Teen/Adult",
+        "All Ages"
+      ],
+      "default": "All Ages"
+    },
+    "default_monthly_rate": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active"
+    },
+    "max_capacity": {
+      "type": "number",
+      "default": 0
+    },
+    "description": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "program_name",
+    "age_group"
+  ]
+}

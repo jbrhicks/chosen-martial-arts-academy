@@ -1,0 +1,48 @@
+{
+  "name": "GeneralLedger",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "income",
+        "expense"
+      ]
+    },
+    "amount": {
+      "type": "number"
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "tuition",
+        "retail",
+        "testing",
+        "events",
+        "rent",
+        "payroll",
+        "utilities",
+        "equipment",
+        "marketing",
+        "insurance",
+        "pro_shop_inventory",
+        "other"
+      ],
+      "default": "other"
+    },
+    "program_id": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "type",
+    "amount"
+  ]
+}

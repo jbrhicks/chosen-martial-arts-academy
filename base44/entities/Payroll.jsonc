@@ -1,0 +1,55 @@
+{
+  "name": "Payroll",
+  "type": "object",
+  "properties": {
+    "instructor_id": {
+      "type": "string"
+    },
+    "instructor_name": {
+      "type": "string"
+    },
+    "classes_taught": {
+      "type": "number",
+      "default": 0
+    },
+    "hours_worked": {
+      "type": "number",
+      "default": 0
+    },
+    "pay_rate": {
+      "type": "number"
+    },
+    "pay_type": {
+      "type": "string",
+      "enum": [
+        "hourly",
+        "per_class"
+      ],
+      "default": "per_class"
+    },
+    "total_paid": {
+      "type": "number"
+    },
+    "pay_period_start": {
+      "type": "string",
+      "format": "date"
+    },
+    "pay_period_end": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "paid"
+      ],
+      "default": "pending"
+    }
+  },
+  "required": [
+    "instructor_name",
+    "pay_rate",
+    "pay_type"
+  ]
+}

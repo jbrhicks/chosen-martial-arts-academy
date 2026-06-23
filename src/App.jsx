@@ -42,6 +42,7 @@ import AdminSchedule from '@/pages/admin/AdminSchedule';
 import AdminProgress from '@/pages/admin/AdminProgress';
 import AdminAttendance from '@/pages/admin/AdminAttendance';
 import AdminOnboarding from '@/pages/admin/AdminOnboarding';
+import AdminPrograms from '@/pages/admin/AdminPrograms';
 import Progress from '@/pages/portal/Progress';
 import Family from '@/pages/portal/Family';
 import Kiosk from '@/pages/Kiosk';
@@ -112,6 +113,7 @@ const AuthenticatedApp = () => {
             <Route path="/admin/progress" element={<AdminProgress />} />
             <Route path="/admin/attendance" element={<AdminAttendance />} />
             <Route path="/admin/onboarding" element={<AdminOnboarding />} />
+            <Route path="/admin/programs" element={<AdminPrograms />} />
           </Route>
         </Route>
       </Route>

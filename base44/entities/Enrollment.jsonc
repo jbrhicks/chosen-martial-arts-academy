@@ -12,12 +12,13 @@
       "type": "string"
     },
     "program": {
-      "type": "string",
-      "enum": [
-        "Tang Soo Do",
-        "Jiu Jitsu",
-        "Tai Chi"
-      ]
+      "type": "string"
+    },
+    "program_id": {
+      "type": "string"
+    },
+    "belt_rank": {
+      "type": "string"
     },
     "start_date": {
       "type": "string",
@@ -28,7 +29,8 @@
       "enum": [
         "active",
         "paused",
-        "cancelled"
+        "cancelled",
+        "waitlist"
       ],
       "default": "active"
     }

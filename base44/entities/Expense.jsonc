@@ -1,0 +1,45 @@
+{
+  "name": "Expense",
+  "type": "object",
+  "properties": {
+    "vendor_name": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "rent",
+        "payroll",
+        "utilities",
+        "equipment",
+        "marketing",
+        "insurance",
+        "pro_shop_inventory",
+        "other"
+      ],
+      "default": "other"
+    },
+    "receipt_image": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "program_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "vendor_name",
+    "amount",
+    "date",
+    "category"
+  ]
+}
