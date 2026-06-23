@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Calendar, Clock, MapPin, Users, DollarSign, Lock, Loader2 } from "lucide-react";
+import { Calendar, Clock, MapPin, Users, DollarSign, Lock, Loader2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import EventRegistrationModal from "@/components/events/EventRegistrationModal";
+import GuestRegistrationModal from "@/components/events/GuestRegistrationModal";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function Events() {
+  const { isAuthenticated, user } = useAuth();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [registrationMode, setRegistrationMode] = useState(null); // 'member' or 'guest'
   const [filter, setFilter] = useState("all");
 
   const load = async () => {
@@ -129,24 +133,69 @@ export default function Events() {
                     </div>
                   </div>
 
-                  <Button
-                    onClick={() => setSelectedEvent(event)}
-                    className="w-full bg-[#C9A84C] text-black font-bold text-xs tracking-widest uppercase hover:bg-[#E0C97A]"
-                  >
-                    Register Now
-                  </Button>
+                  <div className="space-y-2">
+                    {isAuthenticated ? (
+                      <Button
+                        onClick={() => {
+                          setSelectedEvent(event);
+                          setRegistrationMode("member");
+                        }}
+                        className="w-full bg-[#C9A84C] text-black font-bold text-xs tracking-widest uppercase hover:bg-[#E0C97A]"
+                      >
+                        Register (Member)
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => {
+                          setSelectedEvent(event);
+                          setRegistrationMode("guest");
+                        }}
+                        className="w-full bg-[#C9A84C] text-black font-bold text-xs tracking-widest uppercase hover:bg-[#E0C97A]"
+                      >
+                        Register as Guest
+                      </Button>
+                    )}
+                    {!isAuthenticated && (
+                      <a
+                        href="/login"
+                        className="block text-center text-xs text-[#A8A9AD] hover:text-white transition-colors"
+                      >
+                        Already a member? Log in
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {selectedEvent && (
+        {selectedEvent && registrationMode === "member" && user && (
           <EventRegistrationModal
             event={selectedEvent}
-            onClose={() => setSelectedEvent(null)}
+            user={user}
+            onClose={() => {
+              setSelectedEvent(null);
+              setRegistrationMode(null);
+            }}
             onRegistered={() => {
               setSelectedEvent(null);
+              setRegistrationMode(null);
+              load();
+            }}
+          />
+        )}
+
+        {selectedEvent && registrationMode === "guest" && (
+          <GuestRegistrationModal
+            event={selectedEvent}
+            onClose={() => {
+              setSelectedEvent(null);
+              setRegistrationMode(null);
+            }}
+            onRegistered={() => {
+              setSelectedEvent(null);
+              setRegistrationMode(null);
               load();
             }}
           />
