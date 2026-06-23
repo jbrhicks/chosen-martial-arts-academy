@@ -14,6 +14,7 @@ export default function PublicLayout({ children }) {
   const navLinks = [
     { label: "Home", path: "/" },
     { label: "Schedule", path: "/schedule" },
+    { label: "Events", path: "/events" },
     { label: "About", path: "/about" },
     { label: "Testimonials", path: "/testimonials" },
   ];
