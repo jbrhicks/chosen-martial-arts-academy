@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Users, Calendar, Save } from "lucide-react";
+import { Loader2, Users, Calendar, Save, Layers } from "lucide-react";
 
 export default function AutomatedRules() {
   const [siblingDiscount, setSiblingDiscount] = useState(null);
   const [payInFullDiscount, setPayInFullDiscount] = useState(null);
+  const [multiProgramDiscount, setMultiProgramDiscount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -15,6 +16,7 @@ export default function AutomatedRules() {
         const all = await base44.entities.DiscountsPromos.list();
         setSiblingDiscount(all.find(d => d.automation_type === "sibling") || null);
         setPayInFullDiscount(all.find(d => d.automation_type === "pay_in_full") || null);
+        setMultiProgramDiscount(all.find(d => d.automation_type === "multi_program") || null);
       } catch (e) {}
       setLoading(false);
     };
@@ -36,6 +38,22 @@ export default function AutomatedRules() {
           await base44.entities.DiscountsPromos.update(payInFullDiscount.id, { amount: payInFullDiscount.amount });
         } else {
           await base44.entities.DiscountsPromos.create({ ...payInFullDiscount, is_automated: true, automation_type: "pay_in_full", is_active: true });
+        }
+      }
+      if (multiProgramDiscount) {
+        const payload = {
+          promo_name: multiProgramDiscount.promo_name || "Multi-Program Discount",
+          discount_type: multiProgramDiscount.discount_type || "percentage",
+          amount: multiProgramDiscount.amount || 0,
+          applies_to: multiProgramDiscount.applies_to || "all_additional_programs",
+          is_automated: true,
+          automation_type: "multi_program",
+          is_active: true,
+        };
+        if (multiProgramDiscount.id) {
+          await base44.entities.DiscountsPromos.update(multiProgramDiscount.id, payload);
+        } else {
+          await base44.entities.DiscountsPromos.create(payload);
         }
       }
       setSaved(true);
@@ -89,6 +107,60 @@ export default function AutomatedRules() {
               className="w-20 bg-transparent border border-[#A8A9AD]/30 px-3 py-2 text-sm text-white text-right focus:border-[#C9A84C] focus:outline-none"
             />
             <span className="text-[#A8A9AD]">%</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="border border-[#A8A9AD]/20 bg-black p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Layers size={18} className="text-[#C9A84C]" />
+          <h3 className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">Multi-Program (Cross-Training) Discount</h3>
+        </div>
+        <p className="text-sm text-[#A8A9AD] mb-4">Automatically applies when a single student is enrolled in more than one program simultaneously. The highest-priced program stays full price; the discount applies to the additional program(s).</p>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Discount Type</label>
+              <select
+                value={multiProgramDiscount?.discount_type || "percentage"}
+                onChange={e => setMultiProgramDiscount({ ...(multiProgramDiscount || {}), discount_type: e.target.value })}
+                className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none"
+              >
+                <option value="percentage">Percentage</option>
+                <option value="flat_rate">Flat Rate ($)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Value</label>
+              <div className="flex items-center gap-1">
+                {multiProgramDiscount?.discount_type === "flat_rate" && <span className="text-[#A8A9AD]">$</span>}
+                <input
+                  type="number"
+                  step="0.01"
+                  value={multiProgramDiscount?.amount ?? 50}
+                  onChange={e => setMultiProgramDiscount({ ...(multiProgramDiscount || { discount_type: "percentage", applies_to: "all_additional_programs" }), amount: parseFloat(e.target.value) || 0 })}
+                  className="w-full bg-transparent border border-[#A8A9AD]/30 px-3 py-2.5 text-sm text-white text-right focus:border-[#C9A84C] focus:outline-none"
+                />
+                {multiProgramDiscount?.discount_type !== "flat_rate" && <span className="text-[#A8A9AD]">%</span>}
+              </div>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Applies To</label>
+            <select
+              value={multiProgramDiscount?.applies_to || "all_additional_programs"}
+              onChange={e => setMultiProgramDiscount({ ...(multiProgramDiscount || { discount_type: "percentage", amount: 50 }), applies_to: e.target.value })}
+              className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none"
+            >
+              <option value="second_program">Second program only (lowest-priced)</option>
+              <option value="all_additional_programs">All additional programs</option>
+              <option value="total_invoice">Total invoice (flat $ per additional program)</option>
+            </select>
+            <p className="text-xs text-[#A8A9AD] mt-2">
+              {multiProgramDiscount?.applies_to === "second_program" && "Discount applies only to the second (lower-priced) program."}
+              {multiProgramDiscount?.applies_to === "all_additional_programs" && "Discount applies to every program after the first (highest-priced stays full)."}
+              {multiProgramDiscount?.applies_to === "total_invoice" && "Flat dollar amount deducted from the total for each additional program. Use with Flat Rate type."}
+            </p>
           </div>
         </div>
       </div>

@@ -16,10 +16,13 @@ export default function Curriculum() {
   const { activeProfile } = useFamily();
   const { hasAccess, isChecking } = useCommunityAccess();
   const [videos, setVideos] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
+  const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeVideo, setActiveVideo] = useState(null);
   const [category, setCategory] = useState("All");
   const [search, setSearch] = useState("");
+  const [activeProgramTab, setActiveProgramTab] = useState("all");
 
   useEffect(() => {
     base44.entities.Video.filter({ is_published: true })
@@ -28,14 +31,30 @@ export default function Curriculum() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, []);
+    base44.entities.Enrollment.filter({ user_id: activeProfile?.id || user?.id, status: "active" })
+      .then(setEnrollments)
+      .catch(() => {});
+    base44.entities.Program.list().then(setPrograms).catch(() => {});
+  }, [user, activeProfile]);
 
   if (isChecking) return <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-[#C9A84C]" /></div>;
   if (!hasAccess) return <LockedCurriculum />;
 
+  // Multi-program: build program tabs from active enrollments
+  const enrolledPrograms = enrollments
+    .map(e => programs.find(p => p.id === e.program_id || p.program_name === e.program))
+    .filter(Boolean);
+  const isMultiProgram = enrolledPrograms.length > 1;
+
   // Filter videos: only show videos at or below the user's belt rank
   const accessibleVideos = videos.filter((v) => canAccessRank(activeProfile?.belt_rank, v.belt_rank_required));
-  const filtered = accessibleVideos.filter((v) => {
+  const programFiltered = isMultiProgram && activeProgramTab !== "all"
+    ? accessibleVideos.filter(v => {
+        const prog = enrolledPrograms.find(p => p.id === activeProgramTab);
+        return !v.linked_program_id || v.linked_program_id === activeProgramTab || v.linked_program_id === prog?.program_name;
+      })
+    : accessibleVideos;
+  const filtered = programFiltered.filter((v) => {
     const matchCat = category === "All" || v.category === category;
     const matchSearch = !search || v.title?.toLowerCase().includes(search.toLowerCase()) || v.description?.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
@@ -59,6 +78,27 @@ export default function Curriculum() {
           </div>
         )}
       </div>
+
+      {/* Multi-Program Tabs */}
+      {isMultiProgram && (
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide border-b border-[#A8A9AD]/20 pb-3">
+          <button
+            onClick={() => setActiveProgramTab("all")}
+            className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${activeProgramTab === "all" ? "bg-[#C9A84C] text-black" : "text-[#A8A9AD] hover:text-white"}`}
+          >
+            All Programs
+          </button>
+          {enrolledPrograms.map(p => (
+            <button
+              key={p.id}
+              onClick={() => setActiveProgramTab(p.id)}
+              className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${activeProgramTab === p.id ? "bg-[#C9A84C] text-black" : "text-[#A8A9AD] hover:text-white"}`}
+            >
+              {p.program_name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">

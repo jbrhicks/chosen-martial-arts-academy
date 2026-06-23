@@ -1,21 +1,48 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { CreditCard, Loader2, Calculator, Users, Tag, Split, Check, X } from "lucide-react";
+import { CreditCard, Loader2, Calculator, Users, Tag, Split, Check, X, Layers } from "lucide-react";
 import PaymentMethodFields from "@/components/admin/onboarding/billing/PaymentMethodFields";
+import { calculateMultiProgramDiscount } from "@/lib/multiProgramDiscount";
 
 export default function StepBilling({ billing, setBilling, members, onSubmit, submitting }) {
   const [discounts, setDiscounts] = useState([]);
   const [promoInput, setPromoInput] = useState("");
   const [promoError, setPromoError] = useState("");
+  const [programs, setPrograms] = useState([]);
+  const [tiers, setTiers] = useState([]);
+  const [multiDiscount, setMultiDiscount] = useState(null);
 
   useEffect(() => {
-    base44.entities.DiscountsPromos.filter({ is_active: true }).then(data => setDiscounts(data.filter(d => !d.is_automated))).catch(() => {});
+    base44.entities.DiscountsPromos.filter({ is_active: true }).then(data => {
+      setDiscounts(data.filter(d => !d.is_automated));
+      setMultiDiscount(data.find(d => d.automation_type === "multi_program") || null);
+    }).catch(() => {});
+    base44.entities.Program.list().then(setPrograms).catch(() => {});
+    base44.entities.SubscriptionTier.list().then(setTiers).catch(() => {});
   }, []);
 
   const update = (field, value) => setBilling({ ...billing, [field]: value });
 
   const startDate = members[0]?.startDate;
   const monthlyRate = billing.monthlyAmount || 0;
+
+  // Build per-member, per-program line items for the combined invoice preview
+  const memberProgramBreakdowns = members.map((member, idx) => {
+    const memberPrograms = (member.programs || []).map(pName => {
+      const prog = programs.find(p => p.program_name === pName);
+      const progTiers = tiers.filter(t => t.linked_program_id === prog?.id && t.is_active !== false).sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+      const defaultTier = progTiers[0];
+      const price = defaultTier?.price || prog?.default_monthly_rate || 0;
+      return { programName: pName, price };
+    });
+    if (memberPrograms.length <= 1) {
+      return { memberLabel: member.firstName ? `${member.firstName} ${member.lastName}` : `Member ${idx + 1}`, lineItems: memberPrograms, discount: 0, net: memberPrograms.reduce((s, p) => s + p.price, 0) };
+    }
+    const { discountAmount, breakdown } = calculateMultiProgramDiscount(memberPrograms, multiDiscount);
+    return { memberLabel: member.firstName ? `${member.firstName} ${member.lastName}` : `Member ${idx + 1}`, lineItems: breakdown, discount: discountAmount, net: breakdown.reduce((s, b) => s + b.net, 0) };
+  });
+  const hasMultiProgram = memberProgramBreakdowns.some(m => m.lineItems.length > 1);
+  const combinedMonthlyTotal = memberProgramBreakdowns.reduce((s, m) => s + m.net, 0);
 
   const proration = (() => {
     if (!startDate || !monthlyRate) return { days: 0, total: 0, daysInMonth: 30, dayOfMonth: 1 };
@@ -81,6 +108,45 @@ export default function StepBilling({ billing, setBilling, members, onSubmit, su
         <h2 className="text-xl font-bold mb-1">Billing & Checkout</h2>
         <p className="text-sm text-[#A8A9AD]">Proration, discounts, split billing, and recurring auto-pay scheduling.</p>
       </div>
+
+      {hasMultiProgram && (
+        <div className="border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Layers size={18} className="text-[#C9A84C]" />
+            <h3 className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">Combined Invoice Preview (Multi-Program)</h3>
+          </div>
+          <div className="space-y-4">
+            {memberProgramBreakdowns.filter(m => m.lineItems.length > 1).map((m, idx) => (
+              <div key={idx} className="border border-[#A8A9AD]/20 p-4">
+                <p className="text-xs tracking-widest uppercase text-[#A8A9AD] mb-3">{m.memberLabel}</p>
+                <div className="space-y-2">
+                  {m.lineItems.map((item, i) => (
+                    <div key={i} className="flex items-center justify-between text-sm">
+                      <span className="text-white">{item.programName} Tuition</span>
+                      <span>${item.price.toFixed(2)}</span>
+                    </div>
+                  ))}
+                  {m.discount > 0 && (
+                    <div className="flex items-center justify-between text-sm border-t border-[#A8A9AD]/20 pt-2">
+                      <span className="text-green-400">Multi-Program Discount</span>
+                      <span className="text-green-400">−${m.discount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-sm font-bold border-t border-[#A8A9AD]/20 pt-2">
+                    <span>Subtotal</span>
+                    <span className="text-[#C9A84C]">${m.net.toFixed(2)}/mo</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+            <div className="flex items-center justify-between border-t border-[#A8A9AD]/20 pt-3">
+              <span className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">Total Monthly Auto-Pay</span>
+              <span className="text-2xl font-bold text-[#C9A84C]">${combinedMonthlyTotal.toFixed(2)}</span>
+            </div>
+            <button onClick={() => update("monthlyAmount", parseFloat(combinedMonthlyTotal.toFixed(2)))} className="text-xs text-[#C9A84C] tracking-widest uppercase hover:text-[#E0C97A]">↻ Set monthly tuition to combined total</button>
+          </div>
+        </div>
+      )}
 
       {startDate && (
         <div className="border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-6">

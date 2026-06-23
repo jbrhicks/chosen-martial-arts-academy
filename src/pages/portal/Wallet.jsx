@@ -5,6 +5,7 @@ import { CreditCard, Plus, Trash2, Loader2, AlertCircle, Star } from "lucide-rea
 import AddCardModal from "@/components/portal/wallet/AddCardModal";
 import ManageMembership from "@/components/portal/wallet/ManageMembership";
 import TierChangeRequest from "@/components/portal/wallet/TierChangeRequest";
+import ProgramAddOn from "@/components/portal/wallet/ProgramAddOn";
 
 export default function Wallet() {
   const { user } = useAuth();
@@ -118,6 +119,7 @@ export default function Wallet() {
       </div>
 
       <ManageMembership user={user} familyId={familyId} />
+      <ProgramAddOn user={user} familyId={familyId} />
       <TierChangeRequest user={user} familyId={familyId} />
 
       {showAddCard && <AddCardModal familyId={familyId} existingMethods={paymentMethods} onClose={() => setShowAddCard(false)} onSaved={() => { setShowAddCard(false); load(); }} />}
