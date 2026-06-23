@@ -2,6 +2,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Menu, X, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
+import ExitIntentPopup from "@/components/ExitIntentPopup";
+import StickyActionBar from "@/components/StickyActionBar";
 
 export default function PublicLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -178,6 +180,9 @@ export default function PublicLayout({ children }) {
           </div>
         </div>
       </footer>
+
+      <ExitIntentPopup />
+      <StickyActionBar />
     </div>
   );
 }

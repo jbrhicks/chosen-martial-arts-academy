@@ -13,7 +13,7 @@ export default function AdminSchedule() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
     class_name: "", day_of_week: "Monday", start_time: "", end_time: "",
-    instructor: "", location: "", age_group: "All Ages", belt_level: "All Belts", is_active: true,
+    instructor: "", location: "", age_group: "All Ages", belt_level: "All Belts", is_active: true, is_trial_eligible: false, max_trials_allowed: 2,
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -28,7 +28,7 @@ export default function AdminSchedule() {
   useEffect(() => { loadClasses(); }, [loadClasses]);
 
   const resetForm = () => {
-    setForm({ class_name: "", day_of_week: "Monday", start_time: "", end_time: "", instructor: "", location: "", age_group: "All Ages", belt_level: "All Belts", is_active: true });
+    setForm({ class_name: "", day_of_week: "Monday", start_time: "", end_time: "", instructor: "", location: "", age_group: "All Ages", belt_level: "All Belts", is_active: true, is_trial_eligible: false, max_trials_allowed: 2 });
     setEditing(null);
   };
 
@@ -39,7 +39,7 @@ export default function AdminSchedule() {
       start_time: cls.start_time || "", end_time: cls.end_time || "",
       instructor: cls.instructor || "", location: cls.location || "",
       age_group: cls.age_group || "All Ages", belt_level: cls.belt_level || "All Belts",
-      is_active: cls.is_active !== false,
+      is_active: cls.is_active !== false, is_trial_eligible: cls.is_trial_eligible || false, max_trials_allowed: cls.max_trials_allowed || 2,
     });
     setShowForm(true);
   };
@@ -70,6 +70,13 @@ export default function AdminSchedule() {
       await base44.entities.ClassSchedule.delete(id);
       loadClasses();
     } catch (e) { alert("Delete failed"); }
+  };
+
+  const toggleTrialEligible = async (cls) => {
+    try {
+      await base44.entities.ClassSchedule.update(cls.id, { is_trial_eligible: !cls.is_trial_eligible });
+      loadClasses();
+    } catch (e) { console.error(e); }
   };
 
   const toggleActive = async (cls) => {
@@ -124,9 +131,13 @@ export default function AdminSchedule() {
                           {cls.age_group && ` · ${cls.age_group}`}
                           {cls.belt_level && ` · ${cls.belt_level}`}
                           {cls.location && ` · ${cls.location}`}
+                          {cls.is_trial_eligible && ` · Trial Eligible`}
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
+                        <button onClick={() => toggleTrialEligible(cls)} className={`text-xs transition-colors ${cls.is_trial_eligible ? "text-[#C9A84C]" : "text-[#A8A9AD] hover:text-[#C9A84C]"}`}>
+                          {cls.is_trial_eligible ? "Trial ✓" : "+ Trial"}
+                        </button>
                         <button onClick={() => toggleActive(cls)} className="text-xs text-[#A8A9AD] hover:text-[#C9A84C] transition-colors">
                           {cls.is_active === false ? "Activate" : "Deactivate"}
                         </button>
@@ -194,10 +205,22 @@ export default function AdminSchedule() {
                   </select>
                 </div>
               </div>
-              <label className="flex items-center gap-2 text-sm text-white">
-                <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} className="accent-[#C9A84C]" />
-                Active (visible on schedule)
-              </label>
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm text-white">
+                  <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} className="accent-[#C9A84C]" />
+                  Active (visible on schedule)
+                </label>
+                <label className="flex items-center gap-2 text-sm text-white">
+                  <input type="checkbox" checked={form.is_trial_eligible} onChange={(e) => setForm({ ...form, is_trial_eligible: e.target.checked })} className="accent-[#C9A84C]" />
+                  Trial Eligible (visible in trial booking calendar)
+                </label>
+                {form.is_trial_eligible && (
+                  <div>
+                    <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Max Trials Allowed</label>
+                    <input type="number" value={form.max_trials_allowed} onChange={(e) => setForm({ ...form, max_trials_allowed: parseInt(e.target.value) || 0 })} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" min="0" />
+                  </div>
+                )}
+              </div>
               <button type="submit" disabled={submitting} className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-3 hover:bg-[#E0C97A] transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
                 {submitting ? <Loader2 size={18} className="animate-spin" /> : <>{editing ? "Update" : "Create"} Class</>}
               </button>

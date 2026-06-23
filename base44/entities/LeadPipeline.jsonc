@@ -1,0 +1,53 @@
+{
+  "name": "LeadPipeline",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string"
+    },
+    "lead_name": {
+      "type": "string"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "new_lead",
+        "contacted",
+        "trial_booked",
+        "showed_up",
+        "won",
+        "lost"
+      ],
+      "default": "new_lead"
+    },
+    "last_contact_date": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "lead_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

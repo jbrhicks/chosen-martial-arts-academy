@@ -54,6 +54,14 @@
     "is_active": {
       "type": "boolean",
       "default": true
+    },
+    "is_trial_eligible": {
+      "type": "boolean",
+      "default": false
+    },
+    "max_trials_allowed": {
+      "type": "number",
+      "default": 2
     }
   },
   "required": [

@@ -20,6 +20,7 @@ import Home from '@/pages/Home';
 import Schedule from '@/pages/Schedule';
 import About from '@/pages/About';
 import Testimonials from '@/pages/Testimonials';
+import TrialBooking from '@/pages/TrialBooking';
 
 // Member portal
 import MemberLayout from '@/components/MemberLayout';
@@ -86,6 +87,9 @@ const AuthenticatedApp = () => {
       <Route path="/schedule" element={<Schedule />} />
       <Route path="/about" element={<About />} />
       <Route path="/testimonials" element={<Testimonials />} />
+
+      {/* Trial Booking (public) */}
+      <Route path="/trial-booking" element={<TrialBooking />} />
 
       {/* Auth pages */}
       <Route path="/login" element={<Login />} />

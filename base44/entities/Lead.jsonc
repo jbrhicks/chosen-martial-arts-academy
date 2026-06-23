@@ -5,6 +5,12 @@
     "full_name": {
       "type": "string"
     },
+    "first_name": {
+      "type": "string"
+    },
+    "last_name": {
+      "type": "string"
+    },
     "email": {
       "type": "string",
       "format": "email"
@@ -23,6 +29,32 @@
       ],
       "default": "Just Curious"
     },
+    "program_of_interest": {
+      "type": "string",
+      "enum": [
+        "Youth",
+        "Teen",
+        "Adult"
+      ]
+    },
+    "inquiry_type": {
+      "type": "string",
+      "enum": [
+        "myself",
+        "child"
+      ]
+    },
+    "lead_source": {
+      "type": "string",
+      "enum": [
+        "Organic",
+        "Facebook Ad",
+        "Referral",
+        "Website",
+        "Exit Intent"
+      ],
+      "default": "Website"
+    },
     "message": {
       "type": "string"
     },
@@ -39,6 +71,28 @@
     "welcome_email_sent": {
       "type": "boolean",
       "default": false
+    },
+    "trial_class_id": {
+      "type": "string"
+    },
+    "trial_class_name": {
+      "type": "string"
+    },
+    "trial_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "pipeline_stage": {
+      "type": "string",
+      "enum": [
+        "new_lead",
+        "contacted",
+        "trial_booked",
+        "showed_up",
+        "won",
+        "lost"
+      ],
+      "default": "new_lead"
     }
   },
   "required": [
