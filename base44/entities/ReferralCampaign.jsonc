@@ -1,0 +1,82 @@
+{
+  "name": "ReferralCampaign",
+  "type": "object",
+  "properties": {
+    "campaign_name": {
+      "type": "string"
+    },
+    "required_referrals": {
+      "type": "number",
+      "default": 1
+    },
+    "reward_type": {
+      "type": "string",
+      "enum": [
+        "tuition_credit",
+        "physical_item",
+        "custom_event"
+      ],
+      "default": "tuition_credit"
+    },
+    "reward_description": {
+      "type": "string"
+    },
+    "credit_amount": {
+      "type": "number"
+    },
+    "physical_item_name": {
+      "type": "string"
+    },
+    "custom_event_name": {
+      "type": "string"
+    },
+    "auto_deposit_credit": {
+      "type": "boolean",
+      "default": true
+    },
+    "requires_admin_approval": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "display_order": {
+      "type": "number",
+      "default": 0
+    },
+    "icon_symbol": {
+      "type": "string",
+      "default": "\ud83c\udf81"
+    },
+    "icon_color": {
+      "type": "string",
+      "default": "#C9A84C"
+    }
+  },
+  "required": [
+    "campaign_name",
+    "required_referrals",
+    "reward_type",
+    "reward_description"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "name": "ReferralReward",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string"
+    },
+    "student_name": {
+      "type": "string"
+    },
+    "pass_id": {
+      "type": "string"
+    },
+    "linked_campaign_id": {
+      "type": "string"
+    },
+    "campaign_name": {
+      "type": "string"
+    },
+    "reward_type": {
+      "type": "string",
+      "enum": [
+        "tuition_credit",
+        "physical_item",
+        "custom_event"
+      ]
+    },
+    "reward_description": {
+      "type": "string"
+    },
+    "credit_amount": {
+      "type": "number"
+    },
+    "fulfillment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "fulfilled"
+      ],
+      "default": "pending"
+    },
+    "date_earned": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "date_fulfilled": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "fulfilled_by_id": {
+      "type": "string"
+    },
+    "fulfilled_by_name": {
+      "type": "string"
+    },
+    "admin_notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "student_id",
+    "pass_id",
+    "linked_campaign_id",
+    "reward_type"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "data.student_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "data.student_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
