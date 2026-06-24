@@ -99,4 +99,11 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  .time-picker-light::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(1.5);
+    cursor: pointer;
+  }
+  .time-picker-light::-webkit-calendar-picker-indicator:hover {
+    filter: invert(1) brightness(1.8);
+  }
 }

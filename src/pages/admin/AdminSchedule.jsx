@@ -94,6 +94,14 @@ export default function AdminSchedule() {
     return prog?.program_name || "";
   };
 
+  const selectedProgram = programs.find(p => p.id === form.linked_program_id);
+  const availableBeltLevels = (() => {
+    const levels = ["All Belts", "Beginner"];
+    if (selectedProgram?.intermediate_max_rank) levels.push("Intermediate");
+    if (selectedProgram?.advanced_max_rank) { levels.push("Advanced"); levels.push("Black Belt"); }
+    return levels;
+  })();
+
   const handleDelete = async (id) => {
     if (!confirm("Delete this class?")) return;
     try {
@@ -233,11 +241,11 @@ export default function AdminSchedule() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Start Time *</label>
-                  <input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" required />
+                  <input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} className="time-picker-light w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" required />
                 </div>
                 <div>
                   <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">End Time</label>
-                  <input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
+                  <input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} className="time-picker-light w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -252,10 +260,10 @@ export default function AdminSchedule() {
               </div>
               <div>
                 <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Belt Level (Rank Category)</label>
-                <select value={form.belt_level} onChange={(e) => setForm({ ...form, belt_level: e.target.value })} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
-                  {BELT_LEVELS.map((bl) => <option key={bl} value={bl}>{bl}</option>)}
+                <select value={availableBeltLevels.includes(form.belt_level) ? form.belt_level : "All Belts"} onChange={(e) => setForm({ ...form, belt_level: e.target.value })} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
+                  {availableBeltLevels.map((bl) => <option key={bl} value={bl}>{bl}</option>)}
                 </select>
-                <p className="text-xs text-[#A8A9AD] mt-2">Rank ranges for each level are configured per program via "Rank Levels".</p>
+                <p className="text-xs text-[#A8A9AD] mt-2">Rank ranges for each level are configured per program via "Rank Levels".{selectedProgram && availableBeltLevels.length < BELT_LEVELS.length && " Only levels available for this program are shown."}</p>
               </div>
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-sm text-white">
