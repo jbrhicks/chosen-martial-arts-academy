@@ -4,6 +4,7 @@ import { Loader2, Lock, Delete } from "lucide-react";
 import KioskOnboarding from "@/components/frontdesk/KioskOnboarding";
 import KioskPOS from "@/components/frontdesk/KioskPOS";
 import KioskEventCheckIn from "@/components/frontdesk/KioskEventCheckIn";
+import Logo from "@/components/Logo";
 
 export default function FrontDesk() {
   const [unlocked, setUnlocked] = useState(false);
@@ -87,9 +88,7 @@ export default function FrontDesk() {
     return (
       <div className="fixed inset-0 bg-[#0A0A0A] text-white flex items-center justify-center" onClick={handleLogoTap}>
         <div className="text-center">
-          <div className="w-20 h-20 border-2 border-[#C9A84C] flex items-center justify-center mx-auto mb-6">
-            <span className="text-[#C9A84C] font-bold text-4xl">C</span>
-          </div>
+          <Logo size={80} className="mx-auto mb-6" />
           <h1 className="font-bold text-2xl tracking-widest uppercase mb-2">Chosen</h1>
           <p className="text-sm tracking-[0.2em] text-[#A8A9AD] uppercase">Martial Arts Academy</p>
           <p className="text-xs text-[#A8A9AD]/40 mt-8">Tap logo 3 times for admin access</p>
@@ -138,7 +137,7 @@ export default function FrontDesk() {
       <div className="fixed inset-0 bg-[#0A0A0A] text-white flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-[#A8A9AD]/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 border-2 border-[#C9A84C] flex items-center justify-center"><span className="text-[#C9A84C] font-bold text-lg">C</span></div>
+            <Logo size={40} />
             <div><div className="font-bold text-xs tracking-widest uppercase">Chosen</div><div className="text-[9px] tracking-[0.15em] text-[#A8A9AD] uppercase">Front Desk Kiosk</div></div>
           </div>
           <button onClick={handleLock} className="flex items-center gap-2 px-4 py-2 border border-[#A8A9AD]/30 text-xs text-[#A8A9AD] hover:text-white hover:border-[#A8A9AD]/60 transition-colors"><Lock size={14} /> Lock Kiosk</button>
