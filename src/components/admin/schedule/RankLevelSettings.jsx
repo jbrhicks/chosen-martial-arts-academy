@@ -6,7 +6,7 @@ import { Loader2, Save, X, Settings } from "lucide-react";
 export default function RankLevelSettings({ onClose }) {
   const [programs, setPrograms] = useState([]);
   const [selectedProgramId, setSelectedProgramId] = useState("");
-  const [config, setConfig] = useState({ beginner_max_rank: "", intermediate_max_rank: "", advanced_max_rank: "" });
+  const [config, setConfig] = useState({ beginner_min_rank: "", beginner_max_rank: "", intermediate_min_rank: "", intermediate_max_rank: "", advanced_min_rank: "", advanced_max_rank: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -26,8 +26,11 @@ export default function RankLevelSettings({ onClose }) {
     const prog = programs.find(p => p.id === selectedProgramId);
     if (prog) {
       setConfig({
+        beginner_min_rank: prog.beginner_min_rank || "",
         beginner_max_rank: prog.beginner_max_rank || "",
+        intermediate_min_rank: prog.intermediate_min_rank || "",
         intermediate_max_rank: prog.intermediate_max_rank || "",
+        advanced_min_rank: prog.advanced_min_rank || "",
         advanced_max_rank: prog.advanced_max_rank || "",
       });
     }
@@ -46,12 +49,14 @@ export default function RankLevelSettings({ onClose }) {
 
   const selectedProgram = programs.find(p => p.id === selectedProgramId);
 
-  const rankLabel = (rank) => {
-    if (!rank) return "Not set";
-    const idx = BELT_RANKS.indexOf(rank);
-    if (idx === -1) return rank;
-    if (idx === BELT_RANKS.length - 1) return `${rank} and above`;
-    return `${BELT_RANKS[0]} through ${rank}`;
+  const rangeLabel = (minRank, maxRank) => {
+    const minIdx = minRank ? BELT_RANKS.indexOf(minRank) : -1;
+    const maxIdx = maxRank ? BELT_RANKS.indexOf(maxRank) : -1;
+    if (minIdx === -1 && maxIdx === -1) return "Not set";
+    if (minIdx === -1) return `${BELT_RANKS[0]} through ${maxRank}`;
+    if (maxIdx === -1) return `${minRank} and above`;
+    if (minRank === maxRank) return minRank;
+    return `${minRank} through ${maxRank}`;
   };
 
   return (
@@ -85,34 +90,40 @@ export default function RankLevelSettings({ onClose }) {
                 label="Beginner"
                 description="Lowest difficulty — typically new students and early ranks."
                 color="#3B7A3B"
-                value={config.beginner_max_rank}
-                onChange={v => setConfig({ ...config, beginner_max_rank: v })}
-                rankLabel={rankLabel}
+                minValue={config.beginner_min_rank}
+                onMinChange={v => setConfig({ ...config, beginner_min_rank: v })}
+                maxValue={config.beginner_max_rank}
+                onMaxChange={v => setConfig({ ...config, beginner_max_rank: v })}
+                rangeLabel={rangeLabel}
               />
               <RankLevelRow
                 label="Intermediate"
                 description="Mid-level — students who have progressed past beginner ranks."
                 color="#E8843A"
-                value={config.intermediate_max_rank}
-                onChange={v => setConfig({ ...config, intermediate_max_rank: v })}
-                rankLabel={rankLabel}
+                minValue={config.intermediate_min_rank}
+                onMinChange={v => setConfig({ ...config, intermediate_min_rank: v })}
+                maxValue={config.intermediate_max_rank}
+                onMaxChange={v => setConfig({ ...config, intermediate_max_rank: v })}
+                rangeLabel={rangeLabel}
               />
               <RankLevelRow
                 label="Advanced"
                 description="High-level — experienced students approaching black belt."
                 color="#C53030"
-                value={config.advanced_max_rank}
-                onChange={v => setConfig({ ...config, advanced_max_rank: v })}
-                rankLabel={rankLabel}
+                minValue={config.advanced_min_rank}
+                onMinChange={v => setConfig({ ...config, advanced_min_rank: v })}
+                maxValue={config.advanced_max_rank}
+                onMaxChange={v => setConfig({ ...config, advanced_max_rank: v })}
+                rangeLabel={rangeLabel}
               />
             </div>
 
             <div className="mt-6 border border-[#A8A9AD]/20 p-4">
               <p className="text-xs tracking-widest uppercase text-[#A8A9AD] mb-3">Preview for {selectedProgram?.program_name}</p>
               <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500" /><span className="text-[#A8A9AD]">Beginner:</span> <span className="text-white">{rankLabel(config.beginner_max_rank)}</span></div>
-                <div className="flex items-center gap-2"><span className="w-2 h-2 bg-orange-500" /><span className="text-[#A8A9AD]">Intermediate:</span> <span className="text-white">{rankLabel(config.intermediate_max_rank)}</span></div>
-                <div className="flex items-center gap-2"><span className="w-2 h-2 bg-red-500" /><span className="text-[#A8A9AD]">Advanced:</span> <span className="text-white">{rankLabel(config.advanced_max_rank)}</span></div>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 bg-green-500" /><span className="text-[#A8A9AD]">Beginner:</span> <span className="text-white">{rangeLabel(config.beginner_min_rank, config.beginner_max_rank)}</span></div>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 bg-orange-500" /><span className="text-[#A8A9AD]">Intermediate:</span> <span className="text-white">{rangeLabel(config.intermediate_min_rank, config.intermediate_max_rank)}</span></div>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 bg-red-500" /><span className="text-[#A8A9AD]">Advanced:</span> <span className="text-white">{rangeLabel(config.advanced_min_rank, config.advanced_max_rank)}</span></div>
                 <div className="flex items-center gap-2"><span className="w-2 h-2 bg-[#C9A84C]" /><span className="text-[#A8A9AD]">Black Belt:</span> <span className="text-white">1st Degree Black Belt and above</span></div>
               </div>
             </div>
@@ -127,7 +138,7 @@ export default function RankLevelSettings({ onClose }) {
   );
 }
 
-function RankLevelRow({ label, description, color, value, onChange, rankLabel }) {
+function RankLevelRow({ label, description, color, minValue, onMinChange, maxValue, onMaxChange, rangeLabel }) {
   return (
     <div className="border border-[#A8A9AD]/20 p-4">
       <div className="flex items-center gap-2 mb-2">
@@ -137,16 +148,21 @@ function RankLevelRow({ label, description, color, value, onChange, rankLabel })
       <p className="text-xs text-[#A8A9AD] mb-3">{description}</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Highest Rank in This Level</label>
-          <select value={value} onChange={e => onChange(e.target.value)} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
+          <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Lowest Rank</label>
+          <select value={minValue} onChange={e => onMinChange(e.target.value)} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
             <option value="">Not set</option>
             {BELT_RANKS.map(rank => <option key={rank} value={rank}>{rank}</option>)}
           </select>
         </div>
-        <div className="flex items-end">
-          <p className="text-xs text-[#A8A9AD]">Eligible: <span className="text-white font-medium">{rankLabel(value)}</span></p>
+        <div>
+          <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Highest Rank</label>
+          <select value={maxValue} onChange={e => onMaxChange(e.target.value)} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
+            <option value="">Not set</option>
+            {BELT_RANKS.map(rank => <option key={rank} value={rank}>{rank}</option>)}
+          </select>
         </div>
       </div>
+      <p className="text-xs text-[#A8A9AD] mt-3">Eligible: <span className="text-white font-medium">{rangeLabel(minValue, maxValue)}</span></p>
     </div>
   );
 }

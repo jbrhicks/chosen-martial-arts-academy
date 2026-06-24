@@ -51,9 +51,18 @@ export default function Schedule() {
   const enrolledProgramIds = new Set(enrolledPrograms.map(p => p.id));
 
   const isEligible = (cls) => {
-    const minRank = BELT_LEVEL_MIN_RANK[cls.belt_level] ?? 0;
-    if (userRankIndex === -1) return cls.belt_level === "All Belts" || cls.belt_level === "Beginner";
-    return userRankIndex >= minRank;
+    if (cls.belt_level === "All Belts") return true;
+    if (userRankIndex === -1) return false;
+    if (cls.belt_level === "Black Belt") return userRankIndex >= getRankIndex("1st Degree Black Belt");
+    const prog = getProgram(cls);
+    const levelKey = cls.belt_level.toLowerCase();
+    if (prog && (prog[`${levelKey}_min_rank`] || prog[`${levelKey}_max_rank`])) {
+      const minIdx = prog[`${levelKey}_min_rank`] ? getRankIndex(prog[`${levelKey}_min_rank`]) : 0;
+      const maxIdx = prog[`${levelKey}_max_rank`] ? getRankIndex(prog[`${levelKey}_max_rank`]) : BELT_RANKS.length - 1;
+      return userRankIndex >= minIdx && userRankIndex <= maxIdx;
+    }
+    const fallbackMin = BELT_LEVEL_MIN_RANK[cls.belt_level] ?? 0;
+    return userRankIndex >= fallbackMin;
   };
 
   const getProgram = (cls) => programs.find(p => p.id === cls.linked_program_id);

@@ -97,8 +97,8 @@ export default function AdminSchedule() {
   const selectedProgram = programs.find(p => p.id === form.linked_program_id);
   const availableBeltLevels = (() => {
     const levels = ["All Belts", "Beginner"];
-    if (selectedProgram?.intermediate_max_rank) levels.push("Intermediate");
-    if (selectedProgram?.advanced_max_rank) { levels.push("Advanced"); levels.push("Black Belt"); }
+    if (selectedProgram?.intermediate_min_rank || selectedProgram?.intermediate_max_rank) levels.push("Intermediate");
+    if (selectedProgram?.advanced_min_rank || selectedProgram?.advanced_max_rank) { levels.push("Advanced"); levels.push("Black Belt"); }
     return levels;
   })();
 
