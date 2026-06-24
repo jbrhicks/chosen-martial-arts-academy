@@ -68,8 +68,8 @@ export default function RankLevelSettings({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
-      <div className="w-full max-w-4xl border border-[#C9A84C]/30 bg-[#0A0A0A] p-8 my-8" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 bg-black/80 flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
+      <div className="w-full max-w-4xl border border-[#C9A84C]/30 bg-[#0A0A0A] p-8 my-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Settings size={20} className="text-[#C9A84C]" />
