@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Calendar, Clock, MapPin, Users, DollarSign, Lock, Loader2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import PublicLayout from "@/components/PublicLayout";
 import EventRegistrationModal from "@/components/events/EventRegistrationModal";
 import GuestRegistrationModal from "@/components/events/GuestRegistrationModal";
 import { useAuth } from "@/lib/AuthContext";
@@ -35,6 +36,7 @@ export default function Events() {
   });
 
   return (
+    <PublicLayout>
     <div className="min-h-screen bg-black py-12">
       <div className="max-w-7xl mx-auto px-4">
         <div className="text-center mb-12">
@@ -202,5 +204,6 @@ export default function Events() {
         )}
       </div>
     </div>
+    </PublicLayout>
   );
 }
