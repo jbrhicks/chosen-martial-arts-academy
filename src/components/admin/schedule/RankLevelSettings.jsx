@@ -53,7 +53,7 @@ export default function RankLevelSettings({ onClose }) {
   const updateConfig = (programId, field, value) => {
     setConfigs(prev => ({
       ...prev,
-      [programId]: { ...prev[programId], [field]: value },
+      [programId]: { ...(prev[programId] || EMPTY_CONFIG), [field]: value },
     }));
   };
 
@@ -154,14 +154,14 @@ function RankLevelRow({ label, color, minValue, onMinChange, maxValue, onMaxChan
       <div className="grid grid-cols-2 gap-3 flex-1">
         <div>
           <label className="block text-[10px] tracking-widest uppercase text-[#A8A9AD] mb-1">Lowest</label>
-          <select value={minValue} onChange={e => onMinChange(e.target.value)} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-3 py-2 text-xs text-white focus:border-[#C9A84C] focus:outline-none">
+          <select value={minValue || ""} onChange={e => onMinChange(e.target.value)} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-3 py-2 text-xs text-white focus:border-[#C9A84C] focus:outline-none">
             <option value="">Not set</option>
             {BELT_RANKS.map(rank => <option key={rank} value={rank}>{rank}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-[10px] tracking-widest uppercase text-[#A8A9AD] mb-1">Highest</label>
-          <select value={maxValue} onChange={e => onMaxChange(e.target.value)} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-3 py-2 text-xs text-white focus:border-[#C9A84C] focus:outline-none">
+          <select value={maxValue || ""} onChange={e => onMaxChange(e.target.value)} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-3 py-2 text-xs text-white focus:border-[#C9A84C] focus:outline-none">
             <option value="">Not set</option>
             {BELT_RANKS.map(rank => <option key={rank} value={rank}>{rank}</option>)}
           </select>
