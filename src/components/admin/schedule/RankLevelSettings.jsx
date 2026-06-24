@@ -43,7 +43,7 @@ export default function RankLevelSettings({ onClose }) {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       setPrograms(prev => prev.map(p => p.id === selectedProgramId ? { ...p, ...config } : p));
-    } catch (e) { alert("Failed to save rank levels."); }
+    } catch (e) { alert("Failed to save rank levels: " + (e?.message || e)); }
     setSaving(false);
   };
 
@@ -85,7 +85,7 @@ export default function RankLevelSettings({ onClose }) {
               </select>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-5" key={selectedProgramId}>
               <RankLevelRow
                 label="Beginner"
                 description="Lowest difficulty — typically new students and early ranks."
