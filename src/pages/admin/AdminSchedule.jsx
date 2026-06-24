@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { DAYS_OF_WEEK } from "@/lib/constants";
+import { DAYS_OF_WEEK, formatTime } from "@/lib/constants";
 import { Loader2, Plus, X, Pencil, Trash2, Clock, Settings } from "lucide-react";
 import RankLevelSettings from "@/components/admin/schedule/RankLevelSettings";
 
@@ -157,7 +157,7 @@ export default function AdminSchedule() {
                     <div key={cls.id} className={`border p-4 flex items-center gap-4 ${cls.is_active === false ? "border-[#A8A9AD]/10 opacity-50" : "border-[#A8A9AD]/20"}`}>
                       <div className="flex items-center gap-2 text-sm text-[#C9A84C] w-32 shrink-0">
                         <Clock size={14} />
-                        {cls.start_time}{cls.end_time ? ` – ${cls.end_time}` : ""}
+                        {formatTime(cls.start_time)}{cls.end_time ? ` – ${formatTime(cls.end_time)}` : ""}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium">{cls.class_name}</p>
