@@ -4,6 +4,7 @@ import { Menu, X, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import ExitIntentPopup from "@/components/ExitIntentPopup";
 import StickyActionBar from "@/components/StickyActionBar";
+import Logo from "@/components/Logo";
 
 export default function PublicLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -28,9 +29,7 @@ export default function PublicLayout({ children }) {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <Link to="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 border-2 border-[#C9A84C] flex items-center justify-center group-hover:bg-[#C9A84C] transition-colors">
-                <span className="text-[#C9A84C] group-hover:text-black font-bold text-lg transition-colors">C</span>
-              </div>
+              <Logo size={40} className="group-hover:opacity-80 transition-opacity" />
               <div className="leading-none">
                 <div className="font-bold text-sm tracking-widest uppercase">Chosen</div>
                 <div className="text-[10px] tracking-[0.2em] text-[#A8A9AD] uppercase">Martial Arts Academy</div>
@@ -137,9 +136,7 @@ export default function PublicLayout({ children }) {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
             <div className="md:col-span-2">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 border-2 border-[#C9A84C] flex items-center justify-center">
-                  <span className="text-[#C9A84C] font-bold text-lg">C</span>
-                </div>
+                <Logo size={40} />
                 <div className="leading-none">
                   <div className="font-bold text-sm tracking-widest uppercase">Chosen</div>
                   <div className="text-[10px] tracking-[0.2em] text-[#A8A9AD] uppercase">Martial Arts Academy</div>

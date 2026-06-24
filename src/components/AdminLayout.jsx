@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useState } from "react";
 import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, CalendarDays, UserPlus, LogOut, Menu, X, TrendingUp, ClipboardCheck, BarChart3, BookOpen, ListChecks, FormInput, Tag, Inbox, Tablet, ShieldAlert, UserSearch, Award, UserCheck, UsersRound, Mail } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
+import Logo from "@/components/Logo";
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -53,9 +54,7 @@ export default function AdminLayout() {
       }`}>
         <div className="h-20 flex items-center px-6 border-b border-[#A8A9AD]/20 shrink-0">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-9 h-9 border-2 border-[#C9A84C] flex items-center justify-center bg-[#C9A84C]">
-              <span className="text-black font-bold text-lg">C</span>
-            </div>
+            <Logo size={36} />
             <div className="leading-none">
               <div className="font-bold text-xs tracking-widest uppercase">Chosen</div>
               <div className="text-[9px] tracking-[0.15em] text-[#C9A84C] uppercase">Admin Dashboard</div>

@@ -4,6 +4,7 @@ import { Loader2, Search, RotateCcw, QrCode, KeyRound, User, ChevronLeft, AlertT
 import QRScanner from "@/components/kiosk/QRScanner";
 import PinPad from "@/components/kiosk/PinPad";
 import CheckInSuccess from "@/components/kiosk/CheckInSuccess";
+import Logo from "@/components/Logo";
 import { classOccursOnDate, getNextOccurrence, isClassCancelledOnDate } from "@/lib/scheduleUtils";
 
 export default function Kiosk() {
@@ -229,9 +230,7 @@ export default function Kiosk() {
     <div className="fixed inset-0 bg-[#0A0A0A] text-white flex flex-col">
       <div className="border-b border-[#A8A9AD]/20 p-6 text-center">
         <div className="flex items-center justify-center gap-4 mb-2">
-          <div className="w-12 h-12 border-2 border-[#C9A84C] flex items-center justify-center">
-            <span className="text-[#C9A84C] font-bold text-2xl">C</span>
-          </div>
+          <Logo size={48} />
           <div className="text-left">
             <div className="font-bold text-lg tracking-widest uppercase">Chosen</div>
             <div className="text-xs tracking-[0.2em] text-[#A8A9AD] uppercase">Martial Arts Academy</div>

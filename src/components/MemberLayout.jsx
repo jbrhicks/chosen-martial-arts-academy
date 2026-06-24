@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { FamilyProvider, useFamily } from "@/lib/FamilyContext";
 import BeltBadge from "@/components/BeltBadge";
 import ProfileSwitcher from "@/components/family/ProfileSwitcher";
+import Logo from "@/components/Logo";
 import { CommunityAccessProvider, useCommunityAccess } from "@/lib/CommunityAccessContext";
 
 function MemberLayoutContent() {
@@ -46,9 +47,7 @@ function MemberLayoutContent() {
       }`}>
         <div className="h-20 flex items-center px-6 border-b border-[#A8A9AD]/20 shrink-0">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-9 h-9 border-2 border-[#C9A84C] flex items-center justify-center">
-              <span className="text-[#C9A84C] font-bold text-lg">C</span>
-            </div>
+            <Logo size={36} />
             <div className="leading-none">
               <div className="font-bold text-xs tracking-widest uppercase">Chosen</div>
               <div className="text-[9px] tracking-[0.15em] text-[#A8A9AD] uppercase">Member Portal</div>
