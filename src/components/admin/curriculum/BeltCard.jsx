@@ -6,7 +6,7 @@ import { Plus, Trash2, ChevronDown, ChevronUp, Pencil, Loader2, Video } from "lu
 export default function BeltCard({ belt, onBeltUpdate, onBeltDelete }) {
   const [criteria, setCriteria] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingCriteria, setEditingCriteria] = useState(null);
   const [editingBelt, setEditingBelt] = useState(false);
