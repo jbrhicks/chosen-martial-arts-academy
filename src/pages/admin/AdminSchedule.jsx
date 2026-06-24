@@ -5,6 +5,7 @@ import { getScheduleBadge } from "@/lib/scheduleUtils";
 import { Loader2, Plus, Pencil, Trash2, Clock, Settings } from "lucide-react";
 import RankLevelSettings from "@/components/admin/schedule/RankLevelSettings";
 import ClassScheduleForm from "@/components/admin/schedule/ClassScheduleForm";
+import SeriesRosterManager from "@/components/admin/schedule/SeriesRosterManager";
 
 export default function AdminSchedule() {
   const [classes, setClasses] = useState([]);
@@ -13,6 +14,7 @@ export default function AdminSchedule() {
   const [showForm, setShowForm] = useState(false);
   const [showRankSettings, setShowRankSettings] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [rosterClass, setRosterClass] = useState(null);
 
   const loadClasses = useCallback(async () => {
     try {
@@ -141,6 +143,7 @@ export default function AdminSchedule() {
                           <button onClick={() => toggleActive(cls)} className="text-xs text-[#A8A9AD] hover:text-[#C9A84C] transition-colors">
                             {cls.is_active === false ? "Activate" : "Deactivate"}
                           </button>
+                          {cls.schedule_type === "Limited-Series" && <button onClick={() => setRosterClass(cls)} className="text-xs text-[#A8A9AD] hover:text-[#C9A84C] transition-colors">Roster</button>}
                           <button onClick={() => handleEdit(cls)} className="p-2 text-[#A8A9AD] hover:text-[#C9A84C] transition-colors"><Pencil size={16} /></button>
                           <button onClick={() => handleDelete(cls.id)} className="p-2 text-[#A8A9AD] hover:text-red-400 transition-colors"><Trash2 size={16} /></button>
                         </div>
@@ -164,6 +167,7 @@ export default function AdminSchedule() {
       )}
 
       {showRankSettings && <RankLevelSettings onClose={() => setShowRankSettings(false)} />}
+      {rosterClass && <SeriesRosterManager cls={rosterClass} onClose={() => setRosterClass(null)} />}
     </div>
   );
 }

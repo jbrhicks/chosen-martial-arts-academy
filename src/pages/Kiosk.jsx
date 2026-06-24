@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Search, RotateCcw, QrCode, KeyRound, User, ChevronLeft, AlertTriangle, ShieldCheck, TrendingUp, CreditCard } from "lucide-react";
+import { Loader2, Search, RotateCcw, QrCode, KeyRound, User, ChevronLeft, AlertTriangle, ShieldCheck, TrendingUp, CreditCard, CalendarX } from "lucide-react";
 import QRScanner from "@/components/kiosk/QRScanner";
 import PinPad from "@/components/kiosk/PinPad";
 import CheckInSuccess from "@/components/kiosk/CheckInSuccess";
+import { classOccursOnDate, getNextOccurrence } from "@/lib/scheduleUtils";
 
 export default function Kiosk() {
   const [users, setUsers] = useState([]);
@@ -18,18 +19,26 @@ export default function Kiosk() {
   const [pinError, setPinError] = useState(false);
   const [capAlert, setCapAlert] = useState(null);
   const [dropInProcessing, setDropInProcessing] = useState(false);
+  const [customDates, setCustomDates] = useState([]);
+  const [offWeekAlert, setOffWeekAlert] = useState(null);
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+  const occursToday = (cls) => classOccursOnDate(cls, todayDate, customDates);
+  const todayClasses = classes.filter(cls => cls.day_of_week === today || (cls.schedule_type === "Custom-Dates" && occursToday(cls)));
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [u, c] = await Promise.all([
+        const [u, c, cd] = await Promise.all([
           base44.entities.User.list(),
-          base44.entities.ClassSchedule.filter({ is_active: true, day_of_week: today }),
+          base44.entities.ClassSchedule.filter({ is_active: true }),
+          base44.entities.ClassCustomDate.list().catch(() => []),
         ]);
         setUsers(u);
         setClasses(c);
+        setCustomDates(cd);
       } catch (e) { console.error(e); }
       setLoading(false);
     };
@@ -60,6 +69,13 @@ export default function Kiosk() {
     if (!selectedUser || !selectedClass) return;
     setChecking(true);
     try {
+      const selectedCls = todayClasses.find(c => c.class_name === selectedClass);
+      if (selectedCls && !occursToday(selectedCls)) {
+        const next = getNextOccurrence(selectedCls, todayDate, customDates);
+        setOffWeekAlert({ class_name: selectedCls.class_name, nextDate: next });
+        setChecking(false);
+        return;
+      }
       if (!override) {
         const enrollments = await base44.entities.Enrollment.filter({ user_id: selectedUser.id, status: "active" });
         const enrollment = enrollments[0];
@@ -156,6 +172,25 @@ export default function Kiosk() {
 
   if (success) {
     return <CheckInSuccess name={success} onDismiss={handleSuccessDismiss} />;
+  }
+
+  if (offWeekAlert) {
+    return (
+      <div className="fixed inset-0 bg-[#0A0A0A] text-white flex items-center justify-center p-6">
+        <div className="w-full max-w-md text-center space-y-6">
+          <div className="w-20 h-20 border-2 border-[#E8843A] flex items-center justify-center mx-auto">
+            <CalendarX size={40} className="text-[#E8843A]" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold mb-2">Oops! {offWeekAlert.class_name} is off this week.</h2>
+            <p className="text-[#A8A9AD]">The next class is on <span className="text-white font-bold">{offWeekAlert.nextDate?.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</span>.</p>
+          </div>
+          <button onClick={() => { setOffWeekAlert(null); reset(); }} className="w-full px-6 py-5 bg-[#C9A84C] text-black text-lg font-bold tracking-wide uppercase hover:bg-[#E0C97A] transition-colors">
+            Got It
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (capAlert) {
@@ -295,17 +330,24 @@ export default function Kiosk() {
               <div>
                 <p className="text-sm text-[#A8A9AD] text-center mb-4">Select today's class:</p>
                 <div className="space-y-3">
-                  {classes.length > 0 ? (
-                    classes.map(cls => (
-                      <button
-                        key={cls.id}
-                        onClick={() => setSelectedClass(cls.class_name)}
-                        className={`w-full text-left px-6 py-5 border-2 transition-colors ${selectedClass === cls.class_name ? "border-[#C9A84C] bg-[#C9A84C]/10" : "border-[#A8A9AD]/20 bg-black hover:border-[#A8A9AD]/40"}`}
-                      >
-                        <p className="text-lg font-medium">{cls.class_name}</p>
-                        <p className="text-sm text-[#A8A9AD]">{cls.start_time} — {cls.instructor}</p>
-                      </button>
-                    ))
+                  {todayClasses.length > 0 ? (
+                    todayClasses.map(cls => {
+                      const isOffWeek = !occursToday(cls);
+                      const nextDate = isOffWeek ? getNextOccurrence(cls, todayDate, customDates) : null;
+                      return (
+                        <button
+                          key={cls.id}
+                          onClick={() => setSelectedClass(cls.class_name)}
+                          className={`w-full text-left px-6 py-5 border-2 transition-colors ${selectedClass === cls.class_name ? "border-[#C9A84C] bg-[#C9A84C]/10" : isOffWeek ? "border-[#E8843A]/30 bg-black/40" : "border-[#A8A9AD]/20 bg-black hover:border-[#A8A9AD]/40"}`}
+                        >
+                          <p className="text-lg font-medium">{cls.class_name}</p>
+                          <p className="text-sm text-[#A8A9AD]">{cls.start_time} — {cls.instructor}</p>
+                          {isOffWeek && (
+                            <p className="text-xs text-[#E8843A] mt-1">⚠ Off this week — next: {nextDate?.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+                          )}
+                        </button>
+                      );
+                    })
                   ) : (
                     <p className="text-center text-[#A8A9AD] py-4">No classes scheduled today.</p>
                   )}

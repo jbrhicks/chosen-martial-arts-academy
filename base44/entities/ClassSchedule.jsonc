@@ -40,6 +40,10 @@
       "type": "string",
       "format": "date"
     },
+    "require_full_series_signup": {
+      "type": "boolean",
+      "default": false
+    },
     "start_time": {
       "type": "string"
     },

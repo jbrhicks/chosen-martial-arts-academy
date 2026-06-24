@@ -124,3 +124,17 @@ export function getNextOccurrence(cls, fromDate, customDates = []) {
   }
   return null;
 }
+
+// Get all dates a class occurs on within a date range (inclusive)
+export function getOccurrencesInRange(cls, startDate, endDate, customDates = []) {
+  const dates = [];
+  const cursor = new Date(startDate instanceof Date ? startDate : startDate + "T00:00:00");
+  const end = new Date(endDate instanceof Date ? endDate : endDate + "T00:00:00");
+  while (cursor <= end) {
+    if (classOccursOnDate(cls, cursor, customDates)) {
+      dates.push(new Date(cursor));
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return dates;
+}

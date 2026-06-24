@@ -23,6 +23,7 @@ const EMPTY_FORM = {
   is_active: true,
   is_trial_eligible: false,
   max_trials_allowed: 2,
+  require_full_series_signup: false,
 };
 
 export default function ClassScheduleForm({ editing, programs, onClose, onSaved }) {
@@ -53,6 +54,7 @@ export default function ClassScheduleForm({ editing, programs, onClose, onSaved 
           is_active: editing.is_active !== false,
           is_trial_eligible: editing.is_trial_eligible || false,
           max_trials_allowed: editing.max_trials_allowed || 2,
+          require_full_series_signup: editing.require_full_series_signup || false,
         });
       })();
     } else {
@@ -136,6 +138,7 @@ export default function ClassScheduleForm({ editing, programs, onClose, onSaved 
         is_active: form.is_active,
         is_trial_eligible: form.is_trial_eligible,
         max_trials_allowed: form.max_trials_allowed,
+        require_full_series_signup: form.require_full_series_signup,
       };
 
       if (form.schedule_type === "Custom-Dates") {
@@ -269,16 +272,25 @@ export default function ClassScheduleForm({ editing, programs, onClose, onSaved 
           )}
 
           {needsSeriesDates && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Series Start *</label>
-                <input type="date" value={form.series_start_date} onChange={(e) => setForm({ ...form, series_start_date: e.target.value })} className="time-picker-light w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" required />
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Series Start *</label>
+                  <input type="date" value={form.series_start_date} onChange={(e) => setForm({ ...form, series_start_date: e.target.value })} className="time-picker-light w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" required />
+                </div>
+                <div>
+                  <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Series End *</label>
+                  <input type="date" value={form.series_end_date} onChange={(e) => setForm({ ...form, series_end_date: e.target.value })} className="time-picker-light w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" required />
+                </div>
               </div>
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Series End *</label>
-                <input type="date" value={form.series_end_date} onChange={(e) => setForm({ ...form, series_end_date: e.target.value })} className="time-picker-light w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" required />
-              </div>
-            </div>
+              <label className="flex items-center gap-2 text-sm text-white bg-[#C9A84C]/5 border border-[#C9A84C]/20 p-3">
+                <input type="checkbox" checked={form.require_full_series_signup} onChange={(e) => setForm({ ...form, require_full_series_signup: e.target.checked })} className="accent-[#C9A84C] w-4 h-4" />
+                <div>
+                  <span className="font-medium">Require full series sign-up</span>
+                  <p className="text-xs text-[#A8A9AD] mt-0.5">Students who join are automatically enrolled in all dates in this series.</p>
+                </div>
+              </label>
+            </>
           )}
 
           {isCustomDates && (
