@@ -2,10 +2,11 @@ import { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { DAYS_OF_WEEK, formatTime } from "@/lib/constants";
 import { getScheduleBadge } from "@/lib/scheduleUtils";
-import { Loader2, Plus, Pencil, Trash2, Clock, Settings } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Clock, Settings, CalendarX } from "lucide-react";
 import RankLevelSettings from "@/components/admin/schedule/RankLevelSettings";
 import ClassScheduleForm from "@/components/admin/schedule/ClassScheduleForm";
 import SeriesRosterManager from "@/components/admin/schedule/SeriesRosterManager";
+import CancelOccurrenceModal from "@/components/admin/schedule/CancelOccurrenceModal";
 
 export default function AdminSchedule() {
   const [classes, setClasses] = useState([]);
@@ -15,15 +16,19 @@ export default function AdminSchedule() {
   const [showRankSettings, setShowRankSettings] = useState(false);
   const [editing, setEditing] = useState(null);
   const [rosterClass, setRosterClass] = useState(null);
+  const [cancelClass, setCancelClass] = useState(null);
+  const [cancellations, setCancellations] = useState([]);
 
   const loadClasses = useCallback(async () => {
     try {
-      const [data, progs] = await Promise.all([
+      const [data, progs, cancels] = await Promise.all([
         base44.entities.ClassSchedule.list(),
         base44.entities.Program.list(),
+        base44.entities.ClassCancellation.list().catch(() => []),
       ]);
       setClasses(data);
       setPrograms(progs);
+      setCancellations(cancels);
     } catch (e) { console.error(e); }
     setLoading(false);
   }, []);
@@ -144,6 +149,7 @@ export default function AdminSchedule() {
                             {cls.is_active === false ? "Activate" : "Deactivate"}
                           </button>
                           {cls.schedule_type === "Limited-Series" && <button onClick={() => setRosterClass(cls)} className="text-xs text-[#A8A9AD] hover:text-[#C9A84C] transition-colors">Roster</button>}
+                          {cls.schedule_type !== "Custom-Dates" && <button onClick={() => setCancelClass(cls)} className="text-xs text-[#A8A9AD] hover:text-red-400 transition-colors flex items-center gap-1"><CalendarX size={12} /> Cancel Date</button>}
                           <button onClick={() => handleEdit(cls)} className="p-2 text-[#A8A9AD] hover:text-[#C9A84C] transition-colors"><Pencil size={16} /></button>
                           <button onClick={() => handleDelete(cls.id)} className="p-2 text-[#A8A9AD] hover:text-red-400 transition-colors"><Trash2 size={16} /></button>
                         </div>
@@ -168,6 +174,7 @@ export default function AdminSchedule() {
 
       {showRankSettings && <RankLevelSettings onClose={() => setShowRankSettings(false)} />}
       {rosterClass && <SeriesRosterManager cls={rosterClass} onClose={() => setRosterClass(null)} />}
+      {cancelClass && <CancelOccurrenceModal cls={cancelClass} customDates={[]} cancellations={cancellations} onClose={() => setCancelClass(null)} onChanged={loadClasses} />}
     </div>
   );
 }

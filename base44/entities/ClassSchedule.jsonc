@@ -78,9 +78,13 @@
         "Beginner",
         "Intermediate",
         "Advanced",
-        "Black Belt"
+        "Black Belt",
+        "Custom"
       ],
       "default": "All Belts"
+    },
+    "custom_eligible_belts": {
+      "type": "string"
     },
     "is_active": {
       "type": "boolean",

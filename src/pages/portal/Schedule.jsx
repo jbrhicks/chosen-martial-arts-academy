@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useFamily } from "@/lib/FamilyContext";
 import { DAYS_OF_WEEK, BELT_RANKS, getRankIndex, formatTime } from "@/lib/constants";
-import { classOccursOnDate, getScheduleBadge, getSeriesCountdown, getNextOccurrence } from "@/lib/scheduleUtils";
+import { classOccursOnDate, getScheduleBadge, getSeriesCountdown, getNextOccurrence, isClassCancelledOnDate } from "@/lib/scheduleUtils";
 import PortalClassCard, { getProgramColor } from "@/components/portal/schedule/PortalClassCard";
 import { Loader2, CalendarDays, Clock, ChevronRight, ChevronLeft, Filter } from "lucide-react";
 
@@ -22,6 +22,7 @@ export default function Schedule() {
   const [customDates, setCustomDates] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   const [programs, setPrograms] = useState([]);
+  const [cancellations, setCancellations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [programFilter, setProgramFilter] = useState("all");
   const [weekOffset, setWeekOffset] = useState(0);
@@ -31,16 +32,18 @@ export default function Schedule() {
 
   useEffect(() => {
     const load = async () => {
-      const [allClasses, allCustomDates, enrolls, allPrograms] = await Promise.all([
+      const [allClasses, allCustomDates, enrolls, allPrograms, allCancellations] = await Promise.all([
         base44.entities.ClassSchedule.list().catch(() => []),
         base44.entities.ClassCustomDate.list().catch(() => []),
         base44.entities.Enrollment.filter({ user_id: profile?.id || user?.id, status: "active" }).catch(() => []),
         base44.entities.Program.list().catch(() => []),
+        base44.entities.ClassCancellation.list().catch(() => []),
       ]);
       setClasses(allClasses.filter(c => c.is_active !== false));
       setCustomDates(allCustomDates);
       setEnrollments(enrolls);
       setPrograms(allPrograms);
+      setCancellations(allCancellations);
       setLoading(false);
     };
     load();
@@ -59,6 +62,10 @@ export default function Schedule() {
 
   const isEligible = (cls) => {
     if (cls.belt_level === "All Belts") return true;
+    if (cls.belt_level === "Custom") {
+      const belts = (cls.custom_eligible_belts || "").split(",").filter(Boolean);
+      return belts.includes(profile?.belt_rank);
+    }
     if (userRankIndex === -1) return false;
     if (cls.belt_level === "Black Belt") return userRankIndex >= getRankIndex("1st Degree Black Belt");
     const prog = getProgram(cls);
@@ -116,11 +123,11 @@ export default function Schedule() {
   const grouped = useMemo(() => {
     return weekDays.map(({ day, date }) => {
       const dayClasses = filteredClasses
-        .filter(cls => classOccursOnDate(cls, date, customDates))
+        .filter(cls => classOccursOnDate(cls, date, customDates) && !isClassCancelledOnDate(cls, date, cancellations))
         .sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
       return { day, date, items: dayClasses };
     });
-  }, [filteredClasses, weekDays, customDates]);
+  }, [filteredClasses, weekDays, customDates, cancellations]);
 
   const nextClass = useMemo(() => {
     const now = new Date();
@@ -133,13 +140,13 @@ export default function Schedule() {
         if (!prog || prog.id !== programFilter) continue;
       }
       const next = getNextOccurrence(cls, now, customDates);
-      if (next && (!bestDate || next < bestDate)) {
+      if (next && !isClassCancelledOnDate(cls, next, cancellations) && (!bestDate || next < bestDate)) {
         best = cls;
         bestDate = next;
       }
     }
     return best ? { cls: best, date: bestDate } : null;
-  }, [classes, programFilter, customDates, userRankIndex]);
+  }, [classes, programFilter, customDates, userRankIndex, cancellations]);
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-[#C9A84C]" /></div>;
 

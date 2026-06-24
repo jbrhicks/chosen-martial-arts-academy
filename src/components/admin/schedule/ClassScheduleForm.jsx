@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { DAYS_OF_WEEK } from "@/lib/constants";
+import { DAYS_OF_WEEK, BELT_RANKS } from "@/lib/constants";
 import { SCHEDULE_TYPES, WEEK_OCCURRENCES } from "@/lib/scheduleUtils";
 import { Loader2, X, Plus, Calendar } from "lucide-react";
 
-const BELT_LEVELS = ["All Belts", "Beginner", "Intermediate", "Advanced", "Black Belt"];
+const BELT_LEVELS = ["All Belts", "Beginner", "Intermediate", "Advanced", "Black Belt", "Custom"];
 
 const EMPTY_FORM = {
   class_name: "",
@@ -21,6 +21,7 @@ const EMPTY_FORM = {
   location: "",
   linked_program_ids: [],
   belt_level: "All Belts",
+  custom_eligible_belts: [],
   is_active: true,
   is_trial_eligible: false,
   max_trials_allowed: 2,
@@ -55,6 +56,7 @@ export default function ClassScheduleForm({ editing, programs, onClose, onSaved 
           location: editing.location || "",
           linked_program_ids: editing.linked_program_ids ? editing.linked_program_ids.split(",").filter(Boolean) : editing.linked_program_id ? [editing.linked_program_id] : [],
           belt_level: editing.belt_level || "All Belts",
+          custom_eligible_belts: editing.custom_eligible_belts ? editing.custom_eligible_belts.split(",").filter(Boolean) : [],
           is_active: editing.is_active !== false,
           is_trial_eligible: editing.is_trial_eligible || false,
           max_trials_allowed: editing.max_trials_allowed || 2,
@@ -132,6 +134,7 @@ export default function ClassScheduleForm({ editing, programs, onClose, onSaved 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.class_name || !form.start_time || form.linked_program_ids.length === 0) return;
+    if (form.belt_level === "Custom" && form.custom_eligible_belts.length === 0) return;
 
     if (form.schedule_type === "Custom-Dates") {
       if (form.custom_dates.length === 0) return;
@@ -159,6 +162,7 @@ export default function ClassScheduleForm({ editing, programs, onClose, onSaved 
         linked_program_id: form.linked_program_ids[0] || "",
         linked_program_ids: form.linked_program_ids.join(","),
         belt_level: form.belt_level,
+        custom_eligible_belts: form.custom_eligible_belts.join(","),
         is_active: form.is_active,
         is_trial_eligible: form.is_trial_eligible,
         max_trials_allowed: form.max_trials_allowed,
@@ -420,6 +424,30 @@ export default function ClassScheduleForm({ editing, programs, onClose, onSaved 
             </select>
             <p className="text-xs text-[#A8A9AD] mt-2">Rank ranges for each level are configured per program via "Rank Levels" and determine student eligibility on their schedule.</p>
           </div>
+
+          {form.belt_level === "Custom" && (
+            <div>
+              <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Eligible Belts * (select specific ranks)</label>
+              <div className="flex flex-wrap gap-2">
+                {BELT_RANKS.map((rank) => {
+                  const selected = form.custom_eligible_belts.includes(rank);
+                  return (
+                    <button key={rank} type="button" onClick={() => setForm(prev => ({
+                      ...prev,
+                      custom_eligible_belts: selected
+                        ? prev.custom_eligible_belts.filter(r => r !== rank)
+                        : [...prev.custom_eligible_belts, rank],
+                    }))}
+                      className={`px-3 py-1.5 text-xs font-medium tracking-wide transition-colors ${selected ? "bg-[#C9A84C] text-black" : "border border-[#A8A9AD]/30 text-[#A8A9AD] hover:text-white hover:border-[#C9A84C]/50"}`}
+                    >
+                      {rank}
+                    </button>
+                  );
+                })}
+              </div>
+              {form.custom_eligible_belts.length === 0 && <p className="text-xs text-red-400 mt-1">Select at least one belt rank</p>}
+            </div>
+          )}
 
           <div className="space-y-3">
             <label className="flex items-center gap-2 text-sm text-white">

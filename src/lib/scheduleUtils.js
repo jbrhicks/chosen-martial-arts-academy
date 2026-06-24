@@ -139,6 +139,14 @@ export function getNextOccurrence(cls, fromDate, customDates = []) {
   return null;
 }
 
+// Check if a specific occurrence of a class has been cancelled
+export function isClassCancelledOnDate(cls, date, cancellations = []) {
+  if (!cls || !date || !cancellations.length) return false;
+  const d = date instanceof Date ? date : parseDate(date);
+  const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return cancellations.some(c => c.class_id === cls.id && c.cancelled_date === dateStr);
+}
+
 // Get all dates a class occurs on within a date range (inclusive)
 export function getOccurrencesInRange(cls, startDate, endDate, customDates = []) {
   const dates = [];

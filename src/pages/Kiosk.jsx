@@ -4,7 +4,7 @@ import { Loader2, Search, RotateCcw, QrCode, KeyRound, User, ChevronLeft, AlertT
 import QRScanner from "@/components/kiosk/QRScanner";
 import PinPad from "@/components/kiosk/PinPad";
 import CheckInSuccess from "@/components/kiosk/CheckInSuccess";
-import { classOccursOnDate, getNextOccurrence } from "@/lib/scheduleUtils";
+import { classOccursOnDate, getNextOccurrence, isClassCancelledOnDate } from "@/lib/scheduleUtils";
 
 export default function Kiosk() {
   const [users, setUsers] = useState([]);
@@ -20,25 +20,29 @@ export default function Kiosk() {
   const [capAlert, setCapAlert] = useState(null);
   const [dropInProcessing, setDropInProcessing] = useState(false);
   const [customDates, setCustomDates] = useState([]);
+  const [cancellations, setCancellations] = useState([]);
   const [offWeekAlert, setOffWeekAlert] = useState(null);
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const todayDate = new Date();
   todayDate.setHours(0, 0, 0, 0);
   const occursToday = (cls) => classOccursOnDate(cls, todayDate, customDates);
-  const todayClasses = classes.filter(cls => cls.day_of_week === today || (cls.schedule_type === "Custom-Dates" && occursToday(cls)));
+  const isCancelledToday = (cls) => isClassCancelledOnDate(cls, todayDate, cancellations);
+  const todayClasses = classes.filter(cls => (cls.day_of_week === today || (cls.schedule_type === "Custom-Dates" && occursToday(cls))) && !isCancelledToday(cls));
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [u, c, cd] = await Promise.all([
+        const [u, c, cd, cancels] = await Promise.all([
           base44.entities.User.list(),
           base44.entities.ClassSchedule.filter({ is_active: true }),
           base44.entities.ClassCustomDate.list().catch(() => []),
+          base44.entities.ClassCancellation.list().catch(() => []),
         ]);
         setUsers(u);
         setClasses(c);
         setCustomDates(cd);
+        setCancellations(cancels);
       } catch (e) { console.error(e); }
       setLoading(false);
     };
