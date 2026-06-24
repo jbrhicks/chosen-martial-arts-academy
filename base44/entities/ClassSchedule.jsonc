@@ -24,12 +24,16 @@
         "Weekly",
         "Bi-Weekly",
         "Monthly",
+        "Monthly Pattern",
         "Limited-Series",
         "Custom-Dates"
       ],
       "default": "Weekly"
     },
     "pattern_weeks": {
+      "type": "string"
+    },
+    "monthly_pattern": {
       "type": "string"
     },
     "series_start_date": {

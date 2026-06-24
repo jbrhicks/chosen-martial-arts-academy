@@ -14,6 +14,7 @@ const EMPTY_FORM = {
   series_start_date: "",
   series_end_date: "",
   custom_dates: [],
+  monthly_pattern: [],
   start_time: "",
   end_time: "",
   instructor: "",
@@ -30,6 +31,8 @@ export default function ClassScheduleForm({ editing, programs, onClose, onSaved 
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [newDateInput, setNewDateInput] = useState("");
+  const [newPatternWeek, setNewPatternWeek] = useState("1");
+  const [newPatternDay, setNewPatternDay] = useState("Friday");
 
   useEffect(() => {
     if (editing) {
@@ -45,6 +48,7 @@ export default function ClassScheduleForm({ editing, programs, onClose, onSaved 
           series_start_date: editing.series_start_date || "",
           series_end_date: editing.series_end_date || "",
           custom_dates: customDates.map(cd => cd.specific_date).sort(),
+          monthly_pattern: editing.monthly_pattern ? editing.monthly_pattern.split(",").filter(Boolean) : [],
           start_time: editing.start_time || "",
           end_time: editing.end_time || "",
           instructor: editing.instructor || "",
@@ -108,12 +112,31 @@ export default function ClassScheduleForm({ editing, programs, onClose, onSaved 
     }));
   };
 
+  const addMonthlyPattern = () => {
+    const entry = `${newPatternWeek}-${newPatternDay}`;
+    if (!form.monthly_pattern.includes(entry)) {
+      setForm(prev => ({ ...prev, monthly_pattern: [...prev.monthly_pattern, entry] }));
+    }
+  };
+
+  const removeMonthlyPattern = (entry) => {
+    setForm(prev => ({ ...prev, monthly_pattern: prev.monthly_pattern.filter(p => p !== entry) }));
+  };
+
+  const formatPatternLabel = (entry) => {
+    const [week, day] = entry.split("-");
+    const weekLabel = WEEK_OCCURRENCES.find(w => w.value === week)?.label || week;
+    return `${weekLabel} ${day}`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.class_name || !form.start_time || form.linked_program_ids.length === 0) return;
 
     if (form.schedule_type === "Custom-Dates") {
       if (form.custom_dates.length === 0) return;
+    } else if (form.schedule_type === "Monthly Pattern") {
+      if (form.monthly_pattern.length === 0) return;
     } else {
       if (form.days.length === 0) return;
       if ((form.schedule_type === "Bi-Weekly" || form.schedule_type === "Monthly") && form.pattern_weeks.length === 0) return;
@@ -126,6 +149,7 @@ export default function ClassScheduleForm({ editing, programs, onClose, onSaved 
         class_name: form.class_name,
         schedule_type: form.schedule_type,
         pattern_weeks: form.pattern_weeks.join(","),
+        monthly_pattern: form.monthly_pattern.join(","),
         series_start_date: form.series_start_date || null,
         series_end_date: form.series_end_date || null,
         start_time: form.start_time,
@@ -161,6 +185,13 @@ export default function ClassScheduleForm({ editing, programs, onClose, onSaved 
         if (dateRecords.length > 0) {
           await base44.entities.ClassCustomDate.bulkCreate(dateRecords);
         }
+      } else if (form.schedule_type === "Monthly Pattern") {
+        const classPayload = { ...basePayload, day_of_week: "Custom" };
+        if (editing) {
+          await base44.entities.ClassSchedule.update(editing.id, classPayload);
+        } else {
+          await base44.entities.ClassSchedule.create(classPayload);
+        }
       } else {
         if (editing) {
           await base44.entities.ClassSchedule.update(editing.id, { ...basePayload, day_of_week: form.days[0] });
@@ -176,10 +207,11 @@ export default function ClassScheduleForm({ editing, programs, onClose, onSaved 
     setSubmitting(false);
   };
 
-  const needsDays = form.schedule_type !== "Custom-Dates";
+  const needsDays = form.schedule_type !== "Custom-Dates" && form.schedule_type !== "Monthly Pattern";
   const needsPattern = form.schedule_type === "Bi-Weekly" || form.schedule_type === "Monthly";
   const needsSeriesDates = form.schedule_type === "Limited-Series";
   const isCustomDates = form.schedule_type === "Custom-Dates";
+  const isMonthlyPattern = form.schedule_type === "Monthly Pattern";
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
@@ -315,6 +347,47 @@ export default function ClassScheduleForm({ editing, programs, onClose, onSaved 
               ) : (
                 <p className="text-xs text-red-400">Add at least one date</p>
               )}
+            </div>
+          )}
+
+          {isMonthlyPattern && (
+            <div>
+              <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Monthly Pattern * (e.g., 1st Friday, 1st & 3rd Monday)</label>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <select value={newPatternWeek} onChange={(e) => setNewPatternWeek(e.target.value)} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 px-3 py-2 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
+                  {WEEK_OCCURRENCES.map(w => <option key={w.value} value={w.value}>{w.label}</option>)}
+                </select>
+                <select value={newPatternDay} onChange={(e) => setNewPatternDay(e.target.value)} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 px-3 py-2 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
+                  {DAYS_OF_WEEK.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+                <button type="button" onClick={addMonthlyPattern} className="px-4 py-2 bg-[#C9A84C] text-black font-bold text-xs tracking-wide uppercase hover:bg-[#E0C97A] transition-colors flex items-center gap-1">
+                  <Plus size={14} /> Add Rule
+                </button>
+              </div>
+              {form.monthly_pattern.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {form.monthly_pattern.map((entry) => (
+                    <div key={entry} className="flex items-center gap-2 px-3 py-2 border border-[#6B21A8]/50 bg-[#6B21A8]/10">
+                      <Calendar size={12} className="text-[#A78BFA]" />
+                      <span className="text-xs text-white">{formatPatternLabel(entry)}</span>
+                      <button type="button" onClick={() => removeMonthlyPattern(entry)} className="text-[#A8A9AD] hover:text-red-400"><X size={12} /></button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-red-400">Add at least one pattern rule</p>
+              )}
+              <p className="text-xs text-[#A8A9AD] mt-2">Optional: set a date range below to limit when this pattern is active.</p>
+              <div className="grid grid-cols-2 gap-4 mt-3">
+                <div>
+                  <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Active From (optional)</label>
+                  <input type="date" value={form.series_start_date} onChange={(e) => setForm({ ...form, series_start_date: e.target.value })} className="time-picker-light w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Active Until (optional)</label>
+                  <input type="date" value={form.series_end_date} onChange={(e) => setForm({ ...form, series_end_date: e.target.value })} className="time-picker-light w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
+                </div>
+              </div>
             </div>
           )}
 

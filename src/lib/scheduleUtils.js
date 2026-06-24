@@ -1,6 +1,6 @@
 import { DAYS_OF_WEEK } from "@/lib/constants";
 
-export const SCHEDULE_TYPES = ["Weekly", "Bi-Weekly", "Monthly", "Limited-Series", "Custom-Dates"];
+export const SCHEDULE_TYPES = ["Weekly", "Bi-Weekly", "Monthly", "Monthly Pattern", "Limited-Series", "Custom-Dates"];
 
 export const WEEK_OCCURRENCES = [
   { value: "1", label: "1st" },
@@ -67,6 +67,18 @@ export function classOccursOnDate(cls, date, customDates = []) {
       if (weeks.includes("5") && isLastWeekdayOfMonth(d)) return true;
       return weeks.includes(String(getWeekdayOccurrence(d)));
     }
+    case "Monthly Pattern": {
+      if (!isWithinSeries(cls, d)) return false;
+      const patterns = (cls.monthly_pattern || "").split(",").map(p => p.trim()).filter(Boolean);
+      const occurrence = getWeekdayOccurrence(d);
+      const isLast = isLastWeekdayOfMonth(d);
+      return patterns.some(p => {
+        const [week, day] = p.split("-");
+        if (day !== dayName) return false;
+        if (week === "5") return isLast;
+        return String(occurrence) === week;
+      });
+    }
     case "Limited-Series":
     case "Weekly":
     default:
@@ -81,6 +93,8 @@ export function getScheduleBadge(cls) {
       return { label: "Meets Bi-Weekly", color: "#E8843A" };
     case "Monthly":
       return { label: "Monthly", color: "#2B5CA0" };
+    case "Monthly Pattern":
+      return { label: "Monthly Pattern", color: "#6B21A8" };
     case "Limited-Series":
       return { label: "Limited Series", color: "#C53030" };
     case "Custom-Dates":
