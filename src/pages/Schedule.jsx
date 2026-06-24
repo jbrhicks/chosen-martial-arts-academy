@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import PublicLayout from "@/components/PublicLayout";
 import { base44 } from "@/api/base44Client";
-import { DAYS_OF_WEEK } from "@/lib/constants";
+import { DAYS_OF_WEEK, formatTime } from "@/lib/constants";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Clock, MapPin, User, Loader2 } from "lucide-react";
 
@@ -113,7 +113,7 @@ function ClassCard({ cls }) {
       <div className="space-y-2 text-sm text-[#A8A9AD]">
         <div className="flex items-center gap-2">
           <Clock size={14} className="text-[#C9A84C]" />
-          {cls.start_time}{cls.end_time ? ` – ${cls.end_time}` : ""}
+          {formatTime(cls.start_time)}{cls.end_time ? ` – ${formatTime(cls.end_time)}` : ""}
         </div>
         {cls.instructor && (
           <div className="flex items-center gap-2">

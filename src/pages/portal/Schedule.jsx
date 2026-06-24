@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useFamily } from "@/lib/FamilyContext";
-import { DAYS_OF_WEEK, BELT_RANKS, getRankIndex } from "@/lib/constants";
+import { DAYS_OF_WEEK, BELT_RANKS, getRankIndex, formatTime } from "@/lib/constants";
 import PortalClassCard, { getProgramColor } from "@/components/portal/schedule/PortalClassCard";
 import { Loader2, CalendarDays, Clock, ChevronRight, Filter } from "lucide-react";
 
@@ -123,7 +123,7 @@ export default function Schedule() {
             <p className="text-[10px] tracking-widest uppercase text-[#C9A84C] mb-1">Your Next Class</p>
             <p className="text-sm font-bold truncate">{nextClass.class_name}</p>
             <p className="text-xs text-[#A8A9AD] flex items-center gap-2 mt-1">
-              <Clock size={11} /> {nextClass.day_of_week} at {nextClass.start_time}
+              <Clock size={11} /> {nextClass.day_of_week} at {formatTime(nextClass.start_time)}
               {nextClass.instructor && ` • ${nextClass.instructor}`}
             </p>
           </div>

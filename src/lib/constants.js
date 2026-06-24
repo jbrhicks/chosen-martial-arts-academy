@@ -69,6 +69,16 @@ export const EVENT_TYPES = {
   social: { label: "Social", icon: "PartyPopper" },
 };
 
+// Converts "HH:MM" (24-hour) to "h:MM AM/PM" (12-hour)
+export function formatTime(time) {
+  if (!time) return "";
+  const [h, m] = time.split(":").map(Number);
+  if (isNaN(h)) return time;
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
 export const PAYMENT_TYPES = {
   subscription: { label: "Monthly Tuition", icon: "CreditCard" },
   retail: { label: "Retail Purchase", icon: "ShoppingBag" },

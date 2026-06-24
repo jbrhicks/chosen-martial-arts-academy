@@ -1,4 +1,5 @@
 import { Clock, User, MapPin, CheckCircle2, Lock } from "lucide-react";
+import { formatTime } from "@/lib/constants";
 
 const PROGRAM_COLORS = [
   { accent: "#C9A84C", bg: "rgba(201,168,76,0.10)", border: "rgba(201,168,76,0.40)" },
@@ -50,7 +51,7 @@ export default function PortalClassCard({ cls, program, programs, eligible, isTo
       <div className="space-y-1.5 text-xs text-[#A8A9AD]">
         <div className="flex items-center gap-2">
           <Clock size={12} style={{ color: color.accent }} />
-          {cls.start_time}{cls.end_time ? ` – ${cls.end_time}` : ""}
+          {formatTime(cls.start_time)}{cls.end_time ? ` – ${formatTime(cls.end_time)}` : ""}
         </div>
         {cls.instructor && (
           <div className="flex items-center gap-2">
