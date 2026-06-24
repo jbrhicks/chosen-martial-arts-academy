@@ -15,7 +15,7 @@ export default function AdminSchedule() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
     class_name: "", days: ["Monday"], start_time: "", end_time: "",
-    instructor: "", location: "", linked_program_id: "", belt_level: "All Belts", is_active: true, is_trial_eligible: false, max_trials_allowed: 2,
+    instructor: "", location: "", linked_program_ids: [], belt_level: "All Belts", is_active: true, is_trial_eligible: false, max_trials_allowed: 2,
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -34,7 +34,7 @@ export default function AdminSchedule() {
   useEffect(() => { loadClasses(); }, [loadClasses]);
 
   const resetForm = () => {
-    setForm({ class_name: "", days: ["Monday"], start_time: "", end_time: "", instructor: "", location: "", linked_program_id: "", belt_level: "All Belts", is_active: true, is_trial_eligible: false, max_trials_allowed: 2 });
+    setForm({ class_name: "", days: ["Monday"], start_time: "", end_time: "", instructor: "", location: "", linked_program_ids: [], belt_level: "All Belts", is_active: true, is_trial_eligible: false, max_trials_allowed: 2 });
     setEditing(null);
   };
 
@@ -44,7 +44,7 @@ export default function AdminSchedule() {
       class_name: cls.class_name || "", days: [cls.day_of_week || "Monday"],
       start_time: cls.start_time || "", end_time: cls.end_time || "",
       instructor: cls.instructor || "", location: cls.location || "",
-      linked_program_id: cls.linked_program_id || "", belt_level: cls.belt_level || "All Belts",
+      linked_program_ids: cls.linked_program_ids ? cls.linked_program_ids.split(",").filter(Boolean) : cls.linked_program_id ? [cls.linked_program_id] : [], belt_level: cls.belt_level || "All Belts",
       is_active: cls.is_active !== false, is_trial_eligible: cls.is_trial_eligible || false, max_trials_allowed: cls.max_trials_allowed || 2,
     });
     setShowForm(true);
@@ -52,7 +52,7 @@ export default function AdminSchedule() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.class_name || !form.start_time || form.days.length === 0) return;
+    if (!form.class_name || !form.start_time || form.days.length === 0 || form.linked_program_ids.length === 0) return;
     setSubmitting(true);
     try {
       const basePayload = {
@@ -61,7 +61,8 @@ export default function AdminSchedule() {
         end_time: form.end_time,
         instructor: form.instructor,
         location: form.location,
-        linked_program_id: form.linked_program_id,
+        linked_program_id: form.linked_program_ids[0] || "",
+        linked_program_ids: form.linked_program_ids.join(","),
         belt_level: form.belt_level,
         is_active: form.is_active,
         is_trial_eligible: form.is_trial_eligible,
@@ -89,12 +90,22 @@ export default function AdminSchedule() {
     }));
   };
 
-  const getProgramName = (programId) => {
-    const prog = programs.find(p => p.id === programId);
-    return prog?.program_name || "";
+  const toggleProgram = (programId) => {
+    setForm(prev => ({
+      ...prev,
+      linked_program_ids: prev.linked_program_ids.includes(programId)
+        ? prev.linked_program_ids.filter(id => id !== programId)
+        : [...prev.linked_program_ids, programId],
+    }));
   };
 
-  const selectedProgram = programs.find(p => p.id === form.linked_program_id);
+  const getProgramNames = (cls) => {
+    const ids = cls.linked_program_ids ? cls.linked_program_ids.split(",").filter(Boolean) : cls.linked_program_id ? [cls.linked_program_id] : [];
+    return ids.map(id => {
+      const prog = programs.find(p => p.id === id);
+      return prog?.program_name || "";
+    }).filter(Boolean).join(", ");
+  };
 
   const handleDelete = async (id) => {
     if (!confirm("Delete this class?")) return;
@@ -164,7 +175,7 @@ export default function AdminSchedule() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium">{cls.class_name}</p>
                         <p className="text-xs text-[#A8A9AD]">
-                          {cls.linked_program_id && <span className="text-[#C9A84C]">{getProgramName(cls.linked_program_id)}</span>}
+                          {(cls.linked_program_ids || cls.linked_program_id) && <span className="text-[#C9A84C]">{getProgramNames(cls)}</span>}
                           {cls.instructor && ` · ${cls.instructor}`}
                           {cls.belt_level && ` · ${cls.belt_level}`}
                           {cls.location && ` · ${cls.location}`}
@@ -203,11 +214,20 @@ export default function AdminSchedule() {
                 <input type="text" value={form.class_name} onChange={(e) => setForm({ ...form, class_name: e.target.value })} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" required />
               </div>
               <div>
-                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Program *</label>
-                <select value={form.linked_program_id} onChange={(e) => setForm({ ...form, linked_program_id: e.target.value })} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" required>
-                  <option value="">Select a program...</option>
-                  {programs.filter(p => p.status !== "inactive").map((p) => <option key={p.id} value={p.id}>{p.program_name}</option>)}
-                </select>
+                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Program(s) *</label>
+                <div className="flex flex-wrap gap-2">
+                  {programs.filter(p => p.status !== "inactive").map((p) => {
+                    const selected = form.linked_program_ids.includes(p.id);
+                    return (
+                      <button key={p.id} type="button" onClick={() => toggleProgram(p.id)}
+                        className={`px-4 py-2 text-xs font-medium tracking-wide transition-colors ${selected ? "bg-[#C9A84C] text-black" : "border border-[#A8A9AD]/30 text-[#A8A9AD] hover:text-white hover:border-[#C9A84C]/50"}`}
+                      >
+                        {p.program_name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {form.linked_program_ids.length === 0 && <p className="text-xs text-red-400 mt-1">Select at least one program</p>}
               </div>
               <div>
                 <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">
@@ -275,7 +295,7 @@ export default function AdminSchedule() {
                   </div>
                 )}
               </div>
-              <button type="submit" disabled={submitting || form.days.length === 0} className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-3 hover:bg-[#E0C97A] transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+              <button type="submit" disabled={submitting || form.days.length === 0 || form.linked_program_ids.length === 0} className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-3 hover:bg-[#E0C97A] transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
                 {submitting ? <Loader2 size={18} className="animate-spin" /> : <>{editing ? "Update" : `Create ${form.days.length > 1 ? `${form.days.length} Classes` : "Class"}`}</>}
               </button>
             </form>

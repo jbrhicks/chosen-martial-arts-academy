@@ -65,6 +65,9 @@
     },
     "linked_program_id": {
       "type": "string"
+    },
+    "linked_program_ids": {
+      "type": "string"
     }
   },
   "required": [
