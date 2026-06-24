@@ -1,5 +1,6 @@
 import { Clock, User, MapPin, CheckCircle2, Lock } from "lucide-react";
 import { formatTime } from "@/lib/constants";
+import { getScheduleBadge, getSeriesCountdown } from "@/lib/scheduleUtils";
 
 const PROGRAM_COLORS = [
   { accent: "#C9A84C", bg: "rgba(201,168,76,0.10)", border: "rgba(201,168,76,0.40)" },
@@ -16,8 +17,10 @@ export function getProgramColor(programId, programs) {
   return PROGRAM_COLORS[idx % PROGRAM_COLORS.length];
 }
 
-export default function PortalClassCard({ cls, program, programs, eligible, isToday }) {
+export default function PortalClassCard({ cls, program, programs, eligible, isToday, date, customDates }) {
   const color = getProgramColor(program?.id || cls.linked_program_id, programs);
+  const badge = getScheduleBadge(cls);
+  const countdown = date ? getSeriesCountdown(cls, date, customDates || []) : null;
 
   return (
     <div
@@ -30,6 +33,11 @@ export default function PortalClassCard({ cls, program, programs, eligible, isTo
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0">
           <h3 className="text-sm font-bold group-hover:text-[#C9A84C] transition-colors truncate">{cls.class_name}</h3>
+          {badge && (
+            <span className="text-[10px] tracking-widest uppercase font-bold block mt-0.5" style={{ color: badge.color }}>
+              {badge.label}
+            </span>
+          )}
           {program && (
             <span className="text-[10px] tracking-widest uppercase font-medium" style={{ color: color.accent }}>
               {program.program_name}
@@ -66,6 +74,11 @@ export default function PortalClassCard({ cls, program, programs, eligible, isTo
           </div>
         )}
       </div>
+      {countdown && (
+        <div className="mt-2 text-xs font-bold" style={{ color: "#C53030" }}>
+          {countdown.label}
+        </div>
+      )}
       <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#A8A9AD]/10">
         {cls.age_group && <span className="text-[10px] tracking-widest uppercase text-[#A8A9AD]">{cls.age_group}</span>}
         <span className="text-[10px] tracking-widest uppercase text-[#A8A9AD]">•</span>

@@ -14,8 +14,31 @@
         "Thursday",
         "Friday",
         "Saturday",
-        "Sunday"
+        "Sunday",
+        "Custom"
       ]
+    },
+    "schedule_type": {
+      "type": "string",
+      "enum": [
+        "Weekly",
+        "Bi-Weekly",
+        "Monthly",
+        "Limited-Series",
+        "Custom-Dates"
+      ],
+      "default": "Weekly"
+    },
+    "pattern_weeks": {
+      "type": "string"
+    },
+    "series_start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "series_end_date": {
+      "type": "string",
+      "format": "date"
     },
     "start_time": {
       "type": "string"
@@ -72,7 +95,6 @@
   },
   "required": [
     "class_name",
-    "day_of_week",
     "start_time"
   ],
   "rls": {

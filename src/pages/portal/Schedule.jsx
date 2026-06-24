@@ -3,8 +3,9 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useFamily } from "@/lib/FamilyContext";
 import { DAYS_OF_WEEK, BELT_RANKS, getRankIndex, formatTime } from "@/lib/constants";
+import { classOccursOnDate, getScheduleBadge, getSeriesCountdown, getNextOccurrence } from "@/lib/scheduleUtils";
 import PortalClassCard, { getProgramColor } from "@/components/portal/schedule/PortalClassCard";
-import { Loader2, CalendarDays, Clock, ChevronRight, Filter } from "lucide-react";
+import { Loader2, CalendarDays, Clock, ChevronRight, ChevronLeft, Filter } from "lucide-react";
 
 const BELT_LEVEL_MIN_RANK = {
   "All Belts": 0,
@@ -18,23 +19,26 @@ export default function Schedule() {
   const { user } = useAuth();
   const { activeProfile } = useFamily();
   const [classes, setClasses] = useState([]);
+  const [customDates, setCustomDates] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [programFilter, setProgramFilter] = useState("all");
-  const [dayFilter, setDayFilter] = useState("All");
+  const [weekOffset, setWeekOffset] = useState(0);
 
   const profile = activeProfile || user;
   const userRankIndex = getRankIndex(profile?.belt_rank);
 
   useEffect(() => {
     const load = async () => {
-      const [allClasses, enrolls, allPrograms] = await Promise.all([
+      const [allClasses, allCustomDates, enrolls, allPrograms] = await Promise.all([
         base44.entities.ClassSchedule.list().catch(() => []),
+        base44.entities.ClassCustomDate.list().catch(() => []),
         base44.entities.Enrollment.filter({ user_id: profile?.id || user?.id, status: "active" }).catch(() => []),
         base44.entities.Program.list().catch(() => []),
       ]);
       setClasses(allClasses.filter(c => c.is_active !== false));
+      setCustomDates(allCustomDates);
       setEnrollments(enrolls);
       setPrograms(allPrograms);
       setLoading(false);
@@ -48,7 +52,10 @@ export default function Schedule() {
       .filter(Boolean);
   }, [enrollments, programs]);
 
-  const enrolledProgramIds = new Set(enrolledPrograms.map(p => p.id));
+  const getProgram = (cls) => {
+    const ids = cls.linked_program_ids ? cls.linked_program_ids.split(",").filter(Boolean) : cls.linked_program_id ? [cls.linked_program_id] : [];
+    return programs.find(p => p.id === ids[0]);
+  };
 
   const isEligible = (cls) => {
     if (cls.belt_level === "All Belts") return true;
@@ -65,7 +72,36 @@ export default function Schedule() {
     return userRankIndex >= fallbackMin;
   };
 
-  const getProgram = (cls) => programs.find(p => p.id === cls.linked_program_id);
+  const weekStart = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = (day === 0 ? -6 : 1) - day;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diff + weekOffset * 7);
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+  }, [weekOffset]);
+
+  const weekDays = useMemo(() => {
+    return DAYS_OF_WEEK.map((day, i) => {
+      const date = new Date(weekStart);
+      date.setDate(weekStart.getDate() + i);
+      return { day, date };
+    });
+  }, [weekStart]);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const weekLabel = useMemo(() => {
+    const start = weekDays[0].date;
+    const end = weekDays[6].date;
+    const fmt = (d) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    if (weekOffset === 0) return `This Week · ${fmt(start)} – ${fmt(end)}`;
+    if (weekOffset === 1) return `Next Week · ${fmt(start)} – ${fmt(end)}`;
+    if (weekOffset === -1) return `Last Week · ${fmt(start)} – ${fmt(end)}`;
+    return `${fmt(start)} – ${fmt(end)}`;
+  }, [weekDays, weekOffset]);
 
   const filteredClasses = useMemo(() => {
     return classes.filter(cls => {
@@ -73,44 +109,37 @@ export default function Schedule() {
         const prog = getProgram(cls);
         if (!prog || prog.id !== programFilter) return false;
       }
-      if (dayFilter !== "All" && cls.day_of_week !== dayFilter) return false;
-      return true;
+      return weekDays.some(({ date }) => classOccursOnDate(cls, date, customDates));
     });
-  }, [classes, programFilter, dayFilter, programs]);
+  }, [classes, programFilter, weekDays, customDates, programs]);
 
-  const todayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const grouped = useMemo(() => {
+    return weekDays.map(({ day, date }) => {
+      const dayClasses = filteredClasses
+        .filter(cls => classOccursOnDate(cls, date, customDates))
+        .sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
+      return { day, date, items: dayClasses };
+    });
+  }, [filteredClasses, weekDays, customDates]);
 
-  // Next upcoming class
   const nextClass = useMemo(() => {
     const now = new Date();
-    const todayIdx = DAYS_OF_WEEK.indexOf(todayName);
     let best = null;
-    let bestDiff = Infinity;
+    let bestDate = null;
     for (const cls of classes) {
       if (!isEligible(cls)) continue;
       if (programFilter !== "all") {
         const prog = getProgram(cls);
         if (!prog || prog.id !== programFilter) continue;
       }
-      const dayIdx = DAYS_OF_WEEK.indexOf(cls.day_of_week);
-      if (dayIdx === -1) continue;
-      const [h, m] = (cls.start_time || "00:00").split(":").map(Number);
-      const classDate = new Date();
-      let dayDiff = dayIdx - todayIdx;
-      if (dayDiff < 0) dayDiff += 7;
-      if (dayDiff === 0 && h * 60 + m <= now.getHours() * 60 + now.getMinutes()) dayDiff = 7;
-      classDate.setDate(now.getDate() + dayDiff);
-      classDate.setHours(h, m, 0, 0);
-      const diff = classDate - now;
-      if (diff < bestDiff) { bestDiff = diff; best = cls; }
+      const next = getNextOccurrence(cls, now, customDates);
+      if (next && (!bestDate || next < bestDate)) {
+        best = cls;
+        bestDate = next;
+      }
     }
-    return best;
-  }, [classes, todayName, programFilter, userRankIndex]);
-
-  const grouped = DAYS_OF_WEEK.map(day => ({
-    day,
-    items: filteredClasses.filter(c => c.day_of_week === day).sort((a, b) => (a.start_time || "").localeCompare(b.start_time || "")),
-  }));
+    return best ? { cls: best, date: bestDate } : null;
+  }, [classes, programFilter, customDates, userRankIndex]);
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-[#C9A84C]" /></div>;
 
@@ -122,7 +151,6 @@ export default function Schedule() {
         <p className="text-sm text-[#A8A9AD]">{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</p>
       </div>
 
-      {/* Next Class Callout */}
       {nextClass && (
         <div className="border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-5 flex items-center gap-4">
           <div className="w-12 h-12 border-2 border-[#C9A84C] flex items-center justify-center shrink-0">
@@ -130,17 +158,16 @@ export default function Schedule() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] tracking-widest uppercase text-[#C9A84C] mb-1">Your Next Class</p>
-            <p className="text-sm font-bold truncate">{nextClass.class_name}</p>
+            <p className="text-sm font-bold truncate">{nextClass.cls.class_name}</p>
             <p className="text-xs text-[#A8A9AD] flex items-center gap-2 mt-1">
-              <Clock size={11} /> {nextClass.day_of_week} at {formatTime(nextClass.start_time)}
-              {nextClass.instructor && ` • ${nextClass.instructor}`}
+              <Clock size={11} /> {nextClass.date.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })} at {formatTime(nextClass.cls.start_time)}
+              {nextClass.cls.instructor && ` • ${nextClass.cls.instructor}`}
             </p>
           </div>
           <ChevronRight size={20} className="text-[#A8A9AD] shrink-0" />
         </div>
       )}
 
-      {/* Program Filter */}
       {enrolledPrograms.length > 1 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
@@ -172,51 +199,47 @@ export default function Schedule() {
         </div>
       )}
 
-      {/* Day Filter */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-        {["All", ...DAYS_OF_WEEK].map(day => {
-          const isToday = day === todayName;
-          return (
-            <button
-              key={day}
-              onClick={() => setDayFilter(day)}
-              className={`px-4 py-2 text-xs tracking-widest uppercase font-medium whitespace-nowrap transition-all ${dayFilter === day ? "bg-[#C9A84C] text-black" : "border border-[#A8A9AD]/30 text-[#A8A9AD] hover:text-white hover:border-[#C9A84C]/50"} ${isToday && dayFilter !== day ? "border-[#C9A84C]/50 text-[#C9A84C]" : ""}`}
-            >
-              {day}{isToday ? " • Today" : ""}
-            </button>
-          );
-        })}
+      <div className="flex items-center justify-between gap-4 border border-[#A8A9AD]/20 p-3">
+        <button onClick={() => setWeekOffset(weekOffset - 1)} className="p-2 text-[#A8A9AD] hover:text-[#C9A84C] transition-colors">
+          <ChevronLeft size={18} />
+        </button>
+        <span className="text-sm font-bold tracking-wide">{weekLabel}</span>
+        <button onClick={() => setWeekOffset(weekOffset + 1)} className="p-2 text-[#A8A9AD] hover:text-[#C9A84C] transition-colors">
+          <ChevronRight size={18} />
+        </button>
       </div>
+      {weekOffset !== 0 && (
+        <button onClick={() => setWeekOffset(0)} className="text-xs text-[#C9A84C] hover:underline -mt-2">
+          Back to This Week
+        </button>
+      )}
 
-      {/* Schedule */}
-      {filteredClasses.length === 0 ? (
+      {grouped.every(g => g.items.length === 0) ? (
         <div className="border border-[#A8A9AD]/20 p-12 text-center">
-          <p className="text-[#A8A9AD]">No classes match your filters.</p>
+          <p className="text-[#A8A9AD]">No classes scheduled for this week.</p>
         </div>
-      ) : dayFilter === "All" ? (
+      ) : (
         <div className="space-y-8">
-          {grouped.map(group =>
-            group.items.length > 0 ? (
-              <div key={group.day}>
+          {grouped.map(group => {
+            const isToday = group.date.getTime() === today.getTime();
+            return group.items.length > 0 ? (
+              <div key={group.day + group.date.toISOString()}>
                 <h2 className="text-lg font-bold mb-4 flex items-center gap-3">
-                  <span className={group.day === todayName ? "text-[#C9A84C]" : ""}>{group.day}{group.day === todayName ? " • Today" : ""}</span>
+                  <span className={isToday ? "text-[#C9A84C]" : ""}>
+                    {group.day} · {group.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    {isToday ? " • Today" : ""}
+                  </span>
                   <span className="h-px flex-1 bg-[#A8A9AD]/20" />
                   <span className="text-xs text-[#A8A9AD] font-normal">{group.items.length} class{group.items.length > 1 ? "es" : ""}</span>
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {group.items.map(cls => (
-                    <PortalClassCard key={cls.id} cls={cls} program={getProgram(cls)} programs={programs} eligible={isEligible(cls)} isToday={group.day === todayName} />
+                    <PortalClassCard key={cls.id} cls={cls} program={getProgram(cls)} programs={programs} eligible={isEligible(cls)} isToday={isToday} date={group.date} customDates={customDates} />
                   ))}
                 </div>
               </div>
-            ) : null
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {filteredClasses.sort((a, b) => (a.start_time || "").localeCompare(b.start_time || "")).map(cls => (
-            <PortalClassCard key={cls.id} cls={cls} program={getProgram(cls)} programs={programs} eligible={isEligible(cls)} isToday={dayFilter === todayName} />
-          ))}
+            ) : null;
+          })}
         </div>
       )}
     </div>
