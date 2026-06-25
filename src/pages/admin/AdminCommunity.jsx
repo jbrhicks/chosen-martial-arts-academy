@@ -2,9 +2,10 @@ import { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import PostCard from "@/components/PostCard";
+import PostComposer from "@/components/PostComposer";
 import GroupManager from "@/components/admin/community/GroupManager";
 import ModerationDashboard from "@/components/admin/community/ModerationDashboard";
-import { Loader2, Flag, Pin, Trash2, MessageSquare, Users, Shield } from "lucide-react";
+import { Loader2, Flag, Pin, Trash2, MessageSquare, Users, Shield, PenSquare } from "lucide-react";
 
 export default function AdminCommunity() {
   const { user } = useAuth();
@@ -12,6 +13,10 @@ export default function AdminCommunity() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [tab, setTab] = useState("moderation");
+  const [events, setEvents] = useState([]);
+  const [videos, setVideos] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [groups, setGroups] = useState([]);
 
   const loadPosts = useCallback(async () => {
     try {
@@ -25,7 +30,13 @@ export default function AdminCommunity() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { loadPosts(); }, [loadPosts]);
+  useEffect(() => {
+    loadPosts();
+    base44.entities.Event.filter({ status: "active", is_public: true }).then(setEvents).catch(() => {});
+    base44.entities.Video.list().then(setVideos).catch(() => {});
+    base44.entities.User.list().then(u => setStudents(u.filter(s => s.role === "student" || s.role === "user"))).catch(() => {});
+    base44.entities.Group.list().then(g => setGroups(g.map(gr => ({ group_id: gr.id, group_name: gr.group_name })))).catch(() => {});
+  }, [loadPosts]);
 
   const filtered = posts.filter(p => {
     if (filter === "flagged") return p.is_flagged && !p.is_deleted;
@@ -57,9 +68,16 @@ export default function AdminCommunity() {
         <button onClick={() => setTab("groups")} className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium tracking-wide transition-colors ${tab === "groups" ? "bg-[#C9A84C] text-black" : "text-[#A8A9AD] hover:text-white"}`}>
           <Users size={16} /> Groups
         </button>
+        <button onClick={() => setTab("create")} className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium tracking-wide transition-colors ${tab === "create" ? "bg-[#C9A84C] text-black" : "text-[#A8A9AD] hover:text-white"}`}>
+          <PenSquare size={16} /> Create Post
+        </button>
       </div>
 
       {tab === "groups" && <GroupManager currentUser={user} />}
+
+      {tab === "create" && (
+        <PostComposer currentUser={user} onPosted={loadPosts} groups={groups} events={events} videos={videos} students={students} />
+      )}
 
       {tab === "moderation" && (
         <>
