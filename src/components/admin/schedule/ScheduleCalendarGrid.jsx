@@ -52,7 +52,12 @@ export default function ScheduleCalendarGrid({ classes, customDates, cancellatio
 
         {days.map((date, dayIdx) => {
           const blackout = getActiveBlackout(date, blackouts);
-          const dayClasses = classes.filter(cls => classOccursOnDate(cls, date, customDates));
+          const dayName = DAYS_OF_WEEK[dayIdx];
+          const dayClasses = classes.filter(cls => {
+            if (cls.day_of_week === dayName) return true;
+            if (cls.day_of_week === "Custom") return classOccursOnDate(cls, date, customDates);
+            return false;
+          });
           return (
             <div key={dayIdx} className="flex-1 min-w-[140px] border-l border-[#A8A9AD]/10 relative" style={{ height: totalHeight }}>
               {hours.map(h => (
