@@ -1,6 +1,6 @@
-import { Search, MessageSquare } from "lucide-react";
+import { Search, MessageSquare, PenSquare } from "lucide-react";
 
-export default function ChatThreadList({ threads, selectedThreadId, onSelect, searchQuery, onSearchChange, unreadMap }) {
+export default function ChatThreadList({ threads, selectedThreadId, onSelect, searchQuery, onSearchChange, unreadMap, onNewMessage }) {
   const filtered = threads.filter(t => {
     const name = t.dm_participant_name || t.thread_name || "Untitled";
     return name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -14,7 +14,15 @@ export default function ChatThreadList({ threads, selectedThreadId, onSelect, se
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-3 border-b border-[#A8A9AD]/20">
+      <div className="p-3 border-b border-[#A8A9AD]/20 space-y-2">
+        {onNewMessage && (
+          <button
+            onClick={onNewMessage}
+            className="w-full flex items-center justify-center gap-2 bg-[#C9A84C] text-black px-3 py-2 text-xs font-bold uppercase tracking-wide hover:bg-[#E0C97A] transition-colors"
+          >
+            <PenSquare size={14} /> New Message
+          </button>
+        )}
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A9AD]" />
           <input

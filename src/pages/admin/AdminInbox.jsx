@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import ChatThreadList from "@/components/admin/messages/ChatThreadList";
 import ChatWindow from "@/components/admin/messages/ChatWindow";
 import InternalNotesPanel from "@/components/admin/messages/InternalNotesPanel";
+import NewMessageModal from "@/components/admin/messages/NewMessageModal";
 import { MessageSquare, Send, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -22,6 +23,7 @@ export default function AdminInbox() {
   const [pendingUserName, setPendingUserName] = useState(searchParams.get("userName"));
   const [pendingMessage, setPendingMessage] = useState("");
   const [sendingPending, setSendingPending] = useState(false);
+  const [showNewMessageModal, setShowNewMessageModal] = useState(false);
 
   const loadThreads = useCallback(async () => {
     try {
@@ -118,6 +120,7 @@ export default function AdminInbox() {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             unreadMap={unreadMap}
+            onNewMessage={() => setShowNewMessageModal(true)}
           />
         </div>
 
@@ -180,6 +183,18 @@ export default function AdminInbox() {
           </div>
         )}
       </div>
+
+      {showNewMessageModal && (
+        <NewMessageModal
+          onClose={() => setShowNewMessageModal(false)}
+          onSelect={(u) => {
+            setPendingUserId(u.id);
+            setPendingUserName(u.full_name || "user");
+            setSelectedThread(null);
+            setShowNewMessageModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
