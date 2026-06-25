@@ -1,5 +1,13 @@
 import { Clock, Calendar } from "lucide-react";
 
+function formatTime(time) {
+  if (!time) return "";
+  const [h, m] = time.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 || 12;
+  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
 export default function ClassFilter({ todayClasses, selectedClass, onSelectClass, currentClassName }) {
   if (todayClasses.length === 0) return null;
 
@@ -33,7 +41,7 @@ export default function ClassFilter({ todayClasses, selectedClass, onSelectClass
             >
               {isCurrent && <Clock size={12} className={isSelected ? "text-black" : "text-[#C9A84C]"} />}
               <span>{cls.class_name}</span>
-              <span className="opacity-60">{cls.start_time}</span>
+              <span className="opacity-60">{formatTime(cls.start_time)}</span>
             </button>
           );
         })}
