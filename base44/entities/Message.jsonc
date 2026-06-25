@@ -14,6 +14,9 @@
     "content": {
       "type": "string"
     },
+    "media_urls": {
+      "type": "string"
+    },
     "message_type": {
       "type": "string",
       "enum": [

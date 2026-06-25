@@ -6,13 +6,13 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { threadId, content, channel = 'in_app' } = await req.json();
+    const { threadId, content, channel = 'in_app', mediaUrls } = await req.json();
     if (!threadId || !content) return Response.json({ error: 'Thread ID and content required' }, { status: 400 });
 
     const thread = await base44.entities.MessageThread.get(threadId);
     if (!thread) return Response.json({ error: 'Thread not found' }, { status: 404 });
 
-    const message = await base44.entities.Message.create({
+    const messageData = {
       thread_id: threadId,
       sender_id: user.id,
       sender_name: user.full_name,
@@ -20,7 +20,12 @@ Deno.serve(async (req) => {
       channel_used: channel,
       direction: user.role === 'admin' ? 'outbound' : 'inbound',
       subject: thread.thread_name || null
-    });
+    };
+    if (mediaUrls && mediaUrls.length > 0) {
+      messageData.media_urls = JSON.stringify(mediaUrls);
+    }
+
+    const message = await base44.entities.Message.create(messageData);
 
     const participants = await base44.entities.ThreadParticipant.filter({ thread_id: threadId });
 

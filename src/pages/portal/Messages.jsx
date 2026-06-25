@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import toast from "react-hot-toast";
+import MessageBubble from "@/components/messages/MessageBubble";
+import MessageMediaUploader from "@/components/messages/MessageMediaUploader";
 
 export default function Messages() {
   const [threads, setThreads] = useState([]);
@@ -25,6 +27,8 @@ export default function Messages() {
   const [contactCategory, setContactCategory] = useState("general");
   const [contactMessage, setContactMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [reactions, setReactions] = useState([]);
+  const [attachments, setAttachments] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -85,22 +89,32 @@ export default function Messages() {
       for (const m of unreadFromAdmin) {
         await base44.entities.Message.update(m.id, { read_receipt: true, read_date: new Date().toISOString() });
       }
+
+      // Load reactions for these messages
+      const msgIds = threadMessages.map(m => m.id);
+      if (msgIds.length > 0) {
+        const allReactions = await base44.entities.MessageReaction.list();
+        setReactions(allReactions.filter(r => msgIds.includes(r.message_id)));
+      }
     } catch (error) {
       console.error("Error fetching messages:", error);
     }
   };
 
   const handleSendMessage = async () => {
-    if (!replyContent.trim() || !selectedThread) return;
+    if (!replyContent.trim() && attachments.length === 0) return;
+    if (!selectedThread) return;
 
     try {
       await base44.functions.invoke("sendMessage", {
         threadId: selectedThread.id,
-        content: replyContent,
-        channel: "in_app"
+        content: replyContent || (attachments.length > 0 ? "📎 Attachment" : ""),
+        channel: "in_app",
+        mediaUrls: attachments.length > 0 ? attachments : undefined
       });
       
       setReplyContent("");
+      setAttachments([]);
       fetchMessages(selectedThread.id);
       toast.success("Message sent!");
     } catch (error) {
@@ -248,38 +262,26 @@ export default function Messages() {
 
               <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.map((message) => (
-                  <div
+                  <MessageBubble
                     key={message.id}
-                    className={`flex ${message.sender_id === currentUser?.id ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={`max-w-[70%] rounded-lg p-3 ${
-                        message.sender_id === currentUser?.id
-                          ? "bg-[#C9A84C]/20 border border-[#C9A84C]/30"
-                          : "bg-[#0A0A0A] border border-[#A8A9AD]/10"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium text-[#C9A84C]">
-                          {message.sender_name}
-                        </span>
-                      </div>
-                      <p className="text-sm text-white">{message.content}</p>
-                      <p className="text-xs text-[#A8A9AD] mt-1">
-                        {message.created_date ? new Date(message.created_date).toLocaleString() : ""}
-                      </p>
-                    </div>
-                  </div>
+                    message={message}
+                    isOutbound={message.sender_id === currentUser?.id}
+                    currentUserId={currentUser?.id}
+                    reactions={reactions.filter(r => r.message_id === message.id)}
+                    onReactionsUpdate={() => fetchMessages(selectedThread.id)}
+                    showChannel={false}
+                  />
                 ))}
               </CardContent>
 
               <div className="p-4 border-t border-[#A8A9AD]/20">
-                <div className="flex gap-2">
+                <div className="flex items-end gap-2">
+                  <MessageMediaUploader attachments={attachments} onAttachmentsChange={setAttachments} />
                   <Textarea
                     value={replyContent}
                     onChange={(e) => setReplyContent(e.target.value)}
                     placeholder="Type your reply..."
-                    className="bg-[#0A0A0A] border-[#A8A9AD]/20 text-white flex-1 min-h-[80px]"
+                    className="bg-[#0A0A0A] border-[#A8A9AD]/20 text-white flex-1 min-h-[60px] max-h-32"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
@@ -289,7 +291,7 @@ export default function Messages() {
                   />
                   <Button
                     onClick={handleSendMessage}
-                    disabled={!replyContent.trim()}
+                    disabled={!replyContent.trim() && attachments.length === 0}
                     className="bg-[#C9A84C] hover:bg-[#C9A84C]/90 self-end"
                   >
                     <Send size={18} />

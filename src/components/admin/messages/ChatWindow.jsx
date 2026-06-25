@@ -1,28 +1,35 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Send, Mail, Phone, Bell, CheckCheck, Check, StickyNote, X, Clock } from "lucide-react";
+import { Send, Mail, Phone, Bell, StickyNote, Clock } from "lucide-react";
 import toast from "react-hot-toast";
+import MessageBubble from "@/components/messages/MessageBubble";
+import MessageMediaUploader from "@/components/messages/MessageMediaUploader";
 
 export default function ChatWindow({ thread, currentUser, onMessageSent, showNotes, onToggleNotes }) {
   const [messages, setMessages] = useState([]);
+  const [reactions, setReactions] = useState([]);
   const [replyContent, setReplyContent] = useState("");
   const [replyChannel, setReplyChannel] = useState("in_app");
+  const [attachments, setAttachments] = useState([]);
   const [sending, setSending] = useState(false);
   const scrollRef = useRef(null);
 
   const fetchMessages = async () => {
-    try {
-      const data = await base44.entities.Message.filter({ thread_id: thread.id }, "created_date");
-      setMessages(data);
-    } catch (e) { console.error(e); }
+    const data = await base44.entities.Message.filter({ thread_id: thread.id }, "created_date");
+    setMessages(data);
+    const messageIds = data.map(m => m.id);
+    if (messageIds.length > 0) {
+      const allReactions = await base44.entities.MessageReaction.list();
+      setReactions(allReactions.filter(r => messageIds.includes(r.message_id)));
+    }
   };
 
   useEffect(() => {
     fetchMessages();
-    const unsubscribe = base44.entities.Message.subscribe((event) => {
+    const unsub = base44.entities.Message.subscribe((event) => {
       if (event.data?.thread_id === thread.id) fetchMessages();
     });
-    return () => unsubscribe();
+    return () => unsub();
   }, [thread.id]);
 
   useEffect(() => {
@@ -30,23 +37,19 @@ export default function ChatWindow({ thread, currentUser, onMessageSent, showNot
   }, [messages]);
 
   const handleSend = async () => {
-    if (!replyContent.trim()) return;
+    if (!replyContent.trim() && attachments.length === 0) return;
     setSending(true);
     try {
       await base44.functions.invoke("sendMessage", {
         threadId: thread.id,
-        content: replyContent,
-        channel: replyChannel
-      });
-      // Mark outbound + update thread preview
-      await base44.entities.MessageThread.update(thread.id, {
-        last_message_preview: replyContent.substring(0, 120),
-        last_message_date: new Date().toISOString()
+        content: replyContent || (attachments.length > 0 ? "📎 Attachment" : ""),
+        channel: replyChannel,
+        mediaUrls: attachments.length > 0 ? attachments : undefined
       });
       setReplyContent("");
+      setAttachments([]);
       fetchMessages();
       onMessageSent();
-      toast.success("Message sent");
     } catch (e) {
       toast.error("Failed to send: " + e.message);
     }
@@ -54,12 +57,10 @@ export default function ChatWindow({ thread, currentUser, onMessageSent, showNot
   };
 
   const markRead = async () => {
-    try {
-      const participant = (await base44.entities.ThreadParticipant.filter({ thread_id: thread.id, user_id: currentUser.id }))[0];
-      if (participant && participant.unread_count > 0) {
-        await base44.entities.ThreadParticipant.update(participant.id, { unread_count: 0 });
-      }
-    } catch (e) { console.error(e); }
+    const participant = (await base44.entities.ThreadParticipant.filter({ thread_id: thread.id, user_id: currentUser.id }))[0];
+    if (participant && participant.unread_count > 0) {
+      await base44.entities.ThreadParticipant.update(participant.id, { unread_count: 0 });
+    }
   };
 
   useEffect(() => { markRead(); }, [thread.id]);
@@ -96,39 +97,16 @@ export default function ChatWindow({ thread, currentUser, onMessageSent, showNot
             No messages yet. Send the first message below.
           </div>
         ) : (
-          messages.map(msg => {
-            const isOutbound = msg.direction === "outbound" || msg.sender_id === currentUser.id;
-            return (
-              <div key={msg.id} className={`flex ${isOutbound ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[75%] rounded-lg p-3 ${
-                  isOutbound ? "bg-[#C9A84C]/20 border border-[#C9A84C]/30" : "bg-[#1a1a1a] border border-[#A8A9AD]/10"
-                }`}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-[10px] font-medium text-[#C9A84C]">{msg.sender_name}</span>
-                    <span className="text-[#A8A9AD]">
-                      {msg.channel_used === "email" && <Mail size={10} />}
-                      {msg.channel_used === "sms" && <Phone size={10} />}
-                      {msg.channel_used === "in_app" && <Bell size={10} />}
-                    </span>
-                    {msg.direction && (
-                      <span className="text-[9px] text-[#A8A9AD] uppercase tracking-wider">{msg.direction}</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-white whitespace-pre-wrap">{msg.content}</p>
-                  <div className="flex items-center justify-end gap-1 mt-1">
-                    <span className="text-[9px] text-[#A8A9AD]">
-                      {msg.created_date ? new Date(msg.created_date).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : ""}
-                    </span>
-                    {isOutbound && (
-                      msg.read_receipt
-                        ? <CheckCheck size={12} className="text-[#C9A84C]" />
-                        : <Check size={12} className="text-[#A8A9AD]" />
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })
+          messages.map(msg => (
+            <MessageBubble
+              key={msg.id}
+              message={msg}
+              isOutbound={msg.direction === "outbound" || msg.sender_id === currentUser.id}
+              currentUserId={currentUser.id}
+              reactions={reactions.filter(r => r.message_id === msg.id)}
+              onReactionsUpdate={fetchMessages}
+            />
+          ))
         )}
       </div>
 
@@ -156,11 +134,9 @@ export default function ChatWindow({ thread, currentUser, onMessageSent, showNot
               );
             })}
           </div>
-          {replyChannel !== "in_app" && (
-            <span className="text-[10px] text-[#A8A9AD] ml-1">Respects user opt-in</span>
-          )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-end gap-2">
+          <MessageMediaUploader attachments={attachments} onAttachmentsChange={setAttachments} />
           <textarea
             value={replyContent}
             onChange={(e) => setReplyContent(e.target.value)}
@@ -170,8 +146,8 @@ export default function ChatWindow({ thread, currentUser, onMessageSent, showNot
           />
           <button
             onClick={handleSend}
-            disabled={!replyContent.trim() || sending}
-            className="bg-[#C9A84C] text-black px-4 flex items-center justify-center hover:bg-[#E0C97A] disabled:opacity-50"
+            disabled={(!replyContent.trim() && attachments.length === 0) || sending}
+            className="bg-[#C9A84C] text-black px-4 py-2 flex items-center justify-center hover:bg-[#E0C97A] disabled:opacity-50"
           >
             {sending ? <Clock size={16} className="animate-spin" /> : <Send size={16} />}
           </button>
