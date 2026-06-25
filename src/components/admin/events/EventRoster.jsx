@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Users, CheckCircle, XCircle, Clock, Search, Mail, Trash2, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -134,7 +135,12 @@ export default function EventRoster({ event, onClose }) {
                 {new Date(event.start_date).toLocaleDateString()} • {stats.registered} / {event.max_capacity || "∞"} registered
               </p>
             </div>
-            <button onClick={onClose} className="text-[#A8A9AD] hover:text-white"><XCircle size={20} /></button>
+            <div className="flex items-center gap-2">
+              <Link to="/admin/broadcasts" state={{ target_event_id: event.id, target_event_title: event.title }} className="flex items-center gap-1.5 px-3 py-1.5 border border-[#C9A84C]/30 text-[#C9A84C] text-xs font-bold tracking-wide uppercase hover:bg-[#C9A84C]/10 transition-colors">
+                <Mail size={14} /> Blast Roster
+              </Link>
+              <button onClick={onClose} className="text-[#A8A9AD] hover:text-white"><XCircle size={20} /></button>
+            </div>
           </div>
           <div className="grid grid-cols-4 gap-4">
             <div className="border border-[#A8A9AD]/20 p-3">

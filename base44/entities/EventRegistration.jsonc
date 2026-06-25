@@ -79,6 +79,9 @@
       "type": "boolean",
       "default": false
     },
+    "ticket_qr_hash": {
+      "type": "string"
+    },
     "admin_comments": {
       "type": "string"
     }

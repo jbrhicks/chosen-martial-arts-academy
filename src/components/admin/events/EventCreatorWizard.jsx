@@ -42,14 +42,29 @@ export default function EventCreatorWizard({ onClose, onEventCreated }) {
     image_url: "",
     early_bird_price: 0,
     early_bird_deadline: "",
+    min_age: 0,
+    max_age: 0,
+    linked_waiver_id: "",
+    what_to_bring: "",
+    sibling_discount: 0,
+    member_discount: 0,
   });
   const [uploadingImage, setUploadingImage] = useState(false);
   const [scheduleItems, setScheduleItems] = useState([]);
   const [customFields, setCustomFields] = useState([]);
+  const [waivers, setWaivers] = useState([]);
 
   useEffect(() => {
     loadRanks();
+    loadWaivers();
   }, []);
+
+  const loadWaivers = async () => {
+    try {
+      const all = await base44.entities.Waiver.filter({ is_active: true });
+      setWaivers(all);
+    } catch (e) { console.error(e); }
+  };
 
   const loadRanks = async () => {
     try {
@@ -104,6 +119,27 @@ export default function EventCreatorWizard({ onClose, onEventCreated }) {
           event_id: event.id,
           event_title: event.title,
           ...field,
+        });
+      }
+
+      if (formData.sibling_discount > 0) {
+        await base44.entities.EventPricingRule.create({
+          event_id: event.id,
+          event_title: event.title,
+          discount_type: "sibling",
+          amount: formData.sibling_discount,
+          is_percentage: true,
+          is_active: true,
+        });
+      }
+      if (formData.member_discount > 0) {
+        await base44.entities.EventPricingRule.create({
+          event_id: event.id,
+          event_title: event.title,
+          discount_type: "member",
+          amount: formData.member_discount,
+          is_percentage: true,
+          is_active: true,
         });
       }
 
@@ -338,6 +374,48 @@ export default function EventCreatorWizard({ onClose, onEventCreated }) {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-[#A8A9AD] mt-2">Leave empty for all ranks</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-[#A8A9AD] text-xs tracking-widest uppercase">Min Age</Label>
+                  <Input type="number" value={formData.min_age} onChange={(e) => setFormData({ ...formData, min_age: parseInt(e.target.value) || 0 })} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white" placeholder="0 = no min" />
+                </div>
+                <div>
+                  <Label className="text-[#A8A9AD] text-xs tracking-widest uppercase">Max Age</Label>
+                  <Input type="number" value={formData.max_age} onChange={(e) => setFormData({ ...formData, max_age: parseInt(e.target.value) || 0 })} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white" placeholder="0 = no max" />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-[#A8A9AD] text-xs tracking-widest uppercase">Linked Waiver</Label>
+                <Select value={formData.linked_waiver_id} onValueChange={(v) => setFormData({ ...formData, linked_waiver_id: v })}>
+                  <SelectTrigger className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white">
+                    <SelectValue placeholder="No waiver required" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0A0A0A] border border-[#A8A9AD]/30">
+                    <SelectItem value={null} className="text-white">No Waiver</SelectItem>
+                    {waivers.map((w) => (
+                      <SelectItem key={w.id} value={w.id} className="text-white">{w.waiver_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-[#A8A9AD] text-xs tracking-widest uppercase">What to Bring</Label>
+                <Textarea value={formData.what_to_bring} onChange={(e) => setFormData({ ...formData, what_to_bring: e.target.value })} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white min-h-[80px]" placeholder="e.g., Sparring gear, water bottle, lunch..." />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-[#A8A9AD] text-xs tracking-widest uppercase">Sibling Discount (%)</Label>
+                  <Input type="number" value={formData.sibling_discount} onChange={(e) => setFormData({ ...formData, sibling_discount: parseFloat(e.target.value) || 0 })} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white" placeholder="e.g., 10" />
+                </div>
+                <div>
+                  <Label className="text-[#A8A9AD] text-xs tracking-widest uppercase">Member Discount (%)</Label>
+                  <Input type="number" value={formData.member_discount} onChange={(e) => setFormData({ ...formData, member_discount: parseFloat(e.target.value) || 0 })} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white" placeholder="e.g., 15" />
+                </div>
               </div>
             </div>
           )}

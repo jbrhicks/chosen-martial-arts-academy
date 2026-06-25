@@ -44,6 +44,23 @@
     "target_audience_rank_name": {
       "type": "string"
     },
+    "min_age": {
+      "type": "number",
+      "default": 0
+    },
+    "max_age": {
+      "type": "number",
+      "default": 0
+    },
+    "linked_waiver_id": {
+      "type": "string"
+    },
+    "what_to_bring": {
+      "type": "string"
+    },
+    "media_gallery_url": {
+      "type": "string"
+    },
     "location": {
       "type": "string"
     },

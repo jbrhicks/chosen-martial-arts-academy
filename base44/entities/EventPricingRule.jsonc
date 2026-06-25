@@ -1,0 +1,60 @@
+{
+  "name": "EventPricingRule",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string"
+    },
+    "event_title": {
+      "type": "string"
+    },
+    "discount_type": {
+      "type": "string",
+      "enum": [
+        "early-bird",
+        "sibling",
+        "member"
+      ],
+      "default": "sibling"
+    },
+    "amount": {
+      "type": "number",
+      "default": 0
+    },
+    "is_percentage": {
+      "type": "boolean",
+      "default": true
+    },
+    "expiration_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "event_id",
+    "discount_type",
+    "amount"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

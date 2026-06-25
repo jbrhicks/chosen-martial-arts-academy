@@ -5,11 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import EventCreatorWizard from "@/components/admin/events/EventCreatorWizard";
 import EventRoster from "@/components/admin/events/EventRoster";
+import WaiverManager from "@/components/admin/events/WaiverManager";
+import { FileText } from "lucide-react";
 
 export default function AdminEvents() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreator, setShowCreator] = useState(false);
+  const [showWaivers, setShowWaivers] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
@@ -48,10 +51,16 @@ export default function AdminEvents() {
           <h1 className="text-3xl font-bold">Events</h1>
           <p className="text-sm text-[#A8A9AD] mt-1">Create and manage academy events, tournaments, and camps.</p>
         </div>
-        <Button onClick={() => setShowCreator(true)} className="bg-[#C9A84C] text-black font-bold text-xs tracking-widest uppercase hover:bg-[#E0C97A]">
+        <div className="flex items-center gap-3">
+          <Button onClick={() => setShowWaivers(true)} variant="outline" className="border-[#A8A9AD]/30 text-[#A8A9AD] hover:text-white hover:border-[#C9A84C]/50">
+            <FileText size={16} className="mr-2" />
+            Waivers
+          </Button>
+          <Button onClick={() => setShowCreator(true)} className="bg-[#C9A84C] text-black font-bold text-xs tracking-widest uppercase hover:bg-[#E0C97A]">
           <Plus size={16} className="mr-2" />
           Create Event
         </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -167,6 +176,7 @@ export default function AdminEvents() {
       )}
 
       {showCreator && <EventCreatorWizard onClose={() => setShowCreator(false)} onEventCreated={() => { setShowCreator(false); load(); }} />}
+      {showWaivers && <WaiverManager onClose={() => setShowWaivers(false)} />}
       {selectedEvent && <EventRoster event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
     </div>
   );

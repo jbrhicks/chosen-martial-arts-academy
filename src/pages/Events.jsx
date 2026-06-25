@@ -14,6 +14,7 @@ export default function Events() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [registrationMode, setRegistrationMode] = useState(null); // 'member' or 'guest'
   const [filter, setFilter] = useState("all");
+  const [regCounts, setRegCounts] = useState({});
 
   const load = async () => {
     try {
@@ -29,6 +30,23 @@ export default function Events() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (events.length > 0) loadRegCounts();
+  }, [events]);
+
+  const loadRegCounts = async () => {
+    try {
+      const regs = await base44.entities.EventRegistration.list();
+      const counts = {};
+      regs.forEach(r => {
+        if (r.status === "registered" || r.status === "checked-in") {
+          counts[r.event_id] = (counts[r.event_id] || 0) + 1;
+        }
+      });
+      setRegCounts(counts);
+    } catch (e) { console.error(e); }
+  };
 
   const filtered = events.filter((e) => {
     if (filter === "all") return true;
@@ -126,7 +144,12 @@ export default function Events() {
                     {event.max_capacity > 0 && (
                       <div className="flex items-center gap-2">
                         <Users size={14} />
-                        Max {event.max_capacity} participants
+                        {(() => {
+                          const remaining = event.max_capacity - (regCounts[event.id] || 0);
+                          if (remaining <= 0) return <span className="text-red-400 font-bold">SOLD OUT — Join Waitlist</span>;
+                          if (remaining <= 5) return <span className="text-orange-400 font-bold">⚠ Only {remaining} spots left!</span>;
+                          return `Max ${event.max_capacity} participants`;
+                        })()}
                       </div>
                     )}
                     <div className="flex items-center gap-2">
