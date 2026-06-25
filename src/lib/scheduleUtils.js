@@ -160,3 +160,40 @@ export function getOccurrencesInRange(cls, startDate, endDate, customDates = [])
   }
   return dates;
 }
+
+// Check if a date falls within any active blackout period
+export function isBlackoutDate(date, blackouts = []) {
+  return !!getActiveBlackout(date, blackouts);
+}
+
+// Get the active blackout record for a specific date (or null)
+export function getActiveBlackout(date, blackouts = []) {
+  if (!date || !blackouts.length) return null;
+  const d = date instanceof Date ? date : parseDate(date);
+  const check = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return blackouts.find(b => {
+    if (b.is_active === false) return false;
+    const start = b.start_date ? parseDate(b.start_date) : null;
+    const end = b.end_date ? parseDate(b.end_date) : null;
+    if (!start && !end) return false;
+    if (start && check < start) return false;
+    if (end && check > end) return false;
+    return true;
+  }) || null;
+}
+
+// Get a schedule exception for a specific class on a specific date (or null)
+export function getScheduleException(cls, date, exceptions = []) {
+  if (!cls || !date || !exceptions.length) return null;
+  const d = date instanceof Date ? date : parseDate(date);
+  const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return exceptions.find(e => e.linked_class_id === cls.id && e.target_date === dateStr) || null;
+}
+
+// Resolve the display color for a class card
+export function getClassColor(cls) {
+  if (cls?.color_code) return cls.color_code;
+  const badge = getScheduleBadge(cls);
+  if (badge) return badge.color;
+  return "#C9A84C";
+}

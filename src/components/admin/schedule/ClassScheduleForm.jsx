@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { DAYS_OF_WEEK, BELT_RANKS } from "@/lib/constants";
+import { DAYS_OF_WEEK, BELT_RANKS, AGE_PRESETS, CLASS_COLOR_PRESETS } from "@/lib/constants";
 import { SCHEDULE_TYPES, WEEK_OCCURRENCES } from "@/lib/scheduleUtils";
 import { Loader2, X, Plus, Calendar } from "lucide-react";
 
@@ -26,6 +26,11 @@ const EMPTY_FORM = {
   is_trial_eligible: false,
   max_trials_allowed: 2,
   require_full_series_signup: false,
+  age_preset: "All Ages",
+  min_age: "",
+  max_age: "",
+  color_code: "",
+  room: "",
 };
 
 export default function ClassScheduleForm({ editing, programs, onClose, onSaved }) {
@@ -61,6 +66,11 @@ export default function ClassScheduleForm({ editing, programs, onClose, onSaved 
           is_trial_eligible: editing.is_trial_eligible || false,
           max_trials_allowed: editing.max_trials_allowed || 2,
           require_full_series_signup: editing.require_full_series_signup || false,
+          age_preset: editing.age_preset || "All Ages",
+          min_age: editing.min_age != null ? String(editing.min_age) : "",
+          max_age: editing.max_age != null ? String(editing.max_age) : "",
+          color_code: editing.color_code || "",
+          room: editing.room || "",
         });
       })();
     } else {
@@ -167,6 +177,11 @@ export default function ClassScheduleForm({ editing, programs, onClose, onSaved 
         is_trial_eligible: form.is_trial_eligible,
         max_trials_allowed: form.max_trials_allowed,
         require_full_series_signup: form.require_full_series_signup,
+        age_preset: form.age_preset,
+        min_age: form.min_age ? parseInt(form.min_age) : 0,
+        max_age: form.max_age ? parseInt(form.max_age) : 0,
+        color_code: form.color_code,
+        room: form.room,
       };
 
       if (form.schedule_type === "Custom-Dates") {
@@ -414,6 +429,54 @@ export default function ClassScheduleForm({ editing, programs, onClose, onSaved 
             <div>
               <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Location</label>
               <input type="text" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Age Preset</label>
+              <select value={form.age_preset} onChange={(e) => {
+                const preset = e.target.value;
+                const cfg = AGE_PRESETS.find(p => p.value === preset);
+                setForm(prev => ({
+                  ...prev,
+                  age_preset: preset,
+                  ...(preset !== "Custom" && cfg ? { min_age: String(cfg.minAge), max_age: String(cfg.maxAge) } : {}),
+                }));
+              }} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
+                {AGE_PRESETS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Room / Mat Space</label>
+              <input type="text" value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} placeholder="e.g., Mat 1, Main Floor" className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
+            </div>
+          </div>
+
+          {form.age_preset === "Custom" && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Min Age</label>
+                <input type="number" value={form.min_age} onChange={(e) => setForm({ ...form, min_age: e.target.value })} min="0" max="99" className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Max Age</label>
+                <input type="number" value={form.max_age} onChange={(e) => setForm({ ...form, max_age: e.target.value })} min="0" max="99" className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Color Code (calendar grid)</label>
+            <div className="flex flex-wrap items-center gap-2">
+              {CLASS_COLOR_PRESETS.map(c => (
+                <button key={c.value} type="button" onClick={() => setForm({ ...form, color_code: c.value })}
+                  className={`w-8 h-8 rounded-full border-2 transition-transform ${form.color_code === c.value ? "border-white scale-110" : "border-transparent hover:scale-110"}`}
+                  style={{ backgroundColor: c.value }}
+                  title={c.label}
+                />
+              ))}
+              <input type="color" value={form.color_code || "#C9A84C"} onChange={(e) => setForm({ ...form, color_code: e.target.value })} className="w-8 h-8 rounded cursor-pointer bg-transparent border border-[#A8A9AD]/30" />
             </div>
           </div>
 

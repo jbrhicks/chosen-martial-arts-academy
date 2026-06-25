@@ -59,6 +59,24 @@ export const COLORS = {
   silverLight: "#D1D2D6",
 };
 
+export const AGE_PRESETS = [
+  { value: "All Ages", label: "All Ages", minAge: 0, maxAge: 99, color: "#C9A84C" },
+  { value: "Youth", label: "Youth (4-12)", minAge: 4, maxAge: 12, color: "#2B5CA0" },
+  { value: "Teen/Adult", label: "Teen/Adult (13+)", minAge: 13, maxAge: 99, color: "#1E293B" },
+  { value: "Custom", label: "Custom Range", minAge: 0, maxAge: 0, color: "#7A4A2B" },
+];
+
+export const CLASS_COLOR_PRESETS = [
+  { label: "Gold", value: "#C9A84C" },
+  { label: "Blue", value: "#2B5CA0" },
+  { label: "Green", value: "#3B7A3B" },
+  { label: "Orange", value: "#E8843A" },
+  { label: "Purple", value: "#7C3AED" },
+  { label: "Red", value: "#C53030" },
+  { label: "Dark", value: "#1E293B" },
+  { label: "Brown", value: "#7A4A2B" },
+];
+
 export const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export const EVENT_TYPES = {

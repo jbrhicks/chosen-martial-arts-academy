@@ -71,6 +71,31 @@
       ],
       "default": "All Ages"
     },
+    "age_preset": {
+      "type": "string",
+      "enum": [
+        "All Ages",
+        "Youth",
+        "Teen/Adult",
+        "Custom"
+      ],
+      "default": "All Ages"
+    },
+    "min_age": {
+      "type": "number",
+      "default": 0
+    },
+    "max_age": {
+      "type": "number",
+      "default": 0
+    },
+    "color_code": {
+      "type": "string",
+      "default": ""
+    },
+    "room": {
+      "type": "string"
+    },
     "belt_level": {
       "type": "string",
       "enum": [

@@ -1,0 +1,64 @@
+{
+  "name": "ScheduleException",
+  "type": "object",
+  "properties": {
+    "linked_class_id": {
+      "type": "string"
+    },
+    "class_name": {
+      "type": "string"
+    },
+    "target_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "is_cancelled": {
+      "type": "boolean",
+      "default": false
+    },
+    "override_start_time": {
+      "type": "string"
+    },
+    "override_end_time": {
+      "type": "string"
+    },
+    "override_instructor": {
+      "type": "string"
+    },
+    "override_trial_closed": {
+      "type": "boolean",
+      "default": false
+    },
+    "reason": {
+      "type": "string"
+    },
+    "created_by_id": {
+      "type": "string"
+    },
+    "created_by_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "linked_class_id",
+    "target_date"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
