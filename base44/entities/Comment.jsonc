@@ -11,10 +11,25 @@
     "author_name": {
       "type": "string"
     },
+    "author_role": {
+      "type": "string",
+      "enum": [
+        "student",
+        "admin"
+      ],
+      "default": "student"
+    },
     "content": {
       "type": "string"
     },
+    "timestamp": {
+      "type": "string"
+    },
     "is_deleted": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_flagged": {
       "type": "boolean",
       "default": false
     }

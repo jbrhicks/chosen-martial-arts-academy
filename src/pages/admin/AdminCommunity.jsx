@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import PostCard from "@/components/PostCard";
 import GroupManager from "@/components/admin/community/GroupManager";
+import ModerationDashboard from "@/components/admin/community/ModerationDashboard";
 import { Loader2, Flag, Pin, Trash2, MessageSquare, Users, Shield } from "lucide-react";
 
 export default function AdminCommunity() {
@@ -62,6 +63,8 @@ export default function AdminCommunity() {
 
       {tab === "moderation" && (
         <>
+          <ModerationDashboard currentUser={user} />
+
           {/* Filter tabs */}
           <div className="flex gap-2 flex-wrap">
             {[

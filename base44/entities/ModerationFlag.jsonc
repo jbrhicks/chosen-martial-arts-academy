@@ -1,0 +1,76 @@
+{
+  "name": "ModerationFlag",
+  "type": "object",
+  "properties": {
+    "target_type": {
+      "type": "string",
+      "enum": [
+        "post",
+        "comment"
+      ],
+      "default": "post"
+    },
+    "target_id": {
+      "type": "string"
+    },
+    "target_content": {
+      "type": "string"
+    },
+    "target_author_name": {
+      "type": "string"
+    },
+    "reported_by_id": {
+      "type": "string"
+    },
+    "reported_by_name": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "reviewed",
+        "removed",
+        "dismissed"
+      ],
+      "default": "pending"
+    },
+    "reviewed_by_id": {
+      "type": "string"
+    },
+    "reviewed_by_name": {
+      "type": "string"
+    },
+    "reviewed_date": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "target_type",
+    "target_id",
+    "reported_by_id",
+    "reason"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

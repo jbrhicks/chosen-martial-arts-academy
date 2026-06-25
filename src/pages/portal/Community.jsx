@@ -7,7 +7,7 @@ import PostComposer from "@/components/PostComposer";
 import PostCard from "@/components/PostCard";
 import GroupSelector from "@/components/portal/community/GroupSelector";
 import LockedCommunity from "@/components/portal/community/LockedCommunity";
-import { Loader2 } from "lucide-react";
+import { Loader2, Megaphone } from "lucide-react";
 
 export default function Community() {
   const { user } = useAuth();
@@ -17,6 +17,10 @@ export default function Community() {
   const [loading, setLoading] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [userGroups, setUserGroups] = useState([]);
+  const [officialOnly, setOfficialOnly] = useState(false);
+  const [events, setEvents] = useState([]);
+  const [videos, setVideos] = useState([]);
+  const [students, setStudents] = useState([]);
 
   const loadPosts = useCallback(async () => {
     try {
@@ -58,6 +62,9 @@ export default function Community() {
     if (hasAccess && !isChecking) {
       loadPosts();
       loadGroups();
+      base44.entities.Event.filter({ status: "active", is_public: true }).then(setEvents).catch(() => {});
+      base44.entities.Video.list().then(setVideos).catch(() => {});
+      base44.entities.User.list().then(u => setStudents(u.filter(s => s.role === "student" || s.role === "user"))).catch(() => {});
     } else if (!isChecking) {
       setLoading(false);
     }
@@ -66,11 +73,16 @@ export default function Community() {
   const handlePostDeleted = (id) => setPosts(posts.filter(p => p.id !== id));
 
   // Guardian mirroring: main feed includes children's group posts
-  const filteredPosts = selectedGroup
+  const filteredPosts = (selectedGroup
     ? posts.filter(p => p.group_id === selectedGroup)
     : isGuardian && childGroupIds.length > 0
       ? posts.filter(p => !p.group_id || childGroupIds.includes(p.group_id))
-      : posts.filter(p => !p.group_id);
+      : posts.filter(p => !p.group_id)
+  ).filter(p => {
+    if (p.is_hidden && user?.role !== "admin") return false;
+    if (officialOnly && !p.is_announcement && !p.is_pinned && p.post_type !== "broadcast" && p.post_type !== "rank_up") return false;
+    return true;
+  });
 
   if (isChecking) {
     return <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-[#C9A84C]" /></div>;
@@ -88,9 +100,19 @@ export default function Community() {
         <p className="text-[#A8A9AD] text-sm mt-1">Share your training, encourage your peers, stay connected.</p>
       </div>
 
-      <GroupSelector groups={userGroups} selectedGroup={selectedGroup} onSelectGroup={setSelectedGroup} />
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <GroupSelector groups={userGroups} selectedGroup={selectedGroup} onSelectGroup={setSelectedGroup} />
+        </div>
+        <button
+          onClick={() => setOfficialOnly(!officialOnly)}
+          className={`flex items-center gap-2 px-4 py-2 text-xs tracking-widest uppercase font-bold transition-colors shrink-0 ${officialOnly ? "bg-[#C9A84C] text-black" : "border border-[#A8A9AD]/30 text-[#A8A9AD] hover:text-white"}`}
+        >
+          <Megaphone size={14} /> Official Updates Only
+        </button>
+      </div>
 
-      <PostComposer currentUser={user} onPosted={loadPosts} groups={userGroups} />
+      <PostComposer currentUser={user} onPosted={loadPosts} groups={userGroups} events={events} videos={videos} students={students} />
 
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-[#C9A84C]" /></div>

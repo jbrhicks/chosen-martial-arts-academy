@@ -8,6 +8,18 @@
     "description": {
       "type": "string"
     },
+    "group_type": {
+      "type": "string",
+      "enum": [
+        "Global",
+        "Program-Specific",
+        "Custom"
+      ],
+      "default": "Custom"
+    },
+    "linked_program_id": {
+      "type": "string"
+    },
     "is_private": {
       "type": "boolean",
       "default": false

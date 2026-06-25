@@ -13,7 +13,8 @@
       "enum": [
         "student",
         "admin"
-      ]
+      ],
+      "default": "student"
     },
     "content": {
       "type": "string"
@@ -42,6 +43,10 @@
       "type": "boolean",
       "default": false
     },
+    "is_hidden": {
+      "type": "boolean",
+      "default": false
+    },
     "is_announcement": {
       "type": "boolean",
       "default": false
@@ -54,6 +59,14 @@
       "type": "number",
       "default": 0
     },
+    "bow_count": {
+      "type": "number",
+      "default": 0
+    },
+    "high_five_count": {
+      "type": "number",
+      "default": 0
+    },
     "group_id": {
       "type": "string"
     },
@@ -63,7 +76,11 @@
         "standard",
         "poll",
         "challenge",
-        "broadcast"
+        "broadcast",
+        "form_check",
+        "student_spotlight",
+        "rank_up",
+        "event_link"
       ],
       "default": "standard"
     },
@@ -84,6 +101,33 @@
     "share_count": {
       "type": "number",
       "default": 0
+    },
+    "linked_event_id": {
+      "type": "string"
+    },
+    "linked_event_title": {
+      "type": "string"
+    },
+    "linked_curriculum_video_id": {
+      "type": "string"
+    },
+    "linked_curriculum_video_title": {
+      "type": "string"
+    },
+    "spotlight_student_id": {
+      "type": "string"
+    },
+    "spotlight_student_name": {
+      "type": "string"
+    },
+    "spotlight_belt_rank": {
+      "type": "string"
+    },
+    "rank_up_student_name": {
+      "type": "string"
+    },
+    "rank_up_new_belt": {
+      "type": "string"
     }
   },
   "required": [

@@ -7,6 +7,14 @@
     },
     "user_id": {
       "type": "string"
+    },
+    "reaction_type": {
+      "type": "string",
+      "enum": [
+        "bow",
+        "high_five"
+      ],
+      "default": "bow"
     }
   },
   "required": [

@@ -52,6 +52,22 @@ Deno.serve(async (req) => {
       body: `Dear Guardian,\n\nWe are thrilled to announce that ${student.full_name} has been promoted to ${beltName}${programName ? ' in ' + programName : ''} at Chosen Martial Arts Academy!\n\nThis achievement reflects their hard work, dedication, and perseverance in training. New training videos and curriculum materials have been automatically unlocked in the member app.\n\nPlease join us in congratulating them on this milestone.\n\nSincerely,\nThe Chosen Martial Arts Academy Team`,
     });
 
+    // Create rank-up announcement post in the Global Feed
+    await base44.entities.Post.create({
+      author_id: user.id,
+      author_name: user.full_name,
+      author_role: 'admin',
+      content: `Congratulations to ${student.full_name} on earning their ${beltName}!`,
+      post_type: 'rank_up',
+      rank_up_student_name: student.full_name,
+      rank_up_new_belt: beltName,
+      like_count: 0,
+      comment_count: 0,
+      share_count: 0,
+      bow_count: 0,
+      high_five_count: 0,
+    });
+
     return Response.json({ success: true, new_belt: beltName, student_name: student.full_name });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

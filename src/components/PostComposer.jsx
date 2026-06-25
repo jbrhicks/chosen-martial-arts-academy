@@ -1,68 +1,106 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { ImagePlus, Video, Loader2, Send, Megaphone, BarChart3, Trophy, Users, X, Plus } from "lucide-react";
+import { ImagePlus, Video, Loader2, Send, Megaphone, BarChart3, Trophy, X, Plus, Award, Calendar, BookOpen, Sparkles } from "lucide-react";
 
-export default function PostComposer({ currentUser, onPosted, groups = [] }) {
+const INAPPROPRIATE_WORDS = ["damn", "hell", "shit", "fuck", "ass", "bitch", "bastard", "crap", "piss"];
+
+function checkInappropriate(text) {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return INAPPROPRIATE_WORDS.some(word => lower.includes(word));
+}
+
+export default function PostComposer({ currentUser, onPosted, groups = [], events = [], videos = [], students = [] }) {
   const [content, setContent] = useState("");
-  const [mediaFile, setMediaFile] = useState(null);
-  const [mediaType, setMediaType] = useState("none");
+  const [mediaFiles, setMediaFiles] = useState([]);
   const [postType, setPostType] = useState("standard");
   const [groupId, setGroupId] = useState("");
   const [pollOptions, setPollOptions] = useState(["", ""]);
   const [challengeDesc, setChallengeDesc] = useState("");
   const [challengeBadge, setChallengeBadge] = useState("gold");
   const [submitting, setSubmitting] = useState(false);
+  const [linkedEventId, setLinkedEventId] = useState("");
+  const [linkedVideoId, setLinkedVideoId] = useState("");
+  const [spotlightStudentId, setSpotlightStudentId] = useState("");
+  const [spotlightBeltRank, setSpotlightBeltRank] = useState("");
   const fileRef = useRef(null);
 
   const isAdmin = currentUser?.role === "admin";
-  const [showTypeSelector, setShowTypeSelector] = useState(false);
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setMediaFile(file);
-    setMediaType(file.type.startsWith("video") ? "video" : "image");
+    const files = Array.from(e.target.files).slice(0, 4 - mediaFiles.length);
+    setMediaFiles([...mediaFiles, ...files]);
+  };
+
+  const removeFile = (idx) => {
+    setMediaFiles(mediaFiles.filter((_, i) => i !== idx));
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!content.trim() && !mediaFile && postType !== "poll") return;
+    if (!content.trim() && mediaFiles.length === 0 && postType !== "poll") return;
     if (postType === "poll" && pollOptions.filter(o => o.trim()).length < 2) { alert("Add at least 2 poll options."); return; }
     setSubmitting(true);
     try {
-      let mediaUrl = null;
-      if (mediaFile) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: mediaFile });
-        mediaUrl = file_url;
+      // Upload all media files
+      const mediaUrls = [];
+      for (const file of mediaFiles) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        mediaUrls.push({ url: file_url, type: file.type.startsWith("video") ? "video" : "image" });
       }
+
+      // Check for inappropriate content
+      const isHidden = checkInappropriate(content);
 
       const postData = {
         author_id: currentUser.id,
         author_name: currentUser.full_name,
         author_role: currentUser.role,
         content: content.trim(),
-        media_url: mediaUrl,
-        media_type: mediaFile ? mediaType : "none",
+        media_url: mediaUrls[0]?.url || null,
+        media_type: mediaUrls.length > 0 ? mediaUrls[0].type : "none",
         like_count: 0,
         comment_count: 0,
         share_count: 0,
+        bow_count: 0,
+        high_five_count: 0,
         post_type: postType,
         group_id: groupId || undefined,
+        is_hidden: isHidden,
       };
 
-      if (postType === "poll") {
-        postData.poll_options = pollOptions.filter(o => o.trim()).join("|");
+      if (postType === "poll") postData.poll_options = pollOptions.filter(o => o.trim()).join("|");
+      if (postType === "challenge") { postData.challenge_description = challengeDesc; postData.challenge_badge = challengeBadge; }
+      if (postType === "broadcast") { postData.is_pinned = true; postData.is_announcement = true; }
+      if (postType === "event_link" && linkedEventId) {
+        const event = events.find(ev => ev.id === linkedEventId);
+        postData.linked_event_id = linkedEventId;
+        postData.linked_event_title = event?.title || "";
       }
-      if (postType === "challenge") {
-        postData.challenge_description = challengeDesc;
-        postData.challenge_badge = challengeBadge;
+      if (postType === "form_check" && linkedVideoId) {
+        const video = videos.find(v => v.id === linkedVideoId);
+        postData.linked_curriculum_video_id = linkedVideoId;
+        postData.linked_curriculum_video_title = video?.title || "";
       }
-      if (postType === "broadcast") {
-        postData.is_pinned = true;
-        postData.is_announcement = true;
+      if (postType === "student_spotlight" && spotlightStudentId) {
+        const student = students.find(s => s.id === spotlightStudentId);
+        postData.spotlight_student_id = spotlightStudentId;
+        postData.spotlight_student_name = student?.full_name || "";
+        postData.spotlight_belt_rank = spotlightBeltRank || student?.belt_rank || "";
       }
 
-      await base44.entities.Post.create(postData);
+      const createdPost = await base44.entities.Post.create(postData);
+
+      // Create PostMedia records for additional attachments
+      for (let i = 1; i < mediaUrls.length; i++) {
+        await base44.entities.PostMedia.create({
+          post_id: createdPost.id,
+          media_url: mediaUrls[i].url,
+          media_type: mediaUrls[i].type,
+          display_order: i,
+        });
+      }
 
       // Broadcast: send email to all users
       if (postType === "broadcast") {
@@ -72,7 +110,7 @@ export default function PostComposer({ currentUser, onPosted, groups = [] }) {
             if (u.email) {
               await base44.integrations.Core.SendEmail({
                 to: u.email,
-                subject: "Chosen Martial Arts Academy — Broadcast",
+                subject: "Chosen Martial Arts Academy — Announcement",
                 body: `${content.trim()}\n\n— ${currentUser.full_name}\nChosen Martial Arts Academy`,
               });
             }
@@ -80,15 +118,22 @@ export default function PostComposer({ currentUser, onPosted, groups = [] }) {
         } catch (e) { console.error("Broadcast email failed", e); }
       }
 
+      if (isHidden) {
+        alert("Your post contains language that has been flagged for review. It will be hidden from the community feed until an admin reviews it.");
+      }
+
+      // Reset
       setContent("");
-      setMediaFile(null);
-      setMediaType("none");
+      setMediaFiles([]);
       setPostType("standard");
       setGroupId("");
       setPollOptions(["", ""]);
       setChallengeDesc("");
       setChallengeBadge("gold");
-      setShowTypeSelector(false);
+      setLinkedEventId("");
+      setLinkedVideoId("");
+      setSpotlightStudentId("");
+      setSpotlightBeltRank("");
       if (fileRef.current) fileRef.current.value = "";
       onPosted?.();
     } catch (e) {
@@ -99,19 +144,22 @@ export default function PostComposer({ currentUser, onPosted, groups = [] }) {
   };
 
   const typeLabels = {
-    standard: { label: "Standard Post", icon: Send },
+    standard: { label: "Post", icon: Send },
     poll: { label: "Poll", icon: BarChart3 },
     challenge: { label: "Challenge", icon: Trophy },
-    broadcast: { label: "Broadcast", icon: Megaphone },
+    broadcast: { label: "Announce", icon: Megaphone },
+    form_check: { label: "Form Check", icon: Video },
+    event_link: { label: "Event", icon: Calendar },
+    student_spotlight: { label: "Spotlight", icon: Sparkles },
   };
 
   return (
     <div className="border border-[#A8A9AD]/20 bg-[#0A0A0A] p-6 mb-6">
       {/* Post type selector */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <div className="flex items-center gap-1 border border-[#A8A9AD]/20 p-1">
+        <div className="flex items-center gap-1 border border-[#A8A9AD]/20 p-1 flex-wrap">
           {Object.entries(typeLabels).map(([key, val]) => {
-            if ((key === "challenge" || key === "broadcast") && !isAdmin) return null;
+            if ((key === "challenge" || key === "broadcast" || key === "event_link" || key === "student_spotlight") && !isAdmin) return null;
             const Icon = val.icon;
             return (
               <button key={key} onClick={() => setPostType(key)} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs tracking-wide transition-colors ${postType === key ? "bg-[#C9A84C] text-black font-bold" : "text-[#A8A9AD] hover:text-white"}`}>
@@ -130,9 +178,9 @@ export default function PostComposer({ currentUser, onPosted, groups = [] }) {
 
       <textarea
         value={content}
-        onChange={(e) => setContent(e.target.value)}
+        onChange={e => setContent(e.target.value)}
         rows={3}
-        placeholder={postType === "broadcast" ? "Broadcast message to all members..." : postType === "challenge" ? "Describe the challenge..." : "What did you practice today?"}
+        placeholder={postType === "broadcast" ? "Announcement to all members..." : postType === "challenge" ? "Describe the challenge..." : postType === "form_check" ? "Share your form for feedback..." : postType === "student_spotlight" ? "Highlight this student's journey..." : "What did you practice today?"}
         className="w-full bg-transparent border border-[#A8A9AD]/20 px-4 py-3 text-white text-sm focus:border-[#C9A84C] focus:outline-none transition-colors resize-none mb-4"
       />
 
@@ -167,6 +215,45 @@ export default function PostComposer({ currentUser, onPosted, groups = [] }) {
         </div>
       )}
 
+      {/* Event Link selector */}
+      {postType === "event_link" && (
+        <div className="mb-4">
+          <label className="block text-xs tracking-widest uppercase text-[#C9A84C] mb-2">Link to Event</label>
+          <select value={linkedEventId} onChange={e => setLinkedEventId(e.target.value)} className="w-full bg-transparent border border-[#A8A9AD]/20 px-3 py-2 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
+            <option value="">Select an event...</option>
+            {events.map(ev => <option key={ev.id} value={ev.id}>{ev.title} ({new Date(ev.start_date).toLocaleDateString()})</option>)}
+          </select>
+        </div>
+      )}
+
+      {/* Form Check: Curriculum Link */}
+      {postType === "form_check" && (
+        <div className="mb-4">
+          <label className="block text-xs tracking-widest uppercase text-[#C9A84C] mb-2">Link to Curriculum Video (Optional)</label>
+          <select value={linkedVideoId} onChange={e => setLinkedVideoId(e.target.value)} className="w-full bg-transparent border border-[#A8A9AD]/20 px-3 py-2 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
+            <option value="">No curriculum link...</option>
+            {videos.map(v => <option key={v.id} value={v.id}>{v.title}</option>)}
+          </select>
+        </div>
+      )}
+
+      {/* Student Spotlight selector */}
+      {postType === "student_spotlight" && (
+        <div className="mb-4 space-y-3">
+          <div>
+            <label className="block text-xs tracking-widest uppercase text-[#C9A84C] mb-2">Select Student</label>
+            <select value={spotlightStudentId} onChange={e => setSpotlightStudentId(e.target.value)} className="w-full bg-transparent border border-[#A8A9AD]/20 px-3 py-2 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
+              <option value="">Select a student...</option>
+              {students.map(s => <option key={s.id} value={s.id}>{s.full_name} {s.belt_rank ? `(${s.belt_rank})` : ""}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs tracking-widest uppercase text-[#C9A84C] mb-2">Belt Rank (optional)</label>
+            <input value={spotlightBeltRank} onChange={e => setSpotlightBeltRank(e.target.value)} placeholder="e.g., Green Belt" className="w-full bg-transparent border border-[#A8A9AD]/20 px-3 py-2 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
+          </div>
+        </div>
+      )}
+
       {/* Broadcast notice */}
       {postType === "broadcast" && (
         <div className="mb-4 border border-[#A8A9AD]/30 bg-[#A8A9AD]/5 p-3 flex items-center gap-2">
@@ -175,32 +262,37 @@ export default function PostComposer({ currentUser, onPosted, groups = [] }) {
         </div>
       )}
 
-      {mediaFile && (
-        <div className="mb-4 flex items-center gap-3 text-sm text-[#A8A9AD]">
-          {mediaType === "video" ? <Video size={16} className="text-[#C9A84C]" /> : <ImagePlus size={16} className="text-[#C9A84C]" />}
-          {mediaFile.name}
-          <button onClick={() => { setMediaFile(null); setMediaType("none"); if (fileRef.current) fileRef.current.value = ""; }} className="text-red-400 text-xs">Remove</button>
+      {/* Media preview */}
+      {mediaFiles.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {mediaFiles.map((file, idx) => (
+            <div key={idx} className="flex items-center gap-2 text-sm text-[#A8A9AD] border border-[#A8A9AD]/20 px-3 py-2">
+              {file.type.startsWith("video") ? <Video size={16} className="text-[#C9A84C]" /> : <ImagePlus size={16} className="text-[#C9A84C]" />}
+              <span className="text-xs max-w-[100px] truncate">{file.name}</span>
+              <button onClick={() => removeFile(idx)} className="text-red-400 text-xs"><X size={14} /></button>
+            </div>
+          ))}
         </div>
       )}
 
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          {postType !== "poll" && (
+          {postType !== "poll" && mediaFiles.length < 4 && (
             <>
-              <input ref={fileRef} type="file" accept="image/*,video/*" onChange={handleFileChange} className="hidden" id="media-upload" />
+              <input ref={fileRef} type="file" accept="image/*,video/*" onChange={handleFileChange} className="hidden" id="media-upload" multiple />
               <label htmlFor="media-upload" className="flex items-center gap-2 px-4 py-2 border border-[#A8A9AD]/30 text-sm text-[#A8A9AD] hover:text-white hover:border-[#C9A84C]/50 transition-colors cursor-pointer">
-                <ImagePlus size={16} /> Photo/Video
+                <ImagePlus size={16} /> Photo/Video ({mediaFiles.length}/4)
               </label>
             </>
           )}
         </div>
         <button
           onClick={handleSubmit}
-          disabled={submitting || (!content.trim() && !mediaFile && postType !== "poll")}
+          disabled={submitting || (!content.trim() && mediaFiles.length === 0 && postType !== "poll")}
           className="flex items-center gap-2 px-6 py-2 bg-[#C9A84C] text-black font-bold text-sm tracking-wide uppercase hover:bg-[#E0C97A] transition-colors disabled:opacity-50"
         >
           {submitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-          {postType === "broadcast" ? "Broadcast" : postType === "challenge" ? "Post Challenge" : postType === "poll" ? "Post Poll" : "Post"}
+          {postType === "broadcast" ? "Broadcast" : postType === "challenge" ? "Post Challenge" : postType === "poll" ? "Post Poll" : postType === "form_check" ? "Post Form" : postType === "event_link" ? "Post Event" : postType === "student_spotlight" ? "Post Spotlight" : "Post"}
         </button>
       </div>
     </div>
