@@ -18,11 +18,18 @@ Deno.serve(async (req) => {
       sender_name: user.full_name,
       content,
       channel_used: channel,
+      direction: user.role === 'admin' ? 'outbound' : 'inbound',
       subject: thread.thread_name || null
     });
 
     const participants = await base44.entities.ThreadParticipant.filter({ thread_id: threadId });
-    
+
+    // Update thread preview so the inbox list reflects the latest message
+    await base44.entities.MessageThread.update(threadId, {
+      last_message_preview: content.substring(0, 120),
+      last_message_date: new Date().toISOString()
+    });
+
     for (const participant of participants) {
       if (participant.user_id === user.id) continue;
 

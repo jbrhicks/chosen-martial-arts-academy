@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Save, Plus, X, Loader2 } from "lucide-react";
+import { Save, Plus, X, Loader2, MessageSquare } from "lucide-react";
 
 export default function PersonalDetails({ user, customFields, customFieldValues, onRefresh, logActivity }) {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     phone: user?.phone || "", address: user?.address || "", dob: user?.dob || "",
     belt_size: user?.belt_size || "", uniform_size: user?.uniform_size || "",
@@ -63,7 +65,15 @@ export default function PersonalDetails({ user, customFields, customFieldValues,
   return (
     <div className="space-y-6">
       <div className="border border-[#A8A9AD]/20 bg-black p-6">
-        <h3 className="text-sm font-bold tracking-widest uppercase text-[#C9A84C] mb-4">Contact Information</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">Contact Information</h3>
+          <button
+            onClick={() => navigate(`/admin/inbox?userId=${user.id}&userName=${encodeURIComponent(user.full_name || "user")}`)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#C9A84C] text-black font-bold text-xs tracking-wide uppercase hover:bg-[#E0C97A] transition-colors"
+          >
+            <MessageSquare size={14} /> Message User
+          </button>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div><label className={labelClass}>Phone</label><input className={inputClass} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} /></div>
           <div><label className={labelClass}>Date of Birth</label><input type="date" className={inputClass} value={form.dob} onChange={e => setForm({...form, dob: e.target.value})} /></div>

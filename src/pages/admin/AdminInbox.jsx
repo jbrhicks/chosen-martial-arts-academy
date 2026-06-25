@@ -1,306 +1,184 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { MessageSquare, Send, Mail, Phone, Bell, Search, Filter, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/lib/AuthContext";
+import ChatThreadList from "@/components/admin/messages/ChatThreadList";
+import ChatWindow from "@/components/admin/messages/ChatWindow";
+import InternalNotesPanel from "@/components/admin/messages/InternalNotesPanel";
+import { MessageSquare, Send, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function AdminInbox() {
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [threads, setThreads] = useState([]);
-  const [messages, setMessages] = useState([]);
   const [selectedThread, setSelectedThread] = useState(null);
-  const [replyContent, setReplyContent] = useState("");
-  const [replyChannel, setReplyChannel] = useState("in_app");
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterType, setFilterType] = useState("all");
-  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showNotes, setShowNotes] = useState(false);
+  const [notes, setNotes] = useState([]);
+  const [unreadMap, setUnreadMap] = useState({});
+  const [pendingUserId, setPendingUserId] = useState(searchParams.get("userId"));
+  const [pendingUserName, setPendingUserName] = useState(searchParams.get("userName"));
+  const [pendingMessage, setPendingMessage] = useState("");
+  const [sendingPending, setSendingPending] = useState(false);
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const user = await base44.auth.me();
-        setCurrentUser(user);
-        const allThreads = await base44.entities.MessageThread.list("-updated_date");
-        if (user.role === 'admin') {
-          const allParticipants = await base44.entities.ThreadParticipant.list();
-          const participantMap = {};
-          allParticipants.forEach(p => {
-            if (!participantMap[p.thread_id]) participantMap[p.thread_id] = [];
-            participantMap[p.thread_id].push(p);
-          });
-          const threadsWithParticipants = allThreads.map(t => ({
-            ...t,
-            otherParticipant: (participantMap[t.id] || []).find(p => p.user_id !== user.id),
-          }));
-          setThreads(threadsWithParticipants);
-        } else {
-          const participants = await base44.entities.ThreadParticipant.filter({ user_id: user.id });
-          const participantThreadIds = participants.map(p => p.thread_id);
-          const userThreads = allThreads.filter(t => participantThreadIds.includes(t.id));
-          setThreads(userThreads);
-        }
-      } catch (error) {
-        console.error("Error fetching threads:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    init();
-  }, []);
+  const loadThreads = useCallback(async () => {
+    try {
+      const all = await base44.entities.MessageThread.list("-updated_date");
+      const dmThreads = all.filter(t => t.type === "dm" || t.type === "support");
+      setThreads(dmThreads);
 
-  useEffect(() => {
-    if (selectedThread) {
-      fetchMessages(selectedThread.id);
-      const unsubscribe = base44.entities.Message.subscribe((event) => {
-        if (event.data.thread_id === selectedThread.id) {
-          fetchMessages(selectedThread.id);
+      // Build unread map from participants
+      const participants = await base44.entities.ThreadParticipant.list();
+      const map = {};
+      participants.forEach(p => {
+        if (p.user_id === user.id && p.is_admin) {
+          map[p.thread_id] = p.unread_count || 0;
         }
       });
-      return () => unsubscribe();
-    }
+      setUnreadMap(map);
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => { loadThreads(); }, [loadThreads]);
+
+  // Subscribe to thread updates for live refresh
+  useEffect(() => {
+    const unsubscribe = base44.entities.MessageThread.subscribe(() => loadThreads());
+    return () => unsubscribe();
+  }, [loadThreads]);
+
+  const loadNotes = async (threadId) => {
+    try {
+      const data = await base44.entities.InternalThreadNote.filter({ thread_id: threadId }, "created_date");
+      setNotes(data);
+    } catch (e) { console.error(e); }
+  };
+
+  useEffect(() => {
+    if (selectedThread) loadNotes(selectedThread.id);
   }, [selectedThread]);
 
-  // Thread loading is handled in the useEffect above
-
-  const fetchMessages = async (threadId) => {
-    try {
-      const threadMessages = await base44.entities.Message.filter({ thread_id: threadId }, "created_date");
-      setMessages(threadMessages);
-    } catch (error) {
-      console.error("Error fetching messages:", error);
-    }
+  const handleSelectThread = (thread) => {
+    setSelectedThread(thread);
+    setPendingUserId(null);
+    setPendingUserName(null);
+    setSearchParams({});
   };
 
-  const handleSendMessage = async () => {
-    if (!replyContent.trim() || !selectedThread) return;
-
+  const handleSendPending = async () => {
+    if (!pendingMessage.trim() || !pendingUserId) return;
+    setSendingPending(true);
     try {
-      await base44.functions.invoke("sendMessage", {
-        threadId: selectedThread.id,
-        content: replyContent,
-        channel: replyChannel
+      const res = await base44.functions.invoke("sendDirectMessage", {
+        targetUserId: pendingUserId,
+        content: pendingMessage,
+        channel: "in_app"
       });
-      
-      setReplyContent("");
-      fetchMessages(selectedThread.id);
-      toast.success("Message sent!");
-    } catch (error) {
-      toast.error("Failed to send message: " + error.message);
+      setPendingMessage("");
+      setPendingUserId(null);
+      setPendingUserName(null);
+      setSearchParams({});
+      await loadThreads();
+      const all = await base44.entities.MessageThread.list("-updated_date");
+      const found = all.find(t => t.id === res.data?.threadId);
+      if (found) setSelectedThread(found);
+      toast.success("Conversation started");
+    } catch (e) {
+      toast.error("Failed to start conversation: " + e.message);
     }
+    setSendingPending(false);
   };
-
-  const getParticipantName = async (thread) => {
-    if (!thread) return "Unknown";
-    const participants = await base44.entities.ThreadParticipant.filter({ thread_id: thread.id });
-    const otherParticipant = participants.find(p => p.user_id !== currentUser?.id);
-    return otherParticipant?.user_name || thread.thread_name || "Unknown";
-  };
-
-  const getUnreadCount = (thread) => {
-    const participant = threads.find(t => t.id === thread.id);
-    return participant?.unread_count || 0;
-  };
-
-  const filteredThreads = threads.filter(thread => {
-    if (filterType !== "all" && thread.type !== filterType) return false;
-    if (searchQuery && !thread.thread_name?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    return true;
-  });
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+        <Loader2 size={28} className="animate-spin text-[#C9A84C]" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-[#C9A84C]">Message Inbox</h1>
-        <p className="text-sm text-[#A8A9AD] mt-1">Unified communication hub for all family messages</p>
+        <p className="text-xs tracking-widest uppercase text-[#C9A84C] mb-1">Direct Messaging</p>
+        <h1 className="text-2xl font-bold text-white">Admin Inbox</h1>
+        <p className="text-sm text-[#A8A9AD] mt-1">Unified 1-on-1 chat with students and parents across in-app, SMS, and email.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
-        <Card className="bg-black border-[#A8A9AD]/20 lg:col-span-1">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-white flex items-center justify-between">
-              <span>Conversations</span>
-              <Badge variant="outline" className="border-[#C9A84C] text-[#C9A84C]">
-                {threads.length}
-              </Badge>
-            </CardTitle>
-            <div className="flex gap-2 mt-2">
-              <Input
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-[#0A0A0A] border-[#A8A9AD]/20 text-white"
-              />
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-[120px] bg-[#0A0A0A] border-[#A8A9AD]/20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-black border-[#A8A9AD]/20">
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="support">Support</SelectItem>
-                  <SelectItem value="dm">Direct</SelectItem>
-                  <SelectItem value="group">Group</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-          <CardContent className="overflow-y-auto h-[calc(100%-120px)]">
-            <div className="space-y-2">
-              {filteredThreads.map((thread) => (
-                <div
-                  key={thread.id}
-                  onClick={() => setSelectedThread(thread)}
-                  className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                    selectedThread?.id === thread.id
-                      ? "bg-[#C9A84C]/20 border border-[#C9A84C]/30"
-                      : "bg-[#0A0A0A] hover:bg-[#0A0A0A]/80 border border-[#A8A9AD]/10"
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <User size={16} className="text-[#A8A9AD]" />
-                        <span className="font-medium text-white truncate">
-                          {thread.otherParticipant?.user_name || thread.thread_name || "Untitled"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs border-[#A8A9AD]/30 text-[#A8A9AD]">
-                          {thread.type}
-                        </Badge>
-                        {thread.support_category && (
-                          <Badge variant="outline" className="text-xs border-[#A8A9AD]/30 text-[#A8A9AD]">
-                            {thread.support_category}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 h-[calc(100vh-220px)] border border-[#A8A9AD]/20 bg-black">
+        {/* Left: thread list */}
+        <div className="lg:col-span-4 xl:col-span-3 border-r border-[#A8A9AD]/20 flex flex-col">
+          <ChatThreadList
+            threads={threads}
+            selectedThreadId={selectedThread?.id}
+            onSelect={handleSelectThread}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            unreadMap={unreadMap}
+          />
+        </div>
 
-        <Card className="bg-black border-[#A8A9AD]/20 lg:col-span-2 flex flex-col">
-          {selectedThread ? (
-            <>
-              <CardHeader className="pb-3 border-b border-[#A8A9AD]/20">
-                <CardTitle className="text-white flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <User size={20} className="text-[#C9A84C]" />
-                    <div>
-                      <span>{selectedThread.otherParticipant?.user_name || selectedThread.thread_name || "Conversation"}</span>
-                      {selectedThread.support_category && (
-                        <span className="ml-2 text-xs text-[#A8A9AD]">
-                          ({selectedThread.support_category})
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="border-[#A8A9AD]/30 text-[#A8A9AD]">
-                      {selectedThread.type}
-                    </Badge>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.sender_id === currentUser?.id ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={`max-w-[70%] rounded-lg p-3 ${
-                        message.sender_id === currentUser?.id
-                          ? "bg-[#C9A84C]/20 border border-[#C9A84C]/30"
-                          : "bg-[#0A0A0A] border border-[#A8A9AD]/10"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium text-[#C9A84C]">
-                          {message.sender_name}
-                        </span>
-                        <span className="text-xs text-[#A8A9AD]">
-                          {message.channel_used === "email" && <Mail size={12} />}
-                          {message.channel_used === "sms" && <Phone size={12} />}
-                          {message.channel_used === "in_app" && <Bell size={12} />}
-                        </span>
-                      </div>
-                      <p className="text-sm text-white">{message.content}</p>
-                      <p className="text-xs text-[#A8A9AD] mt-1">
-                        {message.created_date ? new Date(message.created_date).toLocaleString() : ""}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-
-              <div className="p-4 border-t border-[#A8A9AD]/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs text-[#A8A9AD]">Send via:</span>
-                  <Select value={replyChannel} onValueChange={setReplyChannel}>
-                    <SelectTrigger className="w-[150px] bg-[#0A0A0A] border-[#A8A9AD]/20 h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-black border-[#A8A9AD]/20">
-                      <SelectItem value="in_app">In-App (Always)</SelectItem>
-                      <SelectItem value="email">Email (If opted in)</SelectItem>
-                      <SelectItem value="sms">SMS (If opted in)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {replyChannel !== "in_app" && (
-                    <span className="text-xs text-[#A8A9AD] ml-2">
-                      Respects user preferences
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Textarea
-                    value={replyContent}
-                    onChange={(e) => setReplyContent(e.target.value)}
-                    placeholder="Type your reply..."
-                    className="bg-[#0A0A0A] border-[#A8A9AD]/20 text-white flex-1 min-h-[80px]"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                  />
-                  <Button
-                    onClick={handleSendMessage}
-                    disabled={!replyContent.trim()}
-                    className="bg-[#C9A84C] hover:bg-[#C9A84C]/90 self-end"
-                  >
-                    <Send size={18} />
-                  </Button>
-                </div>
+        {/* Right: chat window or pending composer */}
+        <div className={`${showNotes ? "lg:col-span-5 xl:col-span-5" : "lg:col-span-8 xl:col-span-9"} flex flex-col`}>
+          {pendingUserId ? (
+            <div className="flex flex-col h-full">
+              <div className="p-3 border-b border-[#A8A9AD]/20">
+                <h3 className="text-white font-medium text-sm">New conversation with {pendingUserName || "user"}</h3>
+                <p className="text-[10px] text-[#A8A9AD]">Type your first message below.</p>
               </div>
-            </>
+              <div className="flex-1 flex items-center justify-center p-4">
+                <textarea
+                  value={pendingMessage}
+                  onChange={(e) => setPendingMessage(e.target.value)}
+                  placeholder="Type your first message..."
+                  className="w-full max-w-md bg-[#0A0A0A] border border-[#A8A9AD]/20 px-3 py-2 text-sm text-white placeholder:text-[#A8A9AD] focus:border-[#C9A84C] focus:outline-none min-h-[100px]"
+                  autoFocus
+                />
+              </div>
+              <div className="p-3 border-t border-[#A8A9AD]/20 flex justify-end gap-2">
+                <button onClick={() => { setPendingUserId(null); setPendingUserName(null); setSearchParams({}); }} className="px-4 py-2 text-xs text-[#A8A9AD] hover:text-white">Cancel</button>
+                <button
+                  onClick={handleSendPending}
+                  disabled={!pendingMessage.trim() || sendingPending}
+                  className="flex items-center gap-2 bg-[#C9A84C] text-black px-4 py-2 text-xs font-bold uppercase tracking-wide hover:bg-[#E0C97A] disabled:opacity-50"
+                >
+                  {sendingPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Send
+                </button>
+              </div>
+            </div>
+          ) : selectedThread ? (
+            <ChatWindow
+              thread={selectedThread}
+              currentUser={user}
+              onMessageSent={loadThreads}
+              showNotes={showNotes}
+              onToggleNotes={() => setShowNotes(!showNotes)}
+            />
           ) : (
             <div className="flex-1 flex items-center justify-center text-[#A8A9AD]">
               <div className="text-center">
-                <MessageSquare size={48} className="mx-auto mb-4 opacity-50" />
+                <MessageSquare size={48} className="mx-auto mb-4 opacity-40" />
                 <p>Select a conversation to view messages</p>
+                <p className="text-xs mt-2">Or use "Message User" on a profile to start a new chat</p>
               </div>
             </div>
           )}
-        </Card>
+        </div>
+
+        {/* Internal notes panel */}
+        {showNotes && selectedThread && (
+          <div className="lg:col-span-3 xl:col-span-3">
+            <InternalNotesPanel
+              threadId={selectedThread.id}
+              currentUser={user}
+              notes={notes}
+              onRefresh={() => loadNotes(selectedThread.id)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

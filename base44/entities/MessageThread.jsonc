@@ -35,6 +35,34 @@
         "other"
       ],
       "default": "general"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "resolved",
+        "snoozed"
+      ],
+      "default": "open"
+    },
+    "assigned_admin_id": {
+      "type": "string"
+    },
+    "assigned_admin_name": {
+      "type": "string"
+    },
+    "dm_participant_id": {
+      "type": "string"
+    },
+    "dm_participant_name": {
+      "type": "string"
+    },
+    "last_message_preview": {
+      "type": "string"
+    },
+    "last_message_date": {
+      "type": "string",
+      "format": "date-time"
     }
   },
   "required": [

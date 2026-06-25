@@ -33,6 +33,14 @@
       ],
       "default": "in_app"
     },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "outbound",
+        "inbound"
+      ],
+      "default": "outbound"
+    },
     "subject": {
       "type": "string"
     },
@@ -43,6 +51,10 @@
     "read_date": {
       "type": "string",
       "format": "date-time"
+    },
+    "read_receipt": {
+      "type": "boolean",
+      "default": false
     }
   },
   "required": [

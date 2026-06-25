@@ -1,0 +1,45 @@
+{
+  "name": "InternalThreadNote",
+  "type": "object",
+  "properties": {
+    "thread_id": {
+      "type": "string"
+    },
+    "admin_id": {
+      "type": "string"
+    },
+    "admin_name": {
+      "type": "string"
+    },
+    "note_content": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "thread_id",
+    "admin_id",
+    "note_content"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

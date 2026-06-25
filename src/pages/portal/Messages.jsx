@@ -70,14 +70,20 @@ export default function Messages() {
     try {
       const threadMessages = await base44.entities.Message.filter({ thread_id: threadId }, "created_date");
       setMessages(threadMessages);
-      
-      const participant = (await base44.entities.ThreadParticipant.filter({ 
-        thread_id: threadId, 
-        user_id: currentUser.id 
+
+      const participant = (await base44.entities.ThreadParticipant.filter({
+        thread_id: threadId,
+        user_id: currentUser.id
       }))[0];
-      
+
       if (participant && participant.unread_count > 0) {
         await base44.entities.ThreadParticipant.update(participant.id, { unread_count: 0 });
+      }
+
+      // Mark admin outbound messages as read (read receipt) so admins see double checkmarks
+      const unreadFromAdmin = threadMessages.filter(m => m.sender_id !== currentUser.id && !m.read_receipt);
+      for (const m of unreadFromAdmin) {
+        await base44.entities.Message.update(m.id, { read_receipt: true, read_date: new Date().toISOString() });
       }
     } catch (error) {
       console.error("Error fetching messages:", error);
