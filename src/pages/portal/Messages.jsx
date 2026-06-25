@@ -54,7 +54,7 @@ export default function Messages() {
       const allThreads = await base44.entities.MessageThread.list("-updated_date");
       const participants = await base44.entities.ThreadParticipant.filter({ user_id: user.id });
       const participantThreadIds = participants.map(p => p.thread_id);
-      const userThreads = allThreads.filter(t => participantThreadIds.includes(t.id));
+      const userThreads = allThreads.filter(t => participantThreadIds.includes(t.id) && t.status !== "archived");
       setThreads(userThreads);
 
       if (user.family_id) {

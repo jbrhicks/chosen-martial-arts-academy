@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Send, Mail, Phone, Bell, StickyNote, Clock } from "lucide-react";
+import { Send, Mail, Phone, Bell, StickyNote, Clock, Archive, ArchiveRestore, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import MessageBubble from "@/components/messages/MessageBubble";
 import MessageMediaUploader from "@/components/messages/MessageMediaUploader";
 
-export default function ChatWindow({ thread, currentUser, onMessageSent, showNotes, onToggleNotes }) {
+export default function ChatWindow({ thread, currentUser, onMessageSent, showNotes, onToggleNotes, onArchive, onUnarchive, onDelete }) {
   const [messages, setMessages] = useState([]);
   const [reactions, setReactions] = useState([]);
   const [replyContent, setReplyContent] = useState("");
@@ -80,14 +80,40 @@ export default function ChatWindow({ thread, currentUser, onMessageSent, showNot
             </span>
           </div>
         </div>
-        <button
-          onClick={onToggleNotes}
-          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium tracking-wide transition-colors ${
-            showNotes ? "bg-yellow-400 text-black" : "border border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10"
-          }`}
-        >
-          <StickyNote size={14} /> Internal Notes
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onToggleNotes}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium tracking-wide transition-colors ${
+              showNotes ? "bg-yellow-400 text-black" : "border border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10"
+            }`}
+          >
+            <StickyNote size={14} /> Internal Notes
+          </button>
+          {thread.status === "archived" ? (
+            <button
+              onClick={() => onUnarchive(thread)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium tracking-wide border border-green-400/40 text-green-400 hover:bg-green-400/10 transition-colors"
+              title="Restore from archive"
+            >
+              <ArchiveRestore size={14} /> Restore
+            </button>
+          ) : (
+            <button
+              onClick={() => onArchive(thread)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium tracking-wide border border-[#A8A9AD]/40 text-[#A8A9AD] hover:text-white hover:border-white/60 transition-colors"
+              title="Archive this thread"
+            >
+              <Archive size={14} /> Archive
+            </button>
+          )}
+          <button
+            onClick={() => onDelete(thread)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium tracking-wide border border-red-400/40 text-red-400 hover:bg-red-400/10 transition-colors"
+            title="Delete this thread permanently"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
 
       {/* Messages */}

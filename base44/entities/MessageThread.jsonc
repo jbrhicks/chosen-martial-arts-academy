@@ -41,7 +41,8 @@
       "enum": [
         "open",
         "resolved",
-        "snoozed"
+        "snoozed",
+        "archived"
       ],
       "default": "open"
     },

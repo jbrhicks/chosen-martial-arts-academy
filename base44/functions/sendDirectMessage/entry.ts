@@ -17,6 +17,12 @@ Deno.serve(async (req) => {
     const existing = await base44.entities.MessageThread.filter({ type: 'dm', dm_participant_id: targetUserId });
     let thread = existing[0];
 
+    // Auto-restore archived thread when a new message is sent (e.g. student reactivated)
+    if (thread && thread.status === 'archived') {
+      await base44.entities.MessageThread.update(thread.id, { status: 'open' });
+      thread.status = 'open';
+    }
+
     if (!thread) {
       thread = await base44.entities.MessageThread.create({
         thread_name: `DM: ${targetUser.full_name}`,

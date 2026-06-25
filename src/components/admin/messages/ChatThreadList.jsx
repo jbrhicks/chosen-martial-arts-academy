@@ -77,7 +77,8 @@ export default function ChatThreadList({ threads, selectedThreadId, onSelect, se
                   </div>
                   {thread.status && thread.status !== "open" && (
                     <span className={`inline-block mt-1 text-[9px] uppercase tracking-wider px-1.5 py-0.5 ${
-                      thread.status === "resolved" ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"
+                      thread.status === "resolved" ? "bg-green-500/20 text-green-400" : 
+                      thread.status === "archived" ? "bg-blue-500/20 text-blue-400" : "bg-yellow-500/20 text-yellow-400"
                     }`}>
                       {thread.status}
                     </span>

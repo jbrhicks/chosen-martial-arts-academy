@@ -6,7 +6,7 @@ import ChatThreadList from "@/components/admin/messages/ChatThreadList";
 import ChatWindow from "@/components/admin/messages/ChatWindow";
 import InternalNotesPanel from "@/components/admin/messages/InternalNotesPanel";
 import NewMessageModal from "@/components/admin/messages/NewMessageModal";
-import { MessageSquare, Send, Loader2, Bell, Mail, Phone } from "lucide-react";
+import { MessageSquare, Send, Loader2, Bell, Mail, Phone, Archive, Inbox as InboxIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import MessageMediaUploader from "@/components/messages/MessageMediaUploader";
 
@@ -27,6 +27,7 @@ export default function AdminInbox() {
   const [pendingAttachments, setPendingAttachments] = useState([]);
   const [sendingPending, setSendingPending] = useState(false);
   const [showNewMessageModal, setShowNewMessageModal] = useState(false);
+  const [viewMode, setViewMode] = useState("active");
 
   const loadThreads = useCallback(async () => {
     try {
@@ -46,6 +47,52 @@ export default function AdminInbox() {
     } catch (e) { console.error(e); }
     setLoading(false);
   }, [user]);
+
+  const handleArchive = async (thread) => {
+    try {
+      await base44.entities.MessageThread.update(thread.id, { status: "archived" });
+      toast.success("Thread archived");
+      if (selectedThread?.id === thread.id) setSelectedThread(null);
+      loadThreads();
+    } catch (e) {
+      toast.error("Failed to archive: " + e.message);
+    }
+  };
+
+  const handleUnarchive = async (thread) => {
+    try {
+      await base44.entities.MessageThread.update(thread.id, { status: "open" });
+      toast.success("Thread restored");
+      loadThreads();
+    } catch (e) {
+      toast.error("Failed to restore: " + e.message);
+    }
+  };
+
+  const handleDeleteThread = async (thread) => {
+    if (!window.confirm(`Delete this conversation with ${thread.dm_participant_name || thread.thread_name}? This cannot be undone. A new thread will be created if you message this user again.`)) return;
+    try {
+      // Delete messages, participants, internal notes, and the thread itself
+      const threadMessages = await base44.entities.Message.filter({ thread_id: thread.id });
+      for (const m of threadMessages) {
+        await base44.entities.Message.delete(m.id);
+      }
+      const participants = await base44.entities.ThreadParticipant.filter({ thread_id: thread.id });
+      for (const p of participants) {
+        await base44.entities.ThreadParticipant.delete(p.id);
+      }
+      const notes = await base44.entities.InternalThreadNote.filter({ thread_id: thread.id });
+      for (const n of notes) {
+        await base44.entities.InternalThreadNote.delete(n.id);
+      }
+      await base44.entities.MessageThread.delete(thread.id);
+      toast.success("Thread deleted");
+      if (selectedThread?.id === thread.id) setSelectedThread(null);
+      loadThreads();
+    } catch (e) {
+      toast.error("Failed to delete: " + e.message);
+    }
+  };
 
   useEffect(() => { loadThreads(); }, [loadThreads]);
 
@@ -118,14 +165,32 @@ export default function AdminInbox() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 h-[calc(100vh-220px)] border border-[#A8A9AD]/20 bg-black">
         {/* Left: thread list */}
         <div className="lg:col-span-4 xl:col-span-3 border-r border-[#A8A9AD]/20 flex flex-col">
+          <div className="flex border-b border-[#A8A9AD]/20">
+            <button
+              onClick={() => setViewMode("active")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium uppercase tracking-wide transition-colors ${
+                viewMode === "active" ? "text-[#C9A84C] border-b-2 border-[#C9A84C]" : "text-[#A8A9AD] hover:text-white"
+              }`}
+            >
+              <InboxIcon size={13} /> Active
+            </button>
+            <button
+              onClick={() => setViewMode("archived")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium uppercase tracking-wide transition-colors ${
+                viewMode === "archived" ? "text-[#C9A84C] border-b-2 border-[#C9A84C]" : "text-[#A8A9AD] hover:text-white"
+              }`}
+            >
+              <Archive size={13} /> Archived
+            </button>
+          </div>
           <ChatThreadList
-            threads={threads}
+            threads={viewMode === "archived" ? threads.filter(t => t.status === "archived") : threads.filter(t => t.status !== "archived")}
             selectedThreadId={selectedThread?.id}
             onSelect={handleSelectThread}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             unreadMap={unreadMap}
-            onNewMessage={() => setShowNewMessageModal(true)}
+            onNewMessage={viewMode === "active" ? () => setShowNewMessageModal(true) : null}
           />
         </div>
 
@@ -191,6 +256,9 @@ export default function AdminInbox() {
               onMessageSent={loadThreads}
               showNotes={showNotes}
               onToggleNotes={() => setShowNotes(!showNotes)}
+              onArchive={handleArchive}
+              onUnarchive={handleUnarchive}
+              onDelete={handleDeleteThread}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center text-[#A8A9AD]">
