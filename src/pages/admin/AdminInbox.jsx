@@ -6,8 +6,9 @@ import ChatThreadList from "@/components/admin/messages/ChatThreadList";
 import ChatWindow from "@/components/admin/messages/ChatWindow";
 import InternalNotesPanel from "@/components/admin/messages/InternalNotesPanel";
 import NewMessageModal from "@/components/admin/messages/NewMessageModal";
-import { MessageSquare, Send, Loader2 } from "lucide-react";
+import { MessageSquare, Send, Loader2, Bell, Mail, Phone } from "lucide-react";
 import toast from "react-hot-toast";
+import MessageMediaUploader from "@/components/messages/MessageMediaUploader";
 
 export default function AdminInbox() {
   const { user } = useAuth();
@@ -22,6 +23,8 @@ export default function AdminInbox() {
   const [pendingUserId, setPendingUserId] = useState(searchParams.get("userId"));
   const [pendingUserName, setPendingUserName] = useState(searchParams.get("userName"));
   const [pendingMessage, setPendingMessage] = useState("");
+  const [pendingChannel, setPendingChannel] = useState("in_app");
+  const [pendingAttachments, setPendingAttachments] = useState([]);
   const [sendingPending, setSendingPending] = useState(false);
   const [showNewMessageModal, setShowNewMessageModal] = useState(false);
 
@@ -71,15 +74,17 @@ export default function AdminInbox() {
   };
 
   const handleSendPending = async () => {
-    if (!pendingMessage.trim() || !pendingUserId) return;
+    if ((!pendingMessage.trim() && pendingAttachments.length === 0) || !pendingUserId) return;
     setSendingPending(true);
     try {
       const res = await base44.functions.invoke("sendDirectMessage", {
         targetUserId: pendingUserId,
-        content: pendingMessage,
-        channel: "in_app"
+        content: pendingMessage || (pendingAttachments.length > 0 ? "📎 Attachment" : ""),
+        channel: pendingChannel,
+        mediaUrls: pendingAttachments.length > 0 ? pendingAttachments : undefined
       });
       setPendingMessage("");
+      setPendingAttachments([]);
       setPendingUserId(null);
       setPendingUserName(null);
       setSearchParams({});
@@ -141,15 +146,42 @@ export default function AdminInbox() {
                   autoFocus
                 />
               </div>
-              <div className="p-3 border-t border-[#A8A9AD]/20 flex justify-end gap-2">
-                <button onClick={() => { setPendingUserId(null); setPendingUserName(null); setSearchParams({}); }} className="px-4 py-2 text-xs text-[#A8A9AD] hover:text-white">Cancel</button>
-                <button
-                  onClick={handleSendPending}
-                  disabled={!pendingMessage.trim() || sendingPending}
-                  className="flex items-center gap-2 bg-[#C9A84C] text-black px-4 py-2 text-xs font-bold uppercase tracking-wide hover:bg-[#E0C97A] disabled:opacity-50"
-                >
-                  {sendingPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Send
-                </button>
+              <div className="p-3 border-t border-[#A8A9AD]/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[10px] text-[#A8A9AD] uppercase tracking-wider">Send via:</span>
+                  <div className="flex gap-1">
+                    {[
+                      { val: "in_app", label: "In-App", icon: Bell },
+                      { val: "sms", label: "SMS", icon: Phone },
+                      { val: "email", label: "Email", icon: Mail },
+                    ].map(c => {
+                      const Icon = c.icon;
+                      return (
+                        <button
+                          key={c.val}
+                          onClick={() => setPendingChannel(c.val)}
+                          className={`flex items-center gap-1 px-2.5 py-1 text-xs transition-colors ${
+                            pendingChannel === c.val ? "bg-[#C9A84C] text-black" : "border border-[#A8A9AD]/30 text-[#A8A9AD] hover:text-white"
+                          }`}
+                        >
+                          <Icon size={11} /> {c.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="flex items-end gap-2">
+                  <MessageMediaUploader attachments={pendingAttachments} onAttachmentsChange={setPendingAttachments} />
+                  <div className="flex-1" />
+                  <button onClick={() => { setPendingUserId(null); setPendingUserName(null); setSearchParams({}); }} className="px-4 py-2 text-xs text-[#A8A9AD] hover:text-white">Cancel</button>
+                  <button
+                    onClick={handleSendPending}
+                    disabled={(!pendingMessage.trim() && pendingAttachments.length === 0) || sendingPending}
+                    className="flex items-center gap-2 bg-[#C9A84C] text-black px-4 py-2 text-xs font-bold uppercase tracking-wide hover:bg-[#E0C97A] disabled:opacity-50"
+                  >
+                    {sendingPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Send
+                  </button>
+                </div>
               </div>
             </div>
           ) : selectedThread ? (

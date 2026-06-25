@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (user.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 });
 
-    const { targetUserId, content, channel = 'in_app' } = await req.json();
+    const { targetUserId, content, channel = 'in_app', mediaUrls } = await req.json();
     if (!targetUserId || !content) return Response.json({ error: 'targetUserId and content required' }, { status: 400 });
 
     const targetUser = await base44.entities.User.get(targetUserId);
@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     }
 
     // Create the outbound message
-    const message = await base44.entities.Message.create({
+    const messageData = {
       thread_id: thread.id,
       sender_id: user.id,
       sender_name: user.full_name,
@@ -62,7 +62,11 @@ Deno.serve(async (req) => {
       channel_used: channel,
       direction: 'outbound',
       subject: thread.thread_name || null
-    });
+    };
+    if (mediaUrls && mediaUrls.length > 0) {
+      messageData.media_urls = JSON.stringify(mediaUrls);
+    }
+    const message = await base44.entities.Message.create(messageData);
 
     // Update thread preview
     await base44.entities.MessageThread.update(thread.id, {
