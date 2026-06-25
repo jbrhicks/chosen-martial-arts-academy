@@ -3,9 +3,9 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useFamily } from "@/lib/FamilyContext";
 import { DAYS_OF_WEEK, BELT_RANKS, getRankIndex, formatTime } from "@/lib/constants";
-import { classOccursOnDate, getScheduleBadge, getSeriesCountdown, getNextOccurrence, isClassCancelledOnDate } from "@/lib/scheduleUtils";
+import { classOccursOnDate, getScheduleBadge, getSeriesCountdown, getNextOccurrence, isClassCancelledOnDate, getActiveBlackout } from "@/lib/scheduleUtils";
 import PortalClassCard, { getProgramColor } from "@/components/portal/schedule/PortalClassCard";
-import { Loader2, CalendarDays, Clock, ChevronRight, ChevronLeft, Filter } from "lucide-react";
+import { Loader2, CalendarDays, Clock, ChevronRight, ChevronLeft, Filter, AlertCircle } from "lucide-react";
 
 const BELT_LEVEL_MIN_RANK = {
   "All Belts": 0,
@@ -23,6 +23,7 @@ export default function Schedule() {
   const [enrollments, setEnrollments] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [cancellations, setCancellations] = useState([]);
+  const [blackouts, setBlackouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [programFilter, setProgramFilter] = useState("all");
   const [weekOffset, setWeekOffset] = useState(0);
@@ -32,18 +33,20 @@ export default function Schedule() {
 
   useEffect(() => {
     const load = async () => {
-      const [allClasses, allCustomDates, enrolls, allPrograms, allCancellations] = await Promise.all([
+      const [allClasses, allCustomDates, enrolls, allPrograms, allCancellations, allBlackouts] = await Promise.all([
         base44.entities.ClassSchedule.list().catch(() => []),
         base44.entities.ClassCustomDate.list().catch(() => []),
         base44.entities.Enrollment.filter({ user_id: profile?.id || user?.id, status: "active" }).catch(() => []),
         base44.entities.Program.list().catch(() => []),
         base44.entities.ClassCancellation.list().catch(() => []),
+        base44.entities.BlackoutDate.list().catch(() => []),
       ]);
       setClasses(allClasses.filter(c => c.is_active !== false));
       setCustomDates(allCustomDates);
       setEnrollments(enrolls);
       setPrograms(allPrograms);
       setCancellations(allCancellations);
+      setBlackouts(allBlackouts);
       setLoading(false);
     };
     load();
@@ -148,6 +151,8 @@ export default function Schedule() {
     return best ? { cls: best, date: bestDate } : null;
   }, [classes, programFilter, customDates, userRankIndex, cancellations]);
 
+  const activeBlackout = getActiveBlackout(new Date(), blackouts);
+
   if (loading) return <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-[#C9A84C]" /></div>;
 
   return (
@@ -157,6 +162,16 @@ export default function Schedule() {
         <h1 className="text-3xl font-bold mb-2">My Schedule</h1>
         <p className="text-sm text-[#A8A9AD]">{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</p>
       </div>
+
+      {activeBlackout && (
+        <div className="border border-red-500/30 bg-red-500/5 p-4 flex items-center gap-3">
+          <AlertCircle size={18} className="text-red-400 shrink-0" />
+          <div>
+            <p className="text-sm font-bold text-red-400">Academy Closed: {activeBlackout.public_message}</p>
+            <p className="text-xs text-[#A8A9AD]">{new Date(activeBlackout.start_date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })} through {new Date(activeBlackout.end_date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })}</p>
+          </div>
+        </div>
+      )}
 
       {nextClass && (
         <div className="border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-5 flex items-center gap-4">

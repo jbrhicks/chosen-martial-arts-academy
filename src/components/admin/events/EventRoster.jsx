@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Users, CheckCircle, XCircle, Clock, Search, Mail, Trash2, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, CheckCircle, XCircle, Clock, Search, Mail, Trash2, Loader2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,6 +28,9 @@ export default function EventRoster({ event, onClose }) {
   const [processing, setProcessing] = useState(false);
   const [expandedReg, setExpandedReg] = useState(null);
   const [customAnswers, setCustomAnswers] = useState({});
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newAttendee, setNewAttendee] = useState({ student_name: "", user_name: "", user_email: "" });
+  const [adding, setAdding] = useState(false);
 
   const load = async () => {
     try {
@@ -86,6 +89,33 @@ export default function EventRoster({ event, onClose }) {
     } catch (e) {
       alert("Failed to refund: " + e.message);
     }
+  };
+
+  const handleAddAttendee = async () => {
+    if (!newAttendee.student_name || !newAttendee.user_email) return;
+    setAdding(true);
+    try {
+      const ticketHash = `${event.id}-admin-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      await base44.entities.EventRegistration.create({
+        event_id: event.id,
+        event_title: event.title,
+        event_date: event.start_date,
+        user_id: null,
+        user_name: newAttendee.user_name || newAttendee.student_name,
+        user_email: newAttendee.user_email,
+        student_name: newAttendee.student_name,
+        payment_status: "paid",
+        amount_paid: 0,
+        registration_date: new Date().toISOString(),
+        status: "registered",
+        is_guest: true,
+        ticket_qr_hash: ticketHash,
+      });
+      setNewAttendee({ student_name: "", user_name: "", user_email: "" });
+      setShowAddModal(false);
+      load();
+    } catch (e) { alert("Failed to add attendee: " + e.message); }
+    setAdding(false);
   };
 
   const handlePromoteFromWaitlist = async () => {
@@ -173,6 +203,9 @@ export default function EventRoster({ event, onClose }) {
                 className="pl-10 bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white"
               />
             </div>
+            <Button onClick={() => setShowAddModal(true)} size="sm" className="bg-[#C9A84C] text-black hover:bg-[#E0C97A] whitespace-nowrap">
+              <Plus size={14} className="mr-1" /> Add Attendee
+            </Button>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white w-40">
                 <SelectValue />
@@ -286,6 +319,26 @@ export default function EventRoster({ event, onClose }) {
                 <Button onClick={() => setShowWaitlistModal(false)} variant="outline" className="border-[#A8A9AD]/30 text-[#A8A9AD]">
                   Cancel
                 </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showAddModal && (
+          <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4" onClick={() => setShowAddModal(false)}>
+            <div className="w-full max-w-md border border-[#C9A84C]/30 bg-[#0A0A0A] p-6" onClick={e => e.stopPropagation()}>
+              <h3 className="text-lg font-bold mb-1">Add Attendee (Override)</h3>
+              <p className="text-xs text-[#A8A9AD] mb-4">Manually add someone to the roster, bypassing capacity limits.</p>
+              <div className="space-y-3 mb-4">
+                <Input value={newAttendee.student_name} onChange={e => setNewAttendee({ ...newAttendee, student_name: e.target.value })} placeholder="Student name *" className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white" />
+                <Input value={newAttendee.user_name} onChange={e => setNewAttendee({ ...newAttendee, user_name: e.target.value })} placeholder="Parent/Guardian name" className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white" />
+                <Input value={newAttendee.user_email} onChange={e => setNewAttendee({ ...newAttendee, user_email: e.target.value })} placeholder="Email *" className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white" />
+              </div>
+              <div className="flex gap-3">
+                <Button onClick={handleAddAttendee} disabled={adding || !newAttendee.student_name || !newAttendee.user_email} className="flex-1 bg-[#C9A84C] text-black hover:bg-[#E0C97A]">
+                  {adding ? <Loader2 size={16} className="animate-spin" /> : "Add to Roster"}
+                </Button>
+                <Button onClick={() => setShowAddModal(false)} variant="outline" className="border-[#A8A9AD]/30 text-[#A8A9AD]">Cancel</Button>
               </div>
             </div>
           </div>

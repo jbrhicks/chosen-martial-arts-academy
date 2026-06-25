@@ -25,6 +25,7 @@ export default function TrialBooking() {
   const [selectedDate, setSelectedDate] = useState("");
   const [booking, setBooking] = useState(false);
   const [booked, setBooked] = useState(false);
+  const [studentAge, setStudentAge] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -38,6 +39,14 @@ export default function TrialBooking() {
     };
     load();
   }, []);
+
+  const ageFilteredClasses = classes.filter(cls => {
+    if (!studentAge) return true;
+    const age = parseInt(studentAge);
+    if (cls.min_age > 0 && age < cls.min_age) return false;
+    if (cls.max_age > 0 && age > cls.max_age) return false;
+    return true;
+  });
 
   const handleSelectClass = (cls) => {
     setSelectedClass(cls);
@@ -102,15 +111,28 @@ export default function TrialBooking() {
           </div>
         )}
 
-        {classes.length === 0 ? (
+        <div className="border border-[#A8A9AD]/20 p-4 mb-6">
+          <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Student Age</label>
+          <input
+            type="number"
+            value={studentAge}
+            onChange={e => setStudentAge(e.target.value)}
+            placeholder="Enter student's age to see eligible classes"
+            min="3"
+            max="99"
+            className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none"
+          />
+        </div>
+
+        {ageFilteredClasses.length === 0 ? (
           <div className="text-center py-16 text-[#A8A9AD]">
             <Calendar size={32} className="mx-auto mb-3 opacity-40" />
-            <p>No trial-eligible classes available right now. Please call us at (555) 123-4567.</p>
+            <p>{studentAge ? `No trial-eligible classes for age ${studentAge}. Please call us at (555) 123-4567.` : "No trial-eligible classes available right now. Please call us at (555) 123-4567."}</p>
           </div>
         ) : (
           <>
             <div className="space-y-3 mb-8">
-              {classes.map(cls => (
+              {ageFilteredClasses.map(cls => (
                 <button
                   key={cls.id}
                   onClick={() => handleSelectClass(cls)}
@@ -123,6 +145,7 @@ export default function TrialBooking() {
                         <span className="flex items-center gap-1"><Calendar size={12} /> {cls.day_of_week}</span>
                         <span className="flex items-center gap-1"><Clock size={12} /> {cls.start_time}{cls.end_time ? ` – ${cls.end_time}` : ""}</span>
                         {cls.instructor && <span className="flex items-center gap-1"><User size={12} /> {cls.instructor}</span>}
+                        {(cls.min_age > 0 || cls.max_age > 0) && <span className="text-[#C9A84C]">{cls.min_age > 0 && cls.max_age > 0 ? `Ages ${cls.min_age}-${cls.max_age}` : cls.min_age > 0 ? `Ages ${cls.min_age}+` : `Under ${cls.max_age}`}</span>}
                       </div>
                     </div>
                     {selectedClass?.id === cls.id && <CheckCircle size={20} className="text-[#C9A84C]" />}
@@ -143,7 +166,7 @@ export default function TrialBooking() {
                 />
                 <button
                   onClick={handleBook}
-                  disabled={booking || !selectedDate || !leadId}
+                  disabled={booking || !selectedDate || !leadId || (studentAge && (() => { const age = parseInt(studentAge); return (selectedClass.min_age > 0 && age < selectedClass.min_age) || (selectedClass.max_age > 0 && age > selectedClass.max_age); })())}
                   className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-4 hover:bg-[#E0C97A] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {booking ? <><Loader2 size={18} className="animate-spin" /> Booking...</> : <>Confirm Trial Booking <ChevronRight size={18} /></>}

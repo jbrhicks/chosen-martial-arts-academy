@@ -5,7 +5,7 @@ import QRScanner from "@/components/kiosk/QRScanner";
 import PinPad from "@/components/kiosk/PinPad";
 import CheckInSuccess from "@/components/kiosk/CheckInSuccess";
 import Logo from "@/components/Logo";
-import { classOccursOnDate, getNextOccurrence, isClassCancelledOnDate } from "@/lib/scheduleUtils";
+import { classOccursOnDate, getNextOccurrence, isClassCancelledOnDate, getActiveBlackout } from "@/lib/scheduleUtils";
 
 export default function Kiosk() {
   const [users, setUsers] = useState([]);
@@ -22,6 +22,7 @@ export default function Kiosk() {
   const [dropInProcessing, setDropInProcessing] = useState(false);
   const [customDates, setCustomDates] = useState([]);
   const [cancellations, setCancellations] = useState([]);
+  const [blackouts, setBlackouts] = useState([]);
   const [offWeekAlert, setOffWeekAlert] = useState(null);
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
@@ -30,20 +31,23 @@ export default function Kiosk() {
   const occursToday = (cls) => classOccursOnDate(cls, todayDate, customDates);
   const isCancelledToday = (cls) => isClassCancelledOnDate(cls, todayDate, cancellations);
   const todayClasses = classes.filter(cls => (cls.day_of_week === today || (cls.schedule_type === "Custom-Dates" && occursToday(cls))) && !isCancelledToday(cls));
+  const activeBlackout = getActiveBlackout(todayDate, blackouts);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [u, c, cd, cancels] = await Promise.all([
+        const [u, c, cd, cancels, bl] = await Promise.all([
           base44.entities.User.list(),
           base44.entities.ClassSchedule.filter({ is_active: true }),
           base44.entities.ClassCustomDate.list().catch(() => []),
           base44.entities.ClassCancellation.list().catch(() => []),
+          base44.entities.BlackoutDate.list().catch(() => []),
         ]);
         setUsers(u);
         setClasses(c);
         setCustomDates(cd);
         setCancellations(cancels);
+        setBlackouts(bl);
       } catch (e) { console.error(e); }
       setLoading(false);
     };
@@ -238,6 +242,13 @@ export default function Kiosk() {
         </div>
         <p className="text-sm text-[#A8A9AD] mt-3">{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</p>
       </div>
+
+      {activeBlackout && (
+        <div className="bg-red-500/10 border-b border-red-500/30 p-4 text-center">
+          <p className="text-sm font-bold text-red-400">{activeBlackout.public_message}</p>
+          <p className="text-xs text-[#A8A9AD] mt-1">The academy is closed today. No classes are in session.</p>
+        </div>
+      )}
 
       <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
         <div className="w-full max-w-lg space-y-8">
