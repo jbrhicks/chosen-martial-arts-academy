@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { X, Calendar, DollarSign, Loader2 } from "lucide-react";
+import { X, Calendar, Loader2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,9 +26,12 @@ export default function GuestRegistrationModal({ event, onClose, onRegistered })
   });
   const [answers, setAnswers] = useState({});
   const [customFields, setCustomFields] = useState([]);
+  const [waiver, setWaiver] = useState(null);
+  const [waiverAgreed, setWaiverAgreed] = useState(false);
 
   useEffect(() => {
     loadCustomFields();
+    loadWaiver();
   }, [event.id]);
 
   const loadCustomFields = async () => {
@@ -36,9 +39,15 @@ export default function GuestRegistrationModal({ event, onClose, onRegistered })
       const fields = await base44.entities.EventCustomField.filter({ event_id: event.id });
       fields.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
       setCustomFields(fields);
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
+  };
+
+  const loadWaiver = async () => {
+    if (!event.linked_waiver_id) return;
+    try {
+      const w = await base44.entities.Waiver.get(event.linked_waiver_id);
+      setWaiver(w);
+    } catch (e) { console.error(e); }
   };
 
   const handleChange = (field, value) => {
@@ -53,14 +62,25 @@ export default function GuestRegistrationModal({ event, onClose, onRegistered })
 
     const requiredFields = customFields.filter(f => f.is_required);
     for (const field of requiredFields) {
-      if (!answers[field.id] || answers[field.id].trim() === "") {
+      if (!answers[field.id] || (typeof answers[field.id] === "string" && answers[field.id].trim() === "")) {
         alert(`Please answer: ${field.question_text}`);
         return;
       }
     }
 
+    if (waiver && !waiverAgreed) {
+      alert("Please review and agree to the waiver before registering.");
+      return;
+    }
+
     setLoading(true);
     try {
+      const existingRegs = await base44.entities.EventRegistration.filter({ event_id: event.id });
+      const activeCount = existingRegs.filter(r => r.status === "registered" || r.status === "checked-in").length;
+      const waitlistCount = existingRegs.filter(r => r.status === "waitlisted").length;
+      const isFull = event.max_capacity > 0 && activeCount >= event.max_capacity;
+      const ticketHash = `${event.id}-guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
       const registration = await base44.entities.EventRegistration.create({
         event_id: event.id,
         event_title: event.title,
@@ -75,17 +95,20 @@ export default function GuestRegistrationModal({ event, onClose, onRegistered })
         payment_status: event.price > 0 ? "pending" : "paid",
         amount_paid: event.price,
         registration_date: new Date().toISOString(),
-        status: "registered",
+        status: isFull ? "waitlisted" : "registered",
+        waitlist_position: isFull ? waitlistCount + 1 : null,
         is_guest: true,
+        ticket_qr_hash: ticketHash,
       });
 
       for (const field of customFields) {
         if (answers[field.id]) {
+          const answerValue = Array.isArray(answers[field.id]) ? answers[field.id].join(", ") : answers[field.id];
           await base44.entities.EventRegistrationAnswer.create({
             registration_id: registration.id,
             field_id: field.id,
             question_text: field.question_text,
-            answer_value: answers[field.id],
+            answer_value: answerValue,
           });
         }
       }
@@ -93,7 +116,7 @@ export default function GuestRegistrationModal({ event, onClose, onRegistered })
       await base44.integrations.Core.SendEmail({
         to: formData.email,
         subject: `Event Registration: ${event.title}`,
-        body: `Hi ${formData.parent_name},\n\nThank you for registering for ${event.title}!\n\nStudent: ${formData.student_name}\nDate: ${new Date(event.start_date).toLocaleDateString()}\nLocation: ${event.location || "TBA"}\nAmount: $${event.price}\n\nWe look forward to seeing you there!\n\n- Chosen Martial Arts Academy`,
+        body: `Hi ${formData.parent_name},\n\nThank you for registering for ${event.title}!\n\nStudent: ${formData.student_name}\nDate: ${new Date(event.start_date).toLocaleDateString()}\nLocation: ${event.location || "TBA"}\nAmount: $${event.price}${isFull ? "\n\nYou have been added to the waitlist. We'll notify you if a spot opens up." : ""}${event.what_to_bring ? `\n\nWhat to bring: ${event.what_to_bring}` : ""}\n\nWe look forward to seeing you there!\n\n- Chosen Martial Arts Academy`,
       });
 
       onRegistered();
@@ -122,87 +145,44 @@ export default function GuestRegistrationModal({ event, onClose, onRegistered })
 
           <div>
             <Label className="text-[#A8A9AD] text-xs tracking-widest uppercase">Student Name *</Label>
-            <Input
-              value={formData.student_name}
-              onChange={(e) => handleChange("student_name", e.target.value)}
-              className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1"
-              placeholder="Student's full name"
-            />
+            <Input value={formData.student_name} onChange={(e) => handleChange("student_name", e.target.value)} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1" placeholder="Student's full name" />
           </div>
 
           <div>
             <Label className="text-[#A8A9AD] text-xs tracking-widest uppercase">Parent/Guardian Name *</Label>
-            <Input
-              value={formData.parent_name}
-              onChange={(e) => handleChange("parent_name", e.target.value)}
-              className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1"
-              placeholder="Your full name"
-            />
+            <Input value={formData.parent_name} onChange={(e) => handleChange("parent_name", e.target.value)} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1" placeholder="Your full name" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-[#A8A9AD] text-xs tracking-widest uppercase">Email *</Label>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1"
-                placeholder="your@email.com"
-              />
+              <Input type="email" value={formData.email} onChange={(e) => handleChange("email", e.target.value)} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1" placeholder="your@email.com" />
             </div>
             <div>
               <Label className="text-[#A8A9AD] text-xs tracking-widest uppercase">Phone *</Label>
-              <Input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => handleChange("phone", e.target.value)}
-                className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1"
-                placeholder="(555) 123-4567"
-              />
+              <Input type="tel" value={formData.phone} onChange={(e) => handleChange("phone", e.target.value)} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1" placeholder="(555) 123-4567" />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-[#A8A9AD] text-xs tracking-widest uppercase">Belt Rank (Optional)</Label>
-              <Input
-                value={formData.belt_rank}
-                onChange={(e) => handleChange("belt_rank", e.target.value)}
-                className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1"
-                placeholder="e.g., White Belt"
-              />
+              <Input value={formData.belt_rank} onChange={(e) => handleChange("belt_rank", e.target.value)} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1" placeholder="e.g., White Belt" />
             </div>
             <div>
               <Label className="text-[#A8A9AD] text-xs tracking-widest uppercase">Age (Optional)</Label>
-              <Input
-                type="number"
-                value={formData.age}
-                onChange={(e) => handleChange("age", e.target.value)}
-                className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1"
-                placeholder="Age"
-              />
+              <Input type="number" value={formData.age} onChange={(e) => handleChange("age", e.target.value)} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1" placeholder="Age" />
             </div>
           </div>
 
           <div>
             <Label className="text-[#A8A9AD] text-xs tracking-widest uppercase">Emergency Contact Name</Label>
-            <Input
-              value={formData.emergency_contact}
-              onChange={(e) => handleChange("emergency_contact", e.target.value)}
-              className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1"
-              placeholder="Emergency contact name"
-            />
+            <Input value={formData.emergency_contact} onChange={(e) => handleChange("emergency_contact", e.target.value)} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1" placeholder="Emergency contact name" />
           </div>
 
           <div>
             <Label className="text-[#A8A9AD] text-xs tracking-widest uppercase">Emergency Contact Phone</Label>
-            <Input
-              value={formData.emergency_phone}
-              onChange={(e) => handleChange("emergency_phone", e.target.value)}
-              className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1"
-              placeholder="Emergency contact phone"
-            />
+            <Input value={formData.emergency_phone} onChange={(e) => handleChange("emergency_phone", e.target.value)} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1" placeholder="Emergency contact phone" />
           </div>
 
           {customFields.length > 0 && (
@@ -210,49 +190,45 @@ export default function GuestRegistrationModal({ event, onClose, onRegistered })
               <Label className="text-[#A8A9AD] text-xs tracking-widest uppercase">Additional Information</Label>
               {customFields.map((field) => (
                 <div key={field.id}>
-                  <Label className="text-[#A8A9AD] text-xs">
-                    {field.question_text} {field.is_required && <span className="text-red-400">*</span>}
-                  </Label>
+                  <Label className="text-[#A8A9AD] text-xs">{field.question_text} {field.is_required && <span className="text-red-400">*</span>}</Label>
                   {field.field_type === "textarea" ? (
-                    <Textarea
-                      value={answers[field.id] || ""}
-                      onChange={(e) => setAnswers({ ...answers, [field.id]: e.target.value })}
-                      className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1"
-                      rows={3}
-                    />
+                    <Textarea value={answers[field.id] || ""} onChange={(e) => setAnswers({ ...answers, [field.id]: e.target.value })} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1" rows={3} />
                   ) : field.field_type === "dropdown" ? (
-                    <select
-                      value={answers[field.id] || ""}
-                      onChange={(e) => setAnswers({ ...answers, [field.id]: e.target.value })}
-                      className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1 px-3 py-2 rounded-md"
-                    >
+                    <select value={answers[field.id] || ""} onChange={(e) => setAnswers({ ...answers, [field.id]: e.target.value })} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1 px-3 py-2 rounded-md">
                       <option value="">Select...</option>
-                      {field.dropdown_options?.split(",").map((opt, i) => (
-                        <option key={i} value={opt.trim()}>
-                          {opt.trim()}
-                        </option>
-                      ))}
+                      {field.dropdown_options?.split(",").map((opt, i) => <option key={i} value={opt.trim()}>{opt.trim()}</option>)}
                     </select>
                   ) : field.field_type === "checkbox" ? (
                     <label className="flex items-center gap-2 mt-1">
-                      <input
-                        type="checkbox"
-                        checked={answers[field.id] === "yes"}
-                        onChange={(e) => setAnswers({ ...answers, [field.id]: e.target.checked ? "yes" : "no" })}
-                        className="rounded"
-                      />
+                      <input type="checkbox" checked={answers[field.id] === "yes"} onChange={(e) => setAnswers({ ...answers, [field.id]: e.target.checked ? "yes" : "no" })} className="rounded" />
                       <span className="text-sm text-white">Yes</span>
                     </label>
                   ) : (
-                    <Input
-                      value={answers[field.id] || ""}
-                      onChange={(e) => setAnswers({ ...answers, [field.id]: e.target.value })}
-                      className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1"
-                      placeholder="Your answer"
-                    />
+                    <Input value={answers[field.id] || ""} onChange={(e) => setAnswers({ ...answers, [field.id]: e.target.value })} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white mt-1" placeholder="Your answer" />
                   )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {waiver && (
+            <div className="border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText size={16} className="text-[#C9A84C]" />
+                <p className="text-sm font-bold text-white">{waiver.waiver_name}</p>
+              </div>
+              <div className="max-h-32 overflow-y-auto text-xs text-[#A8A9AD] mb-3 p-2 bg-black/30 whitespace-pre-wrap">{waiver.body_text}</div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={waiverAgreed} onChange={(e) => setWaiverAgreed(e.target.checked)} className="accent-[#C9A84C] w-4 h-4" />
+                <span className="text-sm text-white">I have read and agree to the waiver above</span>
+              </label>
+            </div>
+          )}
+
+          {event.what_to_bring && (
+            <div className="border border-[#A8A9AD]/20 p-3">
+              <p className="text-xs tracking-widest uppercase text-[#C9A84C] mb-1">What to Bring</p>
+              <p className="text-sm text-[#A8A9AD]">{event.what_to_bring}</p>
             </div>
           )}
 
@@ -267,20 +243,10 @@ export default function GuestRegistrationModal({ event, onClose, onRegistered })
           )}
 
           <div className="flex gap-3 pt-4">
-            <Button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="flex-1 bg-[#C9A84C] text-black hover:bg-[#E0C97A]"
-            >
+            <Button onClick={handleSubmit} disabled={loading || (waiver && !waiverAgreed)} className="flex-1 bg-[#C9A84C] text-black hover:bg-[#E0C97A]">
               {loading ? <Loader2 size={16} className="animate-spin" /> : "Complete Registration"}
             </Button>
-            <Button
-              onClick={onClose}
-              variant="outline"
-              className="border-[#A8A9AD]/30 text-[#A8A9AD]"
-            >
-              <X size={16} />
-            </Button>
+            <Button onClick={onClose} variant="outline" className="border-[#A8A9AD]/30 text-[#A8A9AD]"><X size={16} /></Button>
           </div>
         </div>
       </DialogContent>
