@@ -1,0 +1,56 @@
+{
+  "name": "MessageTemplate",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "message_body": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Weather",
+        "Billing",
+        "Events",
+        "Schedule",
+        "Holiday",
+        "General"
+      ],
+      "default": "General"
+    },
+    "created_by_id": {
+      "type": "string"
+    },
+    "created_by_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "message_body"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

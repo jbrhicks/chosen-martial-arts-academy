@@ -66,6 +66,18 @@
     "target_user_ids": {
       "type": "string"
     },
+    "exclude_event_id": {
+      "type": "string"
+    },
+    "exclude_event_title": {
+      "type": "string"
+    },
+    "exclude_program_id": {
+      "type": "string"
+    },
+    "min_belt_rank": {
+      "type": "string"
+    },
     "created_by_id": {
       "type": "string"
     },
@@ -107,6 +119,10 @@
       "default": 0
     },
     "in_app_sent_count": {
+      "type": "number",
+      "default": 0
+    },
+    "bounce_count": {
       "type": "number",
       "default": 0
     }

@@ -21,8 +21,36 @@ export default function AdminInbox() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadUser();
-    fetchThreads();
+    const init = async () => {
+      try {
+        const user = await base44.auth.me();
+        setCurrentUser(user);
+        const allThreads = await base44.entities.MessageThread.list("-updated_date");
+        if (user.role === 'admin') {
+          const allParticipants = await base44.entities.ThreadParticipant.list();
+          const participantMap = {};
+          allParticipants.forEach(p => {
+            if (!participantMap[p.thread_id]) participantMap[p.thread_id] = [];
+            participantMap[p.thread_id].push(p);
+          });
+          const threadsWithParticipants = allThreads.map(t => ({
+            ...t,
+            otherParticipant: (participantMap[t.id] || []).find(p => p.user_id !== user.id),
+          }));
+          setThreads(threadsWithParticipants);
+        } else {
+          const participants = await base44.entities.ThreadParticipant.filter({ user_id: user.id });
+          const participantThreadIds = participants.map(p => p.thread_id);
+          const userThreads = allThreads.filter(t => participantThreadIds.includes(t.id));
+          setThreads(userThreads);
+        }
+      } catch (error) {
+        console.error("Error fetching threads:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
   }, []);
 
   useEffect(() => {
@@ -37,24 +65,7 @@ export default function AdminInbox() {
     }
   }, [selectedThread]);
 
-  const loadUser = async () => {
-    const user = await base44.auth.me();
-    setCurrentUser(user);
-  };
-
-  const fetchThreads = async () => {
-    try {
-      const allThreads = await base44.entities.MessageThread.list("-updated_date");
-      const participants = await base44.entities.ThreadParticipant.filter({ user_id: currentUser.id });
-      const participantThreadIds = participants.map(p => p.thread_id);
-      const userThreads = allThreads.filter(t => participantThreadIds.includes(t.id));
-      setThreads(userThreads);
-    } catch (error) {
-      console.error("Error fetching threads:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Thread loading is handled in the useEffect above
 
   const fetchMessages = async (threadId) => {
     try {
@@ -162,7 +173,7 @@ export default function AdminInbox() {
                       <div className="flex items-center gap-2">
                         <User size={16} className="text-[#A8A9AD]" />
                         <span className="font-medium text-white truncate">
-                          {thread.thread_name || "Untitled"}
+                          {thread.otherParticipant?.user_name || thread.thread_name || "Untitled"}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-1">
@@ -191,7 +202,7 @@ export default function AdminInbox() {
                   <div className="flex items-center gap-3">
                     <User size={20} className="text-[#C9A84C]" />
                     <div>
-                      <span>{selectedThread.thread_name || "Conversation"}</span>
+                      <span>{selectedThread.otherParticipant?.user_name || selectedThread.thread_name || "Conversation"}</span>
                       {selectedThread.support_category && (
                         <span className="ml-2 text-xs text-[#A8A9AD]">
                           ({selectedThread.support_category})
