@@ -27,7 +27,7 @@ export default function MessageMediaUploader({ attachments, onAttachmentsChange 
   const isVideo = (url) => /\.(mp4|mov|webm|ogg)(\?|$)/i.test(url);
 
   return (
-    <div>
+    <div className="flex flex-col">
       <input
         ref={fileRef}
         type="file"
@@ -40,7 +40,7 @@ export default function MessageMediaUploader({ attachments, onAttachmentsChange 
         type="button"
         onClick={() => fileRef.current?.click()}
         disabled={uploading}
-        className="text-[#A8A9AD] hover:text-[#C9A84C] transition-colors p-1"
+        className="flex items-center justify-center w-10 h-10 border border-[#A8A9AD]/30 bg-[#0A0A0A] text-[#A8A9AD] hover:text-[#C9A84C] hover:border-[#C9A84C]/50 transition-colors rounded"
         title="Attach photo or video"
       >
         {uploading ? <Loader2 size={18} className="animate-spin" /> : <Paperclip size={18} />}
