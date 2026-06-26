@@ -269,7 +269,7 @@ export default function EventCreatorWizard({ onClose, onEventCreated }) {
                     type="datetime-local"
                     value={formData.start_date}
                     onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                    className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white"
+                    className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white datetime-picker-dark"
                   />
                 </div>
                 <div>
@@ -278,7 +278,7 @@ export default function EventCreatorWizard({ onClose, onEventCreated }) {
                     type="datetime-local"
                     value={formData.end_date}
                     onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                    className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white"
+                    className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white datetime-picker-dark"
                   />
                 </div>
               </div>
@@ -336,7 +336,7 @@ export default function EventCreatorWizard({ onClose, onEventCreated }) {
                     type="date"
                     value={formData.early_bird_deadline}
                     onChange={(e) => setFormData({ ...formData, early_bird_deadline: e.target.value })}
-                    className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white"
+                    className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-white datetime-picker-dark"
                   />
                 </div>
               </div>
@@ -451,7 +451,7 @@ export default function EventCreatorWizard({ onClose, onEventCreated }) {
                               updated[idx].date = e.target.value;
                               setScheduleItems(updated);
                             }}
-                            className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-xs"
+                            className="bg-[#0A0A0A] border border-[#A8A9AD]/30 text-xs datetime-picker-dark"
                             placeholder="Date"
                           />
                           <Input
