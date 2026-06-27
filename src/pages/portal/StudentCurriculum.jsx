@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useFamily } from "@/lib/FamilyContext";
-import StudentHandbook from "@/components/portal/curriculum/StudentHandbook";
+import TrainingVault from "@/components/portal/curriculum/TrainingVault";
+import ProgressTracker from "@/components/portal/curriculum/ProgressTracker";
 import JourneyMap from "@/components/portal/curriculum/JourneyMap";
 import FeedbackInbox from "@/components/portal/curriculum/FeedbackInbox";
 import { Loader2, BookOpen, Map, MessageSquare } from "lucide-react";
@@ -21,7 +22,9 @@ export default function StudentCurriculum() {
   const [progress, setProgress] = useState([]);
   const [stripes, setStripes] = useState([]);
   const [criteriaByBelt, setCriteriaByBelt] = useState({});
+  const [categoriesByBelt, setCategoriesByBelt] = useState({});
   const [stripesByBelt, setStripesByBelt] = useState({});
+  const [enrollmentDate, setEnrollmentDate] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const profile = activeProfile || user;
@@ -34,6 +37,7 @@ export default function StudentCurriculum() {
         const allEnrollments = await base44.entities.Enrollment.filter({ user_email: profile.email }).catch(() => []);
         const studentEnrollments = [...enrollments, ...allEnrollments];
         const programId = studentEnrollments[0]?.program_id;
+        setEnrollmentDate(studentEnrollments[0]?.start_date);
         const programs = await base44.entities.Program.list().catch(() => []);
         const fallbackProgramId = programId || programs[0]?.id;
 
@@ -53,6 +57,13 @@ export default function StudentCurriculum() {
         const allCrit = [];
         allBelts.forEach((b, i) => { criteriaByBelt[b.id] = criteriaResults[i]; allCrit.push(...criteriaResults[i]); });
         setAllCriteria(allCrit);
+
+        // Load categories for all belts
+        const categoryPromises = allBelts.map(b => base44.entities.CurriculumCategory.filter({ rank_id: b.id }).catch(() => []));
+        const categoryResults = await Promise.all(categoryPromises);
+        const catMap = {};
+        allBelts.forEach((b, i) => { catMap[b.id] = categoryResults[i]; });
+        setCategoriesByBelt(catMap);
 
         // Set current belt criteria
         setCriteria(criteriaByBelt[matchingBelt?.id] || []);
@@ -76,7 +87,7 @@ export default function StudentCurriculum() {
   }, [profile?.id, profile?.belt_rank]);
 
   const tabs = [
-    { id: "handbook", label: "Handbook", icon: BookOpen },
+    { id: "handbook", label: "Training", icon: BookOpen },
     { id: "journey", label: "Journey", icon: Map },
     { id: "feedback", label: "Feedback", icon: MessageSquare },
   ];
@@ -113,7 +124,12 @@ export default function StudentCurriculum() {
         })}
       </div>
 
-      {tab === "handbook" && <StudentHandbook criteria={criteria} progress={progress} beltName={currentBelt?.belt_name} />}
+      {tab === "handbook" && (
+        <>
+          <ProgressTracker studentId={profile.id} belt={currentBelt} enrollmentDate={enrollmentDate} />
+          <TrainingVault belts={belts} currentBeltId={currentBelt?.id} criteriaByBelt={criteriaByBelt} categoriesByBelt={categoriesByBelt} progress={progress} studentId={profile.id} enrollmentDate={enrollmentDate} />
+        </>
+      )}
       {tab === "journey" && <JourneyMap belts={belts} criteriaMap={criteriaByBelt} progress={progress} currentBeltId={currentBelt?.id} stripesMap={stripesByBelt} />}
       {tab === "feedback" && <FeedbackInbox progress={progress} criteria={allCriteria} />}
     </div>

@@ -14,6 +14,8 @@ export default function AdminCurriculumBuilder() {
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
+  const [showAddProgram, setShowAddProgram] = useState(false);
+  const [programForm, setProgramForm] = useState({ program_name: "", age_group: "All Ages", description: "" });
 
   const loadPrograms = async () => {
     try { const p = await base44.entities.Program.list(); setPrograms(p); if (p.length > 0) setSelectedProgram(p[0]); } catch (e) { console.error(e); }
@@ -33,6 +35,25 @@ export default function AdminCurriculumBuilder() {
 
   useEffect(() => { loadPrograms(); }, []);
   useEffect(() => { loadBelts(); }, [selectedProgram?.id]);
+
+  const handleAddProgram = async (e) => {
+    e.preventDefault();
+    if (!programForm.program_name.trim()) return;
+    setSaving(true);
+    try {
+      const newProg = await base44.entities.Program.create({
+        program_name: programForm.program_name,
+        age_group: programForm.age_group,
+        description: programForm.description,
+        status: "active",
+      });
+      await loadPrograms();
+      setSelectedProgram(newProg);
+      setShowAddProgram(false);
+      setProgramForm({ program_name: "", age_group: "All Ages", description: "" });
+    } catch (e) { alert("Failed to create program."); }
+    setSaving(false);
+  };
 
   const handleAddBelt = async (e) => {
     e.preventDefault();
@@ -67,6 +88,9 @@ export default function AdminCurriculumBuilder() {
         <select value={selectedProgram?.id || ""} onChange={e => setSelectedProgram(programs.find(p => p.id === e.target.value))} className="bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
           {programs.map(p => <option key={p.id} value={p.id}>{p.program_name}</option>)}
         </select>
+        <button onClick={() => setShowAddProgram(true)} className="flex items-center gap-2 px-4 py-2.5 border border-[#A8A9AD]/30 text-[#A8A9AD] hover:text-white text-sm font-medium transition-colors">
+          <Plus size={16} /> Add Program
+        </button>
         {selectedProgram && (
           <>
             <button onClick={() => setShowAddBelt(true)} className="flex items-center gap-2 px-4 py-2.5 bg-[#C9A84C] text-black font-bold text-sm tracking-wide uppercase hover:bg-[#E0C97A] transition-colors">
@@ -124,6 +148,39 @@ export default function AdminCurriculumBuilder() {
               </div>
               <button type="submit" disabled={saving} className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-3 hover:bg-[#E0C97A] transition-colors disabled:opacity-50">
                 {saving ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Create Belt"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add program modal */}
+      {showAddProgram && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setShowAddProgram(false)}>
+          <div className="w-full max-w-md border border-[#C9A84C]/30 bg-[#0A0A0A] p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold">Create New Program Track</h3>
+              <button onClick={() => setShowAddProgram(false)} className="text-[#A8A9AD] hover:text-white"><X size={18} /></button>
+            </div>
+            <form onSubmit={handleAddProgram} className="space-y-4">
+              <div>
+                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Program Name *</label>
+                <input value={programForm.program_name} onChange={e => setProgramForm({ ...programForm, program_name: e.target.value })} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none" placeholder="e.g. Tai Chi, Youth Jiu Jitsu" required />
+              </div>
+              <div>
+                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Age Group</label>
+                <select value={programForm.age_group} onChange={e => setProgramForm({ ...programForm, age_group: e.target.value })} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
+                  <option value="All Ages">All Ages</option>
+                  <option value="Youth">Youth</option>
+                  <option value="Teen/Adult">Teen/Adult</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Description</label>
+                <textarea value={programForm.description} onChange={e => setProgramForm({ ...programForm, description: e.target.value })} rows={3} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none resize-none" placeholder="Brief description of this martial arts style..." />
+              </div>
+              <button type="submit" disabled={saving} className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-3 hover:bg-[#E0C97A] transition-colors disabled:opacity-50">
+                {saving ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Create Program"}
               </button>
             </form>
           </div>
