@@ -7,6 +7,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 // validates the sender phone against known family groups.
 Deno.serve(async (req) => {
   try {
+    // Validate shared secret to ensure only the configured SMS provider can call this webhook
+    const secret = Deno.env.get("SMS_WEBHOOK_SECRET");
+    const providedSecret = req.headers.get("X-Webhook-Secret");
+    if (!secret || !providedSecret || secret !== providedSecret) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const fromPhone = body.from || body.From || body.FromNumber;
