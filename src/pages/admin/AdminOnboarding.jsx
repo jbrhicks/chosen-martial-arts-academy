@@ -13,9 +13,11 @@ const STEPS = ["Contact", "Emergency", "Programs", "Waiver", "Billing"];
 
 const createEmptyMember = () => ({
   firstName: "", lastName: "", dob: "", email: "", phone: "", address: "",
+  studentPhone: "", studentEmail: "",
   beltSize: "", uniformSize: "", medicalConditions: "", beltRank: "White",
   emergencyContact: { name: "", relationship: "", phone: "", altPhone: "" },
   programs: [], startDate: "",
+  leadSource: "", previousExperience: "",
   customFields: {},
 });
 
@@ -33,6 +35,7 @@ const defaultBilling = {
 const defaultHousehold = {
   splitEnabled: false, secondaryAddress: "", secondaryContactName: "",
   secondaryContactPhone: "", custodyNotes: "", sendToBothHouseholds: true,
+  additionalContacts: [],
 };
 
 export default function AdminOnboarding() {
@@ -50,6 +53,18 @@ export default function AdminOnboarding() {
 
   const updateHousehold = (field, value) => {
     setHousehold({ ...household, [field]: value });
+  };
+
+  const addAdditionalContact = () => {
+    setHousehold({ ...household, additionalContacts: [...(household.additionalContacts || []), { name: "", relationship: "", phone: "", email: "" }] });
+  };
+
+  const updateAdditionalContact = (index, field, value) => {
+    setHousehold({ ...household, additionalContacts: (household.additionalContacts || []).map((c, i) => i === index ? { ...c, [field]: value } : c) });
+  };
+
+  const removeAdditionalContact = (index) => {
+    setHousehold({ ...household, additionalContacts: (household.additionalContacts || []).filter((_, i) => i !== index) });
   };
 
   const updateEmergencyContact = (index, field, value) => {
@@ -116,8 +131,8 @@ export default function AdminOnboarding() {
         family_name: `${members[0].lastName || "New"} Family`,
         primary_contact_id: "",
         billing_status: "active",
-        cc_emails: members.map(m => m.email).filter(Boolean).join(", "),
-        cc_phones: members.map(m => m.phone).filter(Boolean).join(", "),
+        cc_emails: [...members.map(m => m.email), ...(household.additionalContacts || []).map(c => c.email)].filter(Boolean).join(", "),
+        cc_phones: [...members.map(m => m.phone), ...(household.additionalContacts || []).map(c => c.phone)].filter(Boolean).join(", "),
         invite_code: familyCode,
         secondary_household_address: household.splitEnabled ? household.secondaryAddress : "",
         secondary_contact_name: household.splitEnabled ? household.secondaryContactName : "",
@@ -150,6 +165,19 @@ export default function AdminOnboarding() {
         }
       }
 
+      // 3b. Create additional contact records
+      for (const contact of (household.additionalContacts || [])) {
+        if (contact.name) {
+          await base44.entities.EmergencyContact.create({
+            user_email: members[0]?.email || "",
+            contact_name: contact.name,
+            relationship: contact.relationship || "Additional Contact",
+            phone: contact.phone || "",
+            alt_phone: contact.email || "",
+          });
+        }
+      }
+
       // 4. Create Enrollment records
       const allPrograms = await base44.entities.Program.list();
       const allTiers = await base44.entities.SubscriptionTier.list();
@@ -171,17 +199,33 @@ export default function AdminOnboarding() {
         }
       }
 
-      // 5. Calculate proration
+      // 5. Calculate per-student monthly fees and tiered family discount
+      const perStudentFees = members.map((member, idx) => {
+        const memberPrograms = (member.programs || []).map(pName => {
+          const prog = allPrograms.find(p => p.program_name === pName);
+          const progTiers = allTiers.filter(t => t.linked_program_id === prog?.id && t.is_active !== false).sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+          const defaultTier = progTiers[0];
+          return defaultTier?.price || prog?.default_monthly_rate || 0;
+        });
+        const baseMonthly = memberPrograms.reduce((s, p) => s + p, 0) || (billing.monthlyAmount || 0);
+        const familyDiscountPercent = idx === 0 ? 0 : Math.min(idx * 10, 50);
+        const familyDiscountAmount = baseMonthly * familyDiscountPercent / 100;
+        return { baseMonthly, familyDiscountPercent, familyDiscountAmount, netMonthly: baseMonthly - familyDiscountAmount };
+      });
+      const totalMonthly = perStudentFees.reduce((s, p) => s + p.netMonthly, 0);
+      const totalRegistration = (billing.registrationFee || 75) * members.length;
+
+      // 6. Calculate proration
       const startDate = members[0]?.startDate;
       let proratedAmount = 0;
       if (startDate && billing.prorateEnabled) {
         const d = new Date(startDate);
         const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-        proratedAmount = (billing.monthlyAmount / daysInMonth) * (daysInMonth - d.getDate() + 1);
+        proratedAmount = (totalMonthly / daysInMonth) * (daysInMonth - d.getDate() + 1);
       }
 
-      // 6. Create BillingRecord(s)
-      if (billing.autoPay && billing.monthlyAmount > 0) {
+      // 7. Create BillingRecord(s)
+      if (billing.autoPay && totalMonthly > 0) {
         const nextDate = new Date();
         const day = billing.billingCycleDate || 1;
         nextDate.setDate(day);
@@ -193,7 +237,7 @@ export default function AdminOnboarding() {
           for (const ratio of [ratioA, 100 - ratioA]) {
             await base44.entities.BillingRecord.create({
               family_id: familyGroup.id,
-              recurring_amount: billing.monthlyAmount * ratio / 100,
+              recurring_amount: totalMonthly * ratio / 100,
               billing_cycle: billingCycleLabel,
               billing_cycle_date: day,
               next_billing_date: nextDate.toISOString().split("T")[0],
@@ -208,7 +252,7 @@ export default function AdminOnboarding() {
         } else {
           await base44.entities.BillingRecord.create({
             family_id: familyGroup.id,
-            recurring_amount: billing.monthlyAmount,
+            recurring_amount: totalMonthly,
             billing_cycle: billingCycleLabel,
             billing_cycle_date: day,
             next_billing_date: nextDate.toISOString().split("T")[0],
@@ -221,12 +265,11 @@ export default function AdminOnboarding() {
         }
       }
 
-      // 7. Create Payment record for one-time charges
-      const annualAmount = (billing.monthlyAmount || 0) * 12;
+      // 8. Create Payment record for one-time charges
+      const annualAmount = totalMonthly * 12;
       const payInFullDiscount = billing.payInFull ? annualAmount * 0.10 : 0;
       const tuitionAmount = billing.payInFull ? annualAmount - payInFullDiscount : (billing.prorateEnabled ? proratedAmount : (billing.firstMonthTuition || 0));
-      const siblingDiscount = members.length > 1 && billing.siblingDiscountEnabled ? (billing.monthlyAmount * 0.10) * (members.length - 1) : 0;
-      const totalDue = Math.max(0, (billing.registrationFee || 0) + tuitionAmount + (billing.equipmentPackage || 0) - siblingDiscount);
+      const totalDue = Math.max(0, totalRegistration + tuitionAmount + (billing.equipmentPackage || 0));
       if (totalDue > 0) {
         await base44.entities.Payment.create({
           user_id: "admin_onboarding",
@@ -281,7 +324,7 @@ export default function AdminOnboarding() {
       <StepIndicator currentStep={step} steps={STEPS} />
 
       <div className="mb-8">
-        {step === 1 && <StepContact members={members} updateMember={updateMember} addMember={addMember} removeMember={removeMember} household={household} updateHousehold={updateHousehold} />}
+        {step === 1 && <StepContact members={members} updateMember={updateMember} addMember={addMember} removeMember={removeMember} household={household} updateHousehold={updateHousehold} addAdditionalContact={addAdditionalContact} updateAdditionalContact={updateAdditionalContact} removeAdditionalContact={removeAdditionalContact} />}
         {step === 2 && <StepEmergency members={members} updateMember={updateMember} updateEmergencyContact={updateEmergencyContact} />}
         {step === 3 && <StepProgram members={members} updateMember={updateMember} toggleProgram={toggleProgram} />}
         {step === 4 && <StepWaiver waiverSigned={waiverSigned} setWaiverSigned={setWaiverSigned} />}

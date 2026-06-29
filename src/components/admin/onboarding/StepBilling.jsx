@@ -24,7 +24,6 @@ export default function StepBilling({ billing, setBilling, members, onSubmit, su
   const update = (field, value) => setBilling({ ...billing, [field]: value });
 
   const startDate = members[0]?.startDate;
-  const monthlyRate = billing.monthlyAmount || 0;
 
   // Build per-member, per-program line items for the combined invoice preview
   const memberProgramBreakdowns = members.map((member, idx) => {
@@ -44,25 +43,34 @@ export default function StepBilling({ billing, setBilling, members, onSubmit, su
   const hasMultiProgram = memberProgramBreakdowns.some(m => m.lineItems.length > 1);
   const combinedMonthlyTotal = memberProgramBreakdowns.reduce((s, m) => s + m.net, 0);
 
+  // Per-student billing with tiered family discount (2nd student 10% off, 3rd 20%, etc.)
+  const perStudentBilling = memberProgramBreakdowns.map((breakdown, idx) => {
+    const baseMonthly = breakdown.net || 0;
+    const familyDiscountPercent = idx === 0 ? 0 : Math.min(idx * 10, 50);
+    const familyDiscountAmount = billing.siblingDiscountEnabled ? baseMonthly * familyDiscountPercent / 100 : 0;
+    const netMonthly = baseMonthly - familyDiscountAmount;
+    const registrationFee = billing.registrationFee || 75;
+    return { ...breakdown, baseMonthly, familyDiscountPercent, familyDiscountAmount, netMonthly, registrationFee };
+  });
+  const totalMonthly = perStudentBilling.reduce((s, p) => s + p.netMonthly, 0);
+  const totalRegistration = perStudentBilling.reduce((s, p) => s + p.registrationFee, 0);
+  const totalFamilyDiscount = perStudentBilling.reduce((s, p) => s + p.familyDiscountAmount, 0);
+
   const proration = (() => {
-    if (!startDate || !monthlyRate) return { days: 0, total: 0, daysInMonth: 30, dayOfMonth: 1 };
+    if (!startDate || !totalMonthly) return { days: 0, total: 0, daysInMonth: 30, dayOfMonth: 1 };
     const d = new Date(startDate);
     const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
     const dayOfMonth = d.getDate();
     const remainingDays = daysInMonth - dayOfMonth + 1;
-    return { days: remainingDays, total: (monthlyRate / daysInMonth) * remainingDays, daysInMonth, dayOfMonth };
+    return { days: remainingDays, total: (totalMonthly / daysInMonth) * remainingDays, daysInMonth, dayOfMonth };
   })();
 
-  const siblingCount = members.length;
-  const siblingDiscountPercent = billing.siblingDiscountEnabled ? 10 : 0;
-  const siblingDiscountAmount = siblingCount > 1 ? (monthlyRate * siblingDiscountPercent / 100) * (siblingCount - 1) : 0;
-
-  const annualAmount = monthlyRate * 12;
+  const annualAmount = totalMonthly * 12;
   const payInFullDiscount = billing.payInFull ? annualAmount * 0.10 : 0;
   const tuitionAmount = billing.payInFull
     ? annualAmount - payInFullDiscount
     : (billing.prorateEnabled ? proration.total : (billing.firstMonthTuition || 0));
-  const subtotal = (billing.registrationFee || 0) + tuitionAmount + (billing.equipmentPackage || 0);
+  const subtotal = totalRegistration + tuitionAmount + (billing.equipmentPackage || 0);
 
   const appliedDiscount = discounts.find(d => d.id === billing.appliedDiscountId);
   let discountAmount = 0;
@@ -95,7 +103,7 @@ export default function StepBilling({ billing, setBilling, members, onSubmit, su
     setPromoInput("");
   };
 
-  const totalDue = Math.max(0, subtotal - discountAmount - siblingDiscountAmount);
+  const totalDue = Math.max(0, subtotal - discountAmount - totalFamilyDiscount);
 
   const ratioA = billing.splitBillingEnabled ? (billing.splitRatioA || 50) : 100;
   const ratioB = 100 - ratioA;
@@ -175,35 +183,86 @@ export default function StepBilling({ billing, setBilling, members, onSubmit, su
       <div className="border border-[#A8A9AD]/20 bg-black p-6">
         <h3 className="text-sm font-bold tracking-widest uppercase text-[#C9A84C] mb-4">Initial Fees</h3>
         <div className="space-y-3">
-          <ChargeRow label="Registration Fee" value={billing.registrationFee} onChange={(v) => update("registrationFee", v)} />
+          <ChargeRow label="Registration Fee (per student)" value={billing.registrationFee} onChange={(v) => update("registrationFee", v)} />
           <ChargeRow label={billing.prorateEnabled ? "Full Month Tuition (reference)" : "First Month's Tuition"} value={billing.firstMonthTuition} onChange={(v) => update("firstMonthTuition", v)} />
           <ChargeRow label="Equipment Package" value={billing.equipmentPackage} onChange={(v) => update("equipmentPackage", v)} />
         </div>
       </div>
 
-      {siblingCount > 1 && (
-        <div className="border border-[#A8A9AD]/20 bg-black p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Users size={18} className="text-[#C9A84C]" />
-            <h3 className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">Automated Sibling Discount</h3>
-          </div>
-          <div className="flex items-center justify-between mb-4">
+      <div className="border border-[#A8A9AD]/20 bg-black p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Users size={18} className="text-[#C9A84C]" />
+          <h3 className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">Per-Student Billing Breakdown</h3>
+        </div>
+        {members.length > 1 && (
+          <div className="flex items-center justify-between mb-4 pb-4 border-b border-[#A8A9AD]/20">
             <div>
-              <p className="text-sm">{siblingCount} students enrolled in this family</p>
-              <p className="text-xs text-[#A8A9AD] mt-1">10% discount auto-applied to {siblingCount - 1} additional student(s)</p>
+              <p className="text-sm">Family Discount (tiered)</p>
+              <p className="text-xs text-[#A8A9AD] mt-1">2nd student 10% off, 3rd 20%, 4th 30%... (max 50%)</p>
             </div>
             <button onClick={() => update("siblingDiscountEnabled", !billing.siblingDiscountEnabled)} className={`w-12 h-6 rounded-full transition-colors ${billing.siblingDiscountEnabled ? "bg-[#C9A84C]" : "bg-[#A8A9AD]/30"}`}>
               <div className={`w-5 h-5 bg-white rounded-full transition-transform mx-0.5 ${billing.siblingDiscountEnabled ? "translate-x-6" : "translate-x-0"}`} />
             </button>
           </div>
-          {billing.siblingDiscountEnabled && (
-            <div className="flex items-center justify-between border-t border-[#A8A9AD]/20 pt-4">
-              <span className="text-sm">Sibling Discount (10% × {siblingCount - 1})</span>
-              <span className="text-lg font-bold text-green-400">−${siblingDiscountAmount.toFixed(2)}</span>
+        )}
+        <div className="space-y-4">
+          {perStudentBilling.map((student, idx) => (
+            <div key={idx} className="border border-[#A8A9AD]/20 p-4">
+              <p className="text-xs tracking-widest uppercase text-[#A8A9AD] mb-3">{student.memberLabel}</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-white">Registration Fee</span>
+                  <span>${student.registrationFee.toFixed(2)}</span>
+                </div>
+                {student.lineItems.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm">
+                    <span className="text-[#A8A9AD]">{item.programName} Tuition</span>
+                    <span className="text-[#A8A9AD]">${item.price.toFixed(2)}/mo</span>
+                  </div>
+                ))}
+                {student.lineItems.length === 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-[#A8A9AD] italic">No programs selected</span>
+                    <span className="text-[#A8A9AD]">$0.00/mo</span>
+                  </div>
+                )}
+                {student.discount > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-green-400">Multi-Program Discount</span>
+                    <span className="text-green-400">−${student.discount.toFixed(2)}</span>
+                  </div>
+                )}
+                {student.familyDiscountAmount > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-green-400">Family Discount ({student.familyDiscountPercent}%)</span>
+                    <span className="text-green-400">−${student.familyDiscountAmount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-sm font-bold border-t border-[#A8A9AD]/20 pt-2">
+                  <span>Net Monthly</span>
+                  <span className="text-[#C9A84C]">${student.netMonthly.toFixed(2)}/mo</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 pt-4 border-t border-[#A8A9AD]/20 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-[#A8A9AD]">Total Registration ({members.length} student{members.length > 1 ? "s" : ""})</span>
+            <span className="font-medium">${totalRegistration.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-[#A8A9AD]">Total Monthly Auto-Pay</span>
+            <span className="font-medium text-[#C9A84C]">${totalMonthly.toFixed(2)}/mo</span>
+          </div>
+          {totalFamilyDiscount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-green-400">Total Family Discount</span>
+              <span className="text-green-400">−${totalFamilyDiscount.toFixed(2)}/mo</span>
             </div>
           )}
         </div>
-      )}
+      </div>
 
       <div className="border border-[#A8A9AD]/20 bg-black p-6">
         <div className="flex items-center gap-2 mb-4">
@@ -256,6 +315,9 @@ export default function StepBilling({ billing, setBilling, members, onSubmit, su
               <div>
                 <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Monthly Tuition ($)</label>
                 <input type="number" value={billing.monthlyAmount} onChange={(e) => update("monthlyAmount", parseFloat(e.target.value) || 0)} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none" />
+                {totalMonthly > 0 && (
+                  <p className="text-xs text-[#A8A9AD] mt-1">Calculated from programs: ${totalMonthly.toFixed(2)}/mo {Math.abs((billing.monthlyAmount || 0) - totalMonthly) > 0.01 && <button onClick={() => update("monthlyAmount", parseFloat(totalMonthly.toFixed(2)))} className="text-[#C9A84C] hover:text-[#E0C97A] ml-1">↻ sync</button>}</p>
+                )}
               </div>
               <div>
                 <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Auto-Pay Day</label>
@@ -311,11 +373,11 @@ export default function StepBilling({ billing, setBilling, members, onSubmit, su
 
       <div className="border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-6">
         <div className="space-y-2 mb-4">
-          <LineItem label="Registration Fee" amount={billing.registrationFee || 0} />
+          <LineItem label={`Registration (${members.length} student${members.length > 1 ? "s" : ""})`} amount={totalRegistration} />
           <LineItem label={billing.payInFull ? "Annual Tuition (10% off)" : billing.prorateEnabled ? "Prorated Tuition" : "First Month Tuition"} amount={tuitionAmount} />
           {(billing.equipmentPackage || 0) > 0 && <LineItem label="Equipment" amount={billing.equipmentPackage || 0} />}
           {discountAmount > 0 && <LineItem label="Discount" amount={-discountAmount} className="text-green-400" />}
-          {siblingDiscountAmount > 0 && <LineItem label="Sibling Discount" amount={-siblingDiscountAmount} className="text-green-400" />}
+          {totalFamilyDiscount > 0 && <LineItem label="Family Discount" amount={-totalFamilyDiscount} className="text-green-400" />}
           <div className="flex items-center justify-between border-t border-[#A8A9AD]/20 pt-2">
             <span className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">Total Due Today</span>
             <span className="text-3xl font-bold text-[#C9A84C]">${totalDue.toFixed(2)}</span>

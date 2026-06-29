@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Field } from "./WizardField";
-import { Plus, Trash2, User, Home } from "lucide-react";
+import { Plus, Trash2, User, Home, UserPlus } from "lucide-react";
 
-export default function StepContact({ members, updateMember, addMember, removeMember, household, updateHousehold }) {
+export default function StepContact({ members, updateMember, addMember, removeMember, household, updateHousehold, addAdditionalContact, updateAdditionalContact, removeAdditionalContact }) {
   const [customFields, setCustomFields] = useState([]);
 
   useEffect(() => {
@@ -81,6 +81,34 @@ export default function StepContact({ members, updateMember, addMember, removeMe
             <Field label="Mailing Address" value={member.address} onChange={(v) => updateMember(index, "address", v)} placeholder="123 Main St, City, ST 12345" />
           </div>
 
+          <div className="mt-4 pt-4 border-t border-[#A8A9AD]/20">
+            <p className="text-xs tracking-widest uppercase text-[#A8A9AD] mb-3">Student's Own Contact (if they have one)</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Student's Cell Phone" type="tel" value={member.studentPhone} onChange={(v) => updateMember(index, "studentPhone", v)} placeholder="(555) 123-4567" />
+              <Field label="Student's Email" type="email" value={member.studentEmail} onChange={(v) => updateMember(index, "studentEmail", v)} placeholder="student@email.com" />
+            </div>
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-[#A8A9AD]/20">
+            <p className="text-xs tracking-widest uppercase text-[#A8A9AD] mb-3">Enrollment Info</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">How did you hear about us?</label>
+                <select value={member.leadSource} onChange={(e) => updateMember(index, "leadSource", e.target.value)} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
+                  <option value="">Select...</option>
+                  <option value="Google Search">Google Search</option>
+                  <option value="Social Media">Social Media</option>
+                  <option value="Friend/Family Referral">Friend/Family Referral</option>
+                  <option value="Drive/Walk By">Drive/Walk By</option>
+                  <option value="Community Event">Community Event</option>
+                  <option value="School Partnership">School Partnership</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <Field label="Previous Martial Arts Experience" value={member.previousExperience} onChange={(v) => updateMember(index, "previousExperience", v)} placeholder="e.g., 2 years Taekwondo, none" />
+            </div>
+          </div>
+
           {customFields.length > 0 && (
             <div className="mt-4 pt-4 border-t border-[#A8A9AD]/20">
               <p className="text-xs tracking-widest uppercase text-[#A8A9AD] mb-3">Additional Information</p>
@@ -116,6 +144,33 @@ export default function StepContact({ members, updateMember, addMember, removeMe
           )}
         </div>
       ))}
+
+      <div className="border border-[#A8A9AD]/20 bg-black p-6">
+        <div className="flex items-center gap-2 mb-2">
+          <UserPlus size={16} className="text-[#C9A84C]" />
+          <h3 className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">Additional Contacts</h3>
+        </div>
+        <p className="text-xs text-[#A8A9AD] mb-4">Add extra parents, guardians, or authorized contacts for this family.</p>
+        {(household.additionalContacts || []).map((contact, idx) => (
+          <div key={idx} className="border border-[#A8A9AD]/20 p-4 mb-3">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs tracking-widest uppercase text-[#A8A9AD]">Contact {idx + 1}</span>
+              <button onClick={() => removeAdditionalContact(idx)} className="text-[#A8A9AD] hover:text-red-400 transition-colors">
+                <Trash2 size={14} />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Name" value={contact.name} onChange={(v) => updateAdditionalContact(idx, "name", v)} placeholder="Jane Doe" />
+              <Field label="Relationship" value={contact.relationship} onChange={(v) => updateAdditionalContact(idx, "relationship", v)} placeholder="Grandmother" />
+              <Field label="Phone" type="tel" value={contact.phone} onChange={(v) => updateAdditionalContact(idx, "phone", v)} placeholder="(555) 123-4567" />
+              <Field label="Email" type="email" value={contact.email} onChange={(v) => updateAdditionalContact(idx, "email", v)} placeholder="jane@email.com" />
+            </div>
+          </div>
+        ))}
+        <button onClick={addAdditionalContact} className="flex items-center gap-2 px-4 py-2 border border-dashed border-[#C9A84C]/40 text-[#C9A84C] text-sm font-medium hover:bg-[#C9A84C]/10 transition-colors">
+          <Plus size={16} /> Add Contact
+        </button>
+      </div>
 
       <button onClick={addMember} className="flex items-center gap-2 px-5 py-3 border-2 border-dashed border-[#C9A84C]/40 text-[#C9A84C] font-bold text-sm tracking-wide uppercase hover:bg-[#C9A84C]/10 transition-colors w-full justify-center">
         <Plus size={18} /> Add Another Family Member
