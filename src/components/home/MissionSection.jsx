@@ -2,22 +2,22 @@ import ScrollReveal from "@/components/ScrollReveal";
 import { Shield, Heart, Zap } from "lucide-react";
 
 const PILLARS = [
-  {
-    icon: Shield,
-    title: "Discipline",
-    description: "Master the fundamentals through structured training that builds mental fortitude and self-control — on and off the mat.",
-  },
-  {
-    icon: Heart,
-    title: "Respect",
-    description: "Honor your instructors, your peers, and yourself. The dojo is a community where every student supports each other's growth.",
-  },
-  {
-    icon: Zap,
-    title: "Perseverance",
-    description: "Push past your limits. Every belt earned represents not just skill, but the determination to keep going when it gets hard.",
-  },
-];
+{
+  icon: Shield,
+  title: "Discipline",
+  description: "Master the fundamentals through structured training that builds mental fortitude and self-control — on and off the mat."
+},
+{
+  icon: Heart,
+  title: "Respect",
+  description: "Honor your instructors, your peers, and yourself. The dojo is a community where every student supports each other's growth."
+},
+{
+  icon: Zap,
+  title: "Perseverance",
+  description: "Push past your limits. Every belt earned represents not just skill, but the determination to keep going when it gets hard."
+}];
+
 
 export default function MissionSection() {
   return (
@@ -32,8 +32,8 @@ export default function MissionSection() {
           <h2 className="text-4xl sm:text-5xl font-bold leading-tight mb-6">
             The Chosen Path
           </h2>
-          <p className="text-lg text-[#A8A9AD] leading-relaxed">
-            At Chosen Martial Arts Academy, we believe karate is a vehicle for personal transformation. Our curriculum goes beyond technique — it builds the character, resilience, and confidence that define a true martial artist.
+          <p className="text-lg text-[#A8A9AD] leading-relaxed">At Chosen Martial Arts Academy, we empower students to forge unbreakable character through leadership, honor, and steadfast self-discipline. We equip you with sharp situational awareness to confidently avoid threats, alongside the physical mastery to defend yourself and the courage to protect others when it matters most. Beyond the mat, we cultivate a powerful, supportive community where students build lifelong friendships and grow stronger together.
+
           </p>
         </ScrollReveal>
 
@@ -47,11 +47,11 @@ export default function MissionSection() {
                 </div>
                 <h3 className="text-xl font-bold mb-3 tracking-wide">{pillar.title}</h3>
                 <p className="text-[#A8A9AD] leading-relaxed text-sm">{pillar.description}</p>
-              </ScrollReveal>
-            );
+              </ScrollReveal>);
+
           })}
         </div>
       </div>
-    </section>
-  );
+    </section>);
+
 }
