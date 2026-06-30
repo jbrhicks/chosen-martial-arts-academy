@@ -4,7 +4,7 @@ import { Shield, Heart, Zap } from "lucide-react";
 const PILLARS = [
 {
   icon: Shield,
-  title: "Discipline",
+  title: "Self-Discipline\xA0",
   description: "Master the fundamentals through structured training that builds mental fortitude and self-control — on and off the mat."
 },
 {
@@ -14,7 +14,7 @@ const PILLARS = [
 },
 {
   icon: Zap,
-  title: "Perseverance",
+  title: "Self-Defense",
   description: "Push past your limits. Every belt earned represents not just skill, but the determination to keep going when it gets hard."
 }];
 
