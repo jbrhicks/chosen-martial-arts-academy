@@ -20,12 +20,12 @@ export default function LeadSection() {
               Claim Your<br /><span className="text-[#C9A84C]">Free Trial</span>
             </h2>
             <p className="text-lg text-[#A8A9AD] leading-relaxed mb-8">
-              Two weeks of unlimited classes. No commitment, no cost. Experience the Chosen difference firsthand and see why our students call this dojo their second home.
+              One week of unlimited classes. No commitment, no cost. Experience the Chosen difference firsthand and see why our students call this dojo their second home.
             </p>
 
             <div className="space-y-4">
               {[
-                "Two full weeks of unlimited training",
+                "One full week of unlimited training",
                 "All belt levels and age groups welcome",
                 "No equipment needed — just show up",
                 "Personal intro session with an instructor",
