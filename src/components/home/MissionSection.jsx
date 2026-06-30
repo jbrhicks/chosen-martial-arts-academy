@@ -15,7 +15,7 @@ const PILLARS = [
 {
   icon: Zap,
   title: "Self-Defense",
-  description: "Push past your limits. Every belt earned represents not just skill, but the determination to keep going when it gets hard."
+  description: "We empower both youth and adults with the keen situational awareness to confidently navigate their everyday surroundings, and the practical martial arts skills to effectively defend themselves and protect their loved ones."
 }];
 
 
