@@ -9,7 +9,7 @@ const PILLARS = [
 },
 {
   icon: Heart,
-  title: "Respect",
+  title: "Leadership",
   description: "Honor your instructors, your peers, and yourself. The dojo is a community where every student supports each other's growth."
 },
 {
