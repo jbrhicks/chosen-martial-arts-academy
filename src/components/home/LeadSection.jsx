@@ -19,24 +19,24 @@ export default function LeadSection() {
             <h2 className="text-4xl sm:text-5xl font-bold leading-tight mb-6">
               Claim Your<br /><span className="text-[#C9A84C]">Free Trial</span>
             </h2>
-            <p className="text-lg text-[#A8A9AD] leading-relaxed mb-8">
-              One week of unlimited classes. No commitment, no cost. Experience the Chosen difference firsthand and see why our students call this dojo their second home.
+            <p className="text-lg text-[#A8A9AD] leading-relaxed mb-8">Try 7 days of unlimited classes—completely free. No strings attached. Come train with us and see exactly why our students consider this dojang their second home.
+
             </p>
 
             <div className="space-y-4">
               {[
-                "One full week of unlimited training",
-                "All belt levels and age groups welcome",
-                "No equipment needed — just show up",
-                "Personal intro session with an instructor",
-              ].map((item) => (
-                <div key={item} className="flex items-center gap-3">
+              "One full week of unlimited training",
+              "All belt levels and age groups welcome",
+              "No equipment needed — just show up",
+              "Personal intro session with an instructor"].
+              map((item) =>
+              <div key={item} className="flex items-center gap-3">
                   <div className="w-6 h-6 border border-[#C9A84C] flex items-center justify-center shrink-0">
                     <Gift size={12} className="text-[#C9A84C]" />
                   </div>
                   <span className="text-sm text-white">{item}</span>
                 </div>
-              ))}
+              )}
             </div>
           </ScrollReveal>
 
@@ -48,6 +48,6 @@ export default function LeadSection() {
           </ScrollReveal>
         </div>
       </div>
-    </section>
-  );
+    </section>);
+
 }
