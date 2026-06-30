@@ -5,7 +5,7 @@ const PILLARS = [
 {
   icon: Shield,
   title: "Self-Discipline\xA0",
-  description: "Master the fundamentals through structured training that builds mental fortitude and self-control — on and off the mat."
+  description: "Whether you are a parent seeking character development for your child or an adult looking to sharpen your own focus, our dynamic training builds the unwavering self-discipline that transforms students into stronger, smarter everyday leaders."
 },
 {
   icon: Heart,
