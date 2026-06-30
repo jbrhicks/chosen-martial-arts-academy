@@ -10,7 +10,7 @@ const PILLARS = [
 {
   icon: Heart,
   title: "Leadership",
-  description: "Honor your instructors, your peers, and yourself. The dojo is a community where every student supports each other's growth."
+  description: "Through traditional martial arts training, Chosen Martial Arts Academy empowers all students to become future leaders, cultivating leadership as a core skill that extends far beyond our walls and into everyday life."
 },
 {
   icon: Zap,
