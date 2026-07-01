@@ -24,16 +24,21 @@ export default function LeadForm() {
   const [overrideReason, setOverrideReason] = useState("");
 
   useEffect(() => {
-    const hashParts = window.location.hash.split("?");
-    const params = new URLSearchParams(hashParts[1] || "");
-    const classId = params.get("class");
-    if (classId) {
-      base44.entities.ClassSchedule.get(classId)
-        .then(cls => {
-          if (cls && cls.is_trial_eligible) setSelectedClass(cls);
-        })
-        .catch(() => {});
-    }
+    const loadClassFromHash = () => {
+      const hashParts = window.location.hash.split("?");
+      const params = new URLSearchParams(hashParts[1] || "");
+      const classId = params.get("class");
+      if (classId) {
+        base44.entities.ClassSchedule.get(classId)
+          .then(cls => {
+            if (cls && cls.is_trial_eligible) setSelectedClass(cls);
+          })
+          .catch(() => {});
+      }
+    };
+    loadClassFromHash();
+    window.addEventListener("hashchange", loadClassFromHash);
+    return () => window.removeEventListener("hashchange", loadClassFromHash);
   }, []);
 
   const ageNum = parseInt(form.student_age);

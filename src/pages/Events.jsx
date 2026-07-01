@@ -6,6 +6,7 @@ import PublicLayout from "@/components/PublicLayout";
 import EventRegistrationModal from "@/components/events/EventRegistrationModal";
 import GuestRegistrationModal from "@/components/events/GuestRegistrationModal";
 import { useAuth } from "@/lib/AuthContext";
+import LeadSection from "@/components/home/LeadSection";
 
 export default function Events() {
   const { isAuthenticated, user } = useAuth();
@@ -227,6 +228,8 @@ export default function Events() {
         )}
       </div>
     </div>
+
+    <LeadSection />
     </PublicLayout>
   );
 }

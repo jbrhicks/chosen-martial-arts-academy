@@ -3,6 +3,7 @@ import PublicLayout from "@/components/PublicLayout";
 import { base44 } from "@/api/base44Client";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Star, Quote, Loader2 } from "lucide-react";
+import LeadSection from "@/components/home/LeadSection";
 
 export default function Testimonials() {
   const [testimonials, setTestimonials] = useState([]);
@@ -74,6 +75,8 @@ export default function Testimonials() {
           )}
         </div>
       </section>
+
+      <LeadSection />
     </PublicLayout>
   );
 }

@@ -6,6 +6,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import { Clock, MapPin, User, Loader2, Users, CalendarCheck } from "lucide-react";
 import { getClassColor } from "@/lib/scheduleUtils";
 import { AGE_PRESETS } from "@/lib/constants";
+import LeadSection from "@/components/home/LeadSection";
 
 export default function Schedule() {
   const [classes, setClasses] = useState([]);
@@ -97,20 +98,7 @@ export default function Schedule() {
           )}
         </div>
       </section>
-        {/* Contextual CTA */}
-        <section className="py-12 bg-black border-t border-[#A8A9AD]/20">
-          <div className="max-w-7xl mx-auto px-6 lg:px-8">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-8">
-              <div>
-                <h3 className="text-xl font-bold mb-1">Unsure which class to pick?</h3>
-                <p className="text-sm text-[#A8A9AD]">Book a free trial and our instructors will guide you to the perfect fit.</p>
-              </div>
-              <a href="/#lead-form" className="shrink-0 px-8 py-3.5 bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase hover:bg-[#E0C97A] transition-colors">
-                Claim Your Free Trial
-              </a>
-            </div>
-          </div>
-        </section>
+        <LeadSection />
     </PublicLayout>
   );
 }
@@ -158,7 +146,15 @@ function ClassCard({ cls }) {
         )}
       </div>
       {cls.is_trial_eligible && (
-        <a href={`/#lead-form?class=${cls.id}`} className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-[#C9A84C] text-[#C9A84C] text-xs font-bold tracking-widest uppercase hover:bg-[#C9A84C] hover:text-black transition-colors">
+        <a
+          href="#lead-form"
+          onClick={(e) => {
+            e.preventDefault();
+            window.location.hash = `lead-form?class=${cls.id}`;
+            document.getElementById("lead-form")?.scrollIntoView({ behavior: "smooth" });
+          }}
+          className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-[#C9A84C] text-[#C9A84C] text-xs font-bold tracking-widest uppercase hover:bg-[#C9A84C] hover:text-black transition-colors"
+        >
           <CalendarCheck size={14} /> Book a Free Trial
         </a>
       )}

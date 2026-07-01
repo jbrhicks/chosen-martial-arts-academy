@@ -3,6 +3,7 @@ import PublicLayout from "@/components/PublicLayout";
 import { base44 } from "@/api/base44Client";
 import ScrollReveal from "@/components/ScrollReveal";
 import { MapPin, Phone, Mail, Clock, Loader2 } from "lucide-react";
+import LeadSection from "@/components/home/LeadSection";
 
 export default function About() {
   const [instructors, setInstructors] = useState([]);
@@ -131,6 +132,8 @@ export default function About() {
           </ScrollReveal>
         </div>
       </section>
+
+      <LeadSection />
     </PublicLayout>
   );
 }
