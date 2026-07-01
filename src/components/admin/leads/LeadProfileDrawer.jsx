@@ -4,9 +4,10 @@ import { useAuth } from "@/lib/AuthContext";
 import {
   X, Mail, Phone, Calendar, Clock, User, MessageSquare, Bell, UserCheck,
   Send, Loader2, StickyNote, AlertTriangle, CalendarCheck, Globe, Gift,
-  ChevronRight, History
+  ChevronRight, History, Pencil, Trash2
 } from "lucide-react";
 import { formatTime } from "@/lib/constants";
+import LeadEditForm from "@/components/admin/leads/LeadEditForm";
 
 const STAGE_LABELS = {
   new_lead: "New Lead", contacted: "Contacted", trial_booked: "Trial Booked",
@@ -37,6 +38,9 @@ export default function LeadProfileDrawer({ lead, onClose, onLeadUpdated }) {
   const [converting, setConverting] = useState(false);
   const [booking, setBooking] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const loadTimeline = useCallback(async () => {
     if (!lead) return;
@@ -133,6 +137,26 @@ export default function LeadProfileDrawer({ lead, onClose, onLeadUpdated }) {
     setConverting(false);
   };
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      // Clean up related records first
+      try {
+        const logs = await base44.entities.LeadActivityLog.filter({ lead_id: lead.id });
+        if (logs.length > 0) await base44.entities.LeadActivityLog.deleteMany({ lead_id: lead.id });
+      } catch (e) { console.error("Activity log cleanup:", e); }
+      try {
+        const tasks = await base44.entities.FollowUpTask.filter({ lead_id: lead.id });
+        if (tasks.length > 0) await base44.entities.FollowUpTask.deleteMany({ lead_id: lead.id });
+      } catch (e) { console.error("Task cleanup:", e); }
+      await base44.entities.Lead.delete(lead.id);
+      onLeadUpdated();
+    } catch (e) {
+      alert("Failed to delete lead: " + (e.response?.data?.error || e.message));
+    }
+    setDeleting(false);
+  };
+
   const handleSendEmail = async () => {
     if (!lead.email) return;
     const subject = prompt("Email subject:", "Following up — Chosen Martial Arts Academy");
@@ -181,7 +205,15 @@ export default function LeadProfileDrawer({ lead, onClose, onLeadUpdated }) {
               <h2 className="text-xl font-bold">{lead.full_name}</h2>
               <p className="text-xs text-[#A8A9AD] mt-1">{stage} · {lead.program_of_interest || lead.interest || "—"}</p>
             </div>
-            <button onClick={onClose} className="text-[#A8A9AD] hover:text-white"><X size={20} /></button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => { setShowEditForm(false); setShowDeleteConfirm(!showDeleteConfirm); }} className="p-1.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors" title="Delete Lead">
+                <Trash2 size={16} />
+              </button>
+              <button onClick={() => { setShowDeleteConfirm(false); setShowEditForm(!showEditForm); }} className={`p-1.5 border border-[#A8A9AD]/30 hover:border-[#C9A84C]/50 transition-colors ${showEditForm ? "border-[#C9A84C] text-[#C9A84C]" : "text-[#A8A9AD] hover:text-[#C9A84C]"}`} title="Edit Lead">
+                <Pencil size={16} />
+              </button>
+              <button onClick={onClose} className="text-[#A8A9AD] hover:text-white"><X size={20} /></button>
+            </div>
           </div>
           <div className="flex flex-wrap gap-3 text-xs text-[#A8A9AD]">
             {lead.email && <a href={`mailto:${lead.email}`} className="flex items-center gap-1 hover:text-[#C9A84C]"><Mail size={12} /> {lead.email}</a>}
@@ -195,6 +227,37 @@ export default function LeadProfileDrawer({ lead, onClose, onLeadUpdated }) {
             </div>
           )}
         </div>
+
+        {/* Edit Form */}
+        {showEditForm && (
+          <div className="border-b border-[#A8A9AD]/20 p-6">
+            <p className="text-xs tracking-widest uppercase text-[#C9A84C] mb-4">Edit Lead Information</p>
+            <LeadEditForm
+              lead={lead}
+              onSaved={() => { onLeadUpdated(); }}
+              onCancel={() => setShowEditForm(false)}
+            />
+          </div>
+        )}
+
+        {/* Delete Confirmation */}
+        {showDeleteConfirm && (
+          <div className="border-b border-red-500/30 bg-red-500/5 p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <AlertTriangle size={18} className="text-red-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-red-400">Delete this lead?</p>
+                <p className="text-xs text-[#A8A9AD] mt-1">This will permanently remove {lead.full_name} and all associated activity logs and follow-up tasks. This cannot be undone.</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleDelete} disabled={deleting} className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white text-xs font-bold tracking-widest uppercase hover:bg-red-600 disabled:opacity-50">
+                {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Yes, Delete
+              </button>
+              <button onClick={() => setShowDeleteConfirm(false)} className="px-4 py-2.5 text-xs text-[#A8A9AD] hover:text-white">Cancel</button>
+            </div>
+          </div>
+        )}
 
         {/* Trial info */}
         {lead.trial_class_name && (
