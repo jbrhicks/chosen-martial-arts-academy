@@ -6,6 +6,7 @@ import { useFamily } from "@/lib/FamilyContext";
 import { Video, Users, Calendar, CreditCard, ChevronRight, TrendingUp, QrCode } from "lucide-react";
 import IDCard from "@/components/portal/checkin/IDCard";
 import GPSCheckIn from "@/components/portal/checkin/GPSCheckIn";
+import UpcomingTrialBanner from "@/components/portal/UpcomingTrialBanner";
 import BeltBadge from "@/components/BeltBadge";
 import { BELT_RANKS, getRankIndex } from "@/lib/constants";
 
@@ -56,6 +57,9 @@ export default function PortalHome() {
         <h1 className="text-3xl font-bold mb-2">{activeProfile?.full_name || "Student"}</h1>
         {activeProfile?.belt_rank && <BeltBadge rank={activeProfile.belt_rank} size="lg" />}
       </div>
+
+      {/* Upcoming Trial (for leads who created accounts) */}
+      <UpcomingTrialBanner />
 
       {/* ID Card / Check-in */}
       <button
