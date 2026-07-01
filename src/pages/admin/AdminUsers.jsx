@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { BELT_RANKS } from "@/lib/constants";
 import BeltBadge from "@/components/BeltBadge";
-import { Loader2, UserPlus, X, Mail, Send, KeyRound } from "lucide-react";
+import { Loader2, UserPlus, X, Mail, Send, KeyRound, Ban, Trash2, AlertTriangle } from "lucide-react";
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -13,6 +13,9 @@ export default function AdminUsers() {
   const [search, setSearch] = useState("");
   const [editingPin, setEditingPin] = useState(null);
   const [pinValue, setPinValue] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [cancelTarget, setCancelTarget] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -75,6 +78,56 @@ export default function AdminUsers() {
     }
   };
 
+  const handleCancelUser = async (userId) => {
+    setActionLoading(true);
+    try {
+      const targetUser = users.find(u => u.id === userId);
+      const familyId = targetUser?.family_id;
+      const enrollments = await base44.entities.Enrollment.filter({ user_id: userId }).catch(() => []);
+      for (const e of enrollments.filter(e => e.status === "active")) {
+        await base44.entities.Enrollment.update(e.id, { status: "cancelled" });
+      }
+      if (familyId) {
+        const billing = await base44.entities.BillingRecord.filter({ family_id: familyId }).catch(() => []);
+        for (const b of billing.filter(b => b.status === "active")) {
+          await base44.entities.BillingRecord.update(b.id, { status: "cancelled" });
+        }
+      }
+      await base44.entities.User.update(userId, { role: "guest", subscription_status: "canceled", is_active: false });
+      setUsers(users.map(u => u.id === userId ? { ...u, role: "guest", subscription_status: "canceled", is_active: false } : u));
+      setCancelTarget(null);
+    } catch (e) {
+      alert("Failed to cancel membership: " + (e.response?.data?.error || e.message));
+    }
+    setActionLoading(false);
+  };
+
+  const handleDeleteUser = async (userId) => {
+    setActionLoading(true);
+    try {
+      const [enrollments, emergencyContacts, customFieldValues, attendance, eventRegs, activityLogs] = await Promise.all([
+        base44.entities.Enrollment.filter({ user_id: userId }).catch(() => []),
+        base44.entities.EmergencyContact.filter({ user_id: userId }).catch(() => []),
+        base44.entities.CustomFieldValue.filter({ user_id: userId }).catch(() => []),
+        base44.entities.AttendanceRecord.filter({ user_id: userId }).catch(() => []),
+        base44.entities.EventRegistration.filter({ user_id: userId }).catch(() => []),
+        base44.entities.AdminActivityLog.filter({ user_id: userId }).catch(() => []),
+      ]);
+      if (enrollments.length) await base44.entities.Enrollment.deleteMany({ user_id: userId }).catch(() => {});
+      if (emergencyContacts.length) await base44.entities.EmergencyContact.deleteMany({ user_id: userId }).catch(() => {});
+      if (customFieldValues.length) await base44.entities.CustomFieldValue.deleteMany({ user_id: userId }).catch(() => {});
+      if (attendance.length) await base44.entities.AttendanceRecord.deleteMany({ user_id: userId }).catch(() => {});
+      if (eventRegs.length) await base44.entities.EventRegistration.deleteMany({ user_id: userId }).catch(() => {});
+      if (activityLogs.length) await base44.entities.AdminActivityLog.deleteMany({ user_id: userId }).catch(() => {});
+      await base44.entities.User.delete(userId);
+      setUsers(users.filter(u => u.id !== userId));
+      setDeleteTarget(null);
+    } catch (e) {
+      alert("Failed to delete user: " + (e.response?.data?.error || e.message));
+    }
+    setActionLoading(false);
+  };
+
   const filtered = users.filter((u) =>
     !search || u.full_name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase())
   );
@@ -123,6 +176,7 @@ export default function AdminUsers() {
                 <th className="py-3 px-4 text-[10px] tracking-widest uppercase text-[#A8A9AD] font-medium">Belt Rank</th>
                 <th className="py-3 px-4 text-[10px] tracking-widest uppercase text-[#A8A9AD] font-medium">Role</th>
                 <th className="py-3 px-4 text-[10px] tracking-widest uppercase text-[#A8A9AD] font-medium">Kiosk PIN</th>
+                <th className="py-3 px-4 text-[10px] tracking-widest uppercase text-[#A8A9AD] font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -182,8 +236,28 @@ export default function AdminUsers() {
                         {u.pin_code ? "•••• Change" : "Set PIN"}
                       </button>
                     )}
-                  </td>
-                </tr>
+                    </td>
+                    <td className="py-4 px-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setCancelTarget(u)}
+                        disabled={u.role === "admin"}
+                        className="p-1.5 border border-orange-500/30 text-orange-400 hover:bg-orange-500/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Cancel Membership"
+                      >
+                        <Ban size={14} />
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(u)}
+                        disabled={u.role === "admin"}
+                        className="p-1.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Delete Profile"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    </td>
+                    </tr>
               ))}
             </tbody>
           </table>
@@ -241,6 +315,48 @@ export default function AdminUsers() {
                 {inviting ? <Loader2 size={18} className="animate-spin" /> : <><Mail size={16} /> Send Invitation</>}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel confirmation */}
+      {cancelTarget && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => !actionLoading && setCancelTarget(null)}>
+          <div className="w-full max-w-md border border-orange-500/30 bg-[#0A0A0A] p-8" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start gap-3 mb-4">
+              <AlertTriangle size={20} className="text-orange-400 shrink-0 mt-0.5" />
+              <div>
+                <h2 className="text-xl font-bold">Cancel Membership?</h2>
+                <p className="text-sm text-[#A8A9AD] mt-2">This will revoke <strong className="text-white">{cancelTarget.full_name || cancelTarget.email}</strong>'s student access, cancel active enrollments and billing, and set their role to Guest. The user account will remain but with limited access.</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => handleCancelUser(cancelTarget.id)} disabled={actionLoading} className="flex-1 px-4 py-3 bg-orange-500 text-white font-bold text-sm tracking-wide uppercase hover:bg-orange-600 disabled:opacity-50 flex items-center justify-center gap-2">
+                {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <><Ban size={16} /> Cancel Membership</>}
+              </button>
+              <button onClick={() => setCancelTarget(null)} disabled={actionLoading} className="px-4 py-3 text-sm text-[#A8A9AD] hover:text-white">Back</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => !actionLoading && setDeleteTarget(null)}>
+          <div className="w-full max-w-md border border-red-500/30 bg-[#0A0A0A] p-8" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start gap-3 mb-4">
+              <AlertTriangle size={20} className="text-red-400 shrink-0 mt-0.5" />
+              <div>
+                <h2 className="text-xl font-bold">Delete Profile?</h2>
+                <p className="text-sm text-[#A8A9AD] mt-2">This will <strong className="text-red-400">permanently delete</strong> <strong className="text-white">{deleteTarget.full_name || deleteTarget.email}</strong>'s account and all associated records (enrollments, attendance, emergency contacts, etc.). This cannot be undone.</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => handleDeleteUser(deleteTarget.id)} disabled={actionLoading} className="flex-1 px-4 py-3 bg-red-500 text-white font-bold text-sm tracking-wide uppercase hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2">
+                {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <><Trash2 size={16} /> Delete Permanently</>}
+              </button>
+              <button onClick={() => setDeleteTarget(null)} disabled={actionLoading} className="px-4 py-3 text-sm text-[#A8A9AD] hover:text-white">Back</button>
+            </div>
           </div>
         </div>
       )}

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Loader2, Search, ArrowLeft, User, Users, GraduationCap, CreditCard, Activity, ClipboardList } from "lucide-react";
+import { Loader2, Search, ArrowLeft, User, Users, GraduationCap, CreditCard, Activity, ClipboardList, Ban, Trash2, AlertTriangle } from "lucide-react";
 import EmergencyBanner from "@/components/admin/profile/EmergencyBanner";
 import PersonalDetails from "@/components/admin/profile/PersonalDetails";
 import FamilyManager from "@/components/admin/profile/FamilyManager";
@@ -19,6 +19,9 @@ export default function AdminProfileManager() {
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(1);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => { loadUsers(); }, []);
 
@@ -67,6 +70,50 @@ export default function AdminProfileManager() {
       user_id: selectedUserId, admin_id: adminUser.id, admin_name: adminUser.full_name,
       action_type: actionType, description, timestamp: new Date().toISOString(), ...extra,
     });
+  };
+
+  const handleCancelMembership = async () => {
+    setActionLoading(true);
+    try {
+      const familyId = profileData.user?.family_id;
+      for (const e of profileData.enrollments.filter(e => e.status === "active")) {
+        await base44.entities.Enrollment.update(e.id, { status: "cancelled" });
+      }
+      if (familyId) {
+        for (const b of profileData.billingRecords.filter(b => b.status === "active")) {
+          await base44.entities.BillingRecord.update(b.id, { status: "cancelled" });
+        }
+      }
+      await base44.entities.User.update(selectedUserId, { role: "guest", subscription_status: "canceled", is_active: false });
+      await logActivity("membership_cancelled", `Membership cancelled by ${adminUser.full_name}`);
+      setShowCancelConfirm(false);
+      refresh();
+      loadUsers();
+    } catch (e) {
+      alert("Failed to cancel membership: " + (e.response?.data?.error || e.message));
+    }
+    setActionLoading(false);
+  };
+
+  const handleDeleteProfile = async () => {
+    setActionLoading(true);
+    try {
+      const userId = selectedUserId;
+      if (profileData.enrollments.length) await base44.entities.Enrollment.deleteMany({ user_id: userId }).catch(() => {});
+      if (profileData.emergencyContacts.length) await base44.entities.EmergencyContact.deleteMany({ user_id: userId }).catch(() => {});
+      if (profileData.customFieldValues.length) await base44.entities.CustomFieldValue.deleteMany({ user_id: userId }).catch(() => {});
+      if (profileData.attendance.length) await base44.entities.AttendanceRecord.deleteMany({ user_id: userId }).catch(() => {});
+      if (profileData.eventRegs.length) await base44.entities.EventRegistration.deleteMany({ user_id: userId }).catch(() => {});
+      if (profileData.activityLogs.length) await base44.entities.AdminActivityLog.deleteMany({ user_id: userId }).catch(() => {});
+      await base44.entities.User.delete(userId);
+      setShowDeleteConfirm(false);
+      setSelectedUserId(null);
+      setProfileData(null);
+      loadUsers();
+    } catch (e) {
+      alert("Failed to delete profile: " + (e.response?.data?.error || e.message));
+    }
+    setActionLoading(false);
   };
 
   const searchResults = search.length >= 1
@@ -172,6 +219,75 @@ export default function AdminProfileManager() {
               {activeTab === 5 && <ActivityLog user={profileData.user} activityLogs={profileData.activityLogs} onRefresh={refresh} logActivity={logActivity} />}
               {activeTab === 6 && <AttendanceHistory user={profileData.user} attendance={profileData.attendance} eventRegs={profileData.eventRegs} events={profileData.events} enrollments={profileData.enrollments} belts={profileData.belts} onRefresh={refresh} logActivity={logActivity} />}
             </div>
+
+            {/* Danger Zone */}
+            <div className="border border-red-500/20 bg-red-500/5 p-6">
+              <p className="text-xs tracking-widest uppercase text-red-400 mb-4 flex items-center gap-2">
+                <AlertTriangle size={14} /> Danger Zone
+              </p>
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div className="flex-1 min-w-[200px]">
+                    <p className="text-sm font-bold text-white">Cancel Membership</p>
+                    <p className="text-xs text-[#A8A9AD] mt-1">Revokes student access, cancels active enrollments and billing, and sets the account to Guest. The user account remains but with limited access.</p>
+                  </div>
+                  <button onClick={() => setShowCancelConfirm(true)} disabled={profileData.user?.role === "admin"} className="flex items-center gap-2 px-4 py-2.5 border border-orange-500/30 text-orange-400 text-xs font-bold tracking-wide uppercase hover:bg-orange-500/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0">
+                    <Ban size={14} /> Cancel Membership
+                  </button>
+                </div>
+                <div className="border-t border-red-500/10 pt-4 flex items-start justify-between gap-4 flex-wrap">
+                  <div className="flex-1 min-w-[200px]">
+                    <p className="text-sm font-bold text-white">Delete Profile</p>
+                    <p className="text-xs text-[#A8A9AD] mt-1">Permanently removes the user account and all associated records (enrollments, attendance, emergency contacts, custom fields, etc.). This cannot be undone.</p>
+                  </div>
+                  <button onClick={() => setShowDeleteConfirm(true)} disabled={profileData.user?.role === "admin"} className="flex items-center gap-2 px-4 py-2.5 border border-red-500/30 text-red-400 text-xs font-bold tracking-wide uppercase hover:bg-red-500/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0">
+                    <Trash2 size={14} /> Delete Profile
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Cancel confirmation */}
+            {showCancelConfirm && (
+              <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => !actionLoading && setShowCancelConfirm(false)}>
+                <div className="w-full max-w-md border border-orange-500/30 bg-[#0A0A0A] p-8" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-start gap-3 mb-4">
+                    <AlertTriangle size={20} className="text-orange-400 shrink-0 mt-0.5" />
+                    <div>
+                      <h2 className="text-xl font-bold">Cancel Membership?</h2>
+                      <p className="text-sm text-[#A8A9AD] mt-2">This will revoke <strong className="text-white">{profileData.user?.full_name || profileData.user?.email}</strong>'s student access, cancel active enrollments and billing, and set their role to Guest.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={handleCancelMembership} disabled={actionLoading} className="flex-1 px-4 py-3 bg-orange-500 text-white font-bold text-sm tracking-wide uppercase hover:bg-orange-600 disabled:opacity-50 flex items-center justify-center gap-2">
+                      {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <><Ban size={16} /> Cancel Membership</>}
+                    </button>
+                    <button onClick={() => setShowCancelConfirm(false)} disabled={actionLoading} className="px-4 py-3 text-sm text-[#A8A9AD] hover:text-white">Back</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Delete confirmation */}
+            {showDeleteConfirm && (
+              <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => !actionLoading && setShowDeleteConfirm(false)}>
+                <div className="w-full max-w-md border border-red-500/30 bg-[#0A0A0A] p-8" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-start gap-3 mb-4">
+                    <AlertTriangle size={20} className="text-red-400 shrink-0 mt-0.5" />
+                    <div>
+                      <h2 className="text-xl font-bold">Delete Profile?</h2>
+                      <p className="text-sm text-[#A8A9AD] mt-2">This will <strong className="text-red-400">permanently delete</strong> <strong className="text-white">{profileData.user?.full_name || profileData.user?.email}</strong>'s account and all associated records. This cannot be undone.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={handleDeleteProfile} disabled={actionLoading} className="flex-1 px-4 py-3 bg-red-500 text-white font-bold text-sm tracking-wide uppercase hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2">
+                      {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <><Trash2 size={16} /> Delete Permanently</>}
+                    </button>
+                    <button onClick={() => setShowDeleteConfirm(false)} disabled={actionLoading} className="px-4 py-3 text-sm text-[#A8A9AD] hover:text-white">Back</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )
       )}
