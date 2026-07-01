@@ -17,9 +17,9 @@ export default function TrialBooking() {
   const [selectedDate, setSelectedDate] = useState("");
   const [booking, setBooking] = useState(false);
   const [booked, setBooked] = useState(false);
-  const [studentAge, setStudentAge] = useState("");
+  const [studentAge, setStudentAge] = useState(searchParams.get("age") || "");
   const [programFilter, setProgramFilter] = useState("All Programs");
-  const [leadEmail, setLeadEmail] = useState("");
+  const [leadEmail, setLeadEmail] = useState(searchParams.get("email") || "");
   const bookingRef = useRef(null);
 
   useEffect(() => {
@@ -32,15 +32,6 @@ export default function TrialBooking() {
         return dayOrder.indexOf(a.day_of_week) - dayOrder.indexOf(b.day_of_week) || (a.start_time || "").localeCompare(b.start_time || "");
       });
       setClasses(sorted);
-
-      if (leadId) {
-        try {
-          const lead = await base44.entities.Lead.get(leadId);
-          if (lead.student_age) setStudentAge(String(lead.student_age));
-          if (lead.email) setLeadEmail(lead.email);
-        } catch (e) {}
-      }
-
       setLoading(false);
     };
     load();
@@ -77,21 +68,14 @@ export default function TrialBooking() {
     }, 100);
   };
 
-  const handleAgeChange = async (val) => {
+  const handleAgeChange = (val) => {
     setStudentAge(val);
-    if (leadId && val) {
-      try {
-        await base44.entities.Lead.update(leadId, { student_age: parseInt(val) });
-      } catch (e) {}
-    }
   };
 
   const handleBook = async () => {
     if (!selectedClass || !selectedDate || !leadId || !studentAge) return;
     setBooking(true);
     try {
-      // Ensure lead has the latest age before booking
-      await base44.entities.Lead.update(leadId, { student_age: parseInt(studentAge) });
       await base44.functions.invoke("bookTrial", {
         lead_id: leadId,
         class_id: selectedClass.id,
@@ -101,6 +85,7 @@ export default function TrialBooking() {
         end_time: selectedClass.end_time,
         instructor: selectedClass.instructor,
         location: selectedClass.location,
+        student_age: parseInt(studentAge),
       });
       setBooked(true);
     } catch (e) {

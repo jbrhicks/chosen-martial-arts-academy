@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { lead_id, class_id, class_name, trial_date, start_time, end_time, instructor, location } = body;
+    const { lead_id, class_id, class_name, trial_date, start_time, end_time, instructor, location, student_age } = body;
 
     if (!lead_id || !class_id || !trial_date) {
       return Response.json({ error: "Missing required fields" }, { status: 400 });
@@ -48,9 +48,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: "Class not found" }, { status: 404 });
     }
 
+    // Use student_age from request if provided (frontend doesn't have admin access to update lead)
+    const effectiveAge = student_age != null ? student_age : lead.student_age;
+
     // Server-side age validation
-    if (lead.student_age != null && cls) {
-      const age = lead.student_age;
+    if (effectiveAge != null && cls) {
+      const age = effectiveAge;
       let minAge = cls.min_age || 0;
       let maxAge = cls.max_age || 0;
       // Derive from age_preset if explicit bounds not set
@@ -66,13 +69,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Update the lead with trial booking info
-    await base44.asServiceRole.entities.Lead.update(lead_id, {
+    // Update the lead with trial booking info (and sync student_age from the form)
+    const leadUpdate: Record<string, any> = {
       trial_class_id: class_id,
       trial_class_name: class_name,
       trial_date: trial_date,
       pipeline_stage: "trial_booked",
-    });
+    };
+    if (student_age != null) leadUpdate.student_age = student_age;
+    await base44.asServiceRole.entities.Lead.update(lead_id, leadUpdate);
 
     // Update LeadPipeline if exists
     try {

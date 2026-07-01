@@ -84,7 +84,10 @@ export default function LeadForm() {
         override_requested: override,
         override_reason: override ? overrideReason.trim() : undefined,
       });
-      navigate(`/trial-booking?lead=${lead.id}`);
+      const params = new URLSearchParams({ lead: lead.id });
+      if (form.email) params.set("email", form.email);
+      if (hasAge) params.set("age", String(ageNum));
+      navigate(`/trial-booking?${params.toString()}`);
     } catch (err) {
       setError("Something went wrong. Please try again or call us at (555) 123-4567.");
       setStatus("error");
