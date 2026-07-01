@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Loader2, ChevronRight, ArrowLeft, ShieldAlert } from "lucide-react";
+import { Loader2, ChevronRight, ArrowLeft, ShieldAlert, AlertTriangle, CalendarCheck } from "lucide-react";
 import TrialValueChecklist from "@/components/lead/TrialValueChecklist";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -15,13 +15,53 @@ export default function LeadForm() {
     full_name: "",
     email: "",
     phone: "",
+    student_age: "",
   });
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [showOverride, setShowOverride] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
 
-  const handleSubmit = async () => {
+  useEffect(() => {
+    const hashParts = window.location.hash.split("?");
+    const params = new URLSearchParams(hashParts[1] || "");
+    const classId = params.get("class");
+    if (classId) {
+      base44.entities.ClassSchedule.get(classId)
+        .then(cls => {
+          if (cls && cls.is_trial_eligible) setSelectedClass(cls);
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  const ageNum = parseInt(form.student_age);
+  const hasAge = !isNaN(ageNum) && form.student_age !== "";
+  const minAge = selectedClass?.min_age || 0;
+  const maxAge = selectedClass?.max_age || 99;
+  const ageMismatch = selectedClass && hasAge && (ageNum < minAge || ageNum > maxAge);
+  const ageRangeLabel = selectedClass
+    ? minAge === 0 && maxAge === 99 ? "All Ages"
+      : maxAge >= 99 ? `Ages ${minAge}+`
+      : `Ages ${minAge}–${maxAge}`
+    : "";
+
+  const handleSubmit = async (override = false) => {
     if (!form.full_name || !form.email || !form.phone) {
       setError("Please fill in your name, email, and phone number.");
+      return;
+    }
+    if (selectedClass && !hasAge) {
+      setError("Please enter the student's age to verify class eligibility.");
+      return;
+    }
+    if (ageMismatch && !override) {
+      setShowOverride(true);
+      return;
+    }
+    if (override && !overrideReason.trim()) {
+      setError("Please provide a reason for the override request.");
       return;
     }
     setStatus("loading");
@@ -29,10 +69,15 @@ export default function LeadForm() {
     try {
       const lead = await base44.entities.Lead.create({
         ...form,
+        student_age: hasAge ? ageNum : undefined,
         interest: form.program_of_interest + " Program",
         status: "new",
         pipeline_stage: "new_lead",
         lead_source: "Website",
+        trial_class_id: selectedClass?.id || undefined,
+        trial_class_name: selectedClass?.class_name || undefined,
+        override_requested: override,
+        override_reason: override ? overrideReason.trim() : undefined,
       });
       navigate(`/trial-booking?lead=${lead.id}`);
     } catch (err) {
@@ -122,6 +167,15 @@ export default function LeadForm() {
       <h3 className="text-2xl font-bold mb-2">Claim your free trial</h3>
       <p className="text-sm text-[#A8A9AD] mb-6">Last step! Enter your info and we'll send your trial pass instantly.</p>
       <TrialValueChecklist compact />
+      {selectedClass && (
+        <div className="mb-4 border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-4 flex items-center gap-3">
+          <CalendarCheck size={18} className="text-[#C9A84C] shrink-0" />
+          <div>
+            <p className="text-sm font-bold text-white">{selectedClass.class_name}</p>
+            <p className="text-xs text-[#A8A9AD]">{selectedClass.day_of_week} · {selectedClass.start_time} · {ageRangeLabel}</p>
+          </div>
+        </div>
+      )}
       <div className="space-y-4">
         <div>
           <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Full Name *</label>
@@ -135,10 +189,56 @@ export default function LeadForm() {
           <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Phone *</label>
           <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-white text-sm focus:border-[#C9A84C] focus:outline-none" placeholder="(555) 123-4567" />
         </div>
+        {selectedClass && (
+          <div>
+            <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Age of Student *</label>
+            <input type="number" min="0" max="99" value={form.student_age} onChange={e => setForm({ ...form, student_age: e.target.value })} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-white text-sm focus:border-[#C9A84C] focus:outline-none" placeholder="e.g., 8" />
+            <p className="text-xs text-[#A8A9AD] mt-1">Required to verify eligibility for this class.</p>
+          </div>
+        )}
+        {ageMismatch && !showOverride && (
+          <div className="border border-red-500/30 bg-red-500/5 p-4 flex items-start gap-3">
+            <AlertTriangle size={18} className="text-red-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-red-400">Age doesn't match this class</p>
+              <p className="text-xs text-[#A8A9AD] mt-1">This class is for {ageRangeLabel}. The age you entered ({ageNum}) is outside that range.</p>
+            </div>
+          </div>
+        )}
+        {showOverride && (
+          <div className="border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={18} className="text-[#C9A84C] shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-white">Request an Age Override</p>
+                <p className="text-xs text-[#A8A9AD] mt-1">If you believe this student should be allowed in this class, tell us why. Our team will review and get back to you.</p>
+              </div>
+            </div>
+            <textarea value={overrideReason} onChange={e => setOverrideReason(e.target.value)} rows={3} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-white text-sm focus:border-[#C9A84C] focus:outline-none resize-none" placeholder="e.g., My child has 2 years of prior martial arts experience..." />
+          </div>
+        )}
         {error && <p className="text-red-400 text-sm">{error}</p>}
-        <button onClick={handleSubmit} disabled={status === "loading"} className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-4 hover:bg-[#E0C97A] transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
-          {status === "loading" ? <><Loader2 size={18} className="animate-spin" /> Processing...</> : <>Claim Your Free Trial <ChevronRight size={18} /></>}
-        </button>
+        {showOverride ? (
+          <>
+            <button onClick={() => handleSubmit(true)} disabled={status === "loading"} className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-4 hover:bg-[#E0C97A] transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+              {status === "loading" ? <><Loader2 size={18} className="animate-spin" /> Processing...</> : <>Submit Override Request <ChevronRight size={18} /></>}
+            </button>
+            <button onClick={() => setShowOverride(false)} className="w-full flex items-center justify-center gap-2 text-xs text-[#A8A9AD] hover:text-white">
+              <ArrowLeft size={14} /> Cancel Override
+            </button>
+          </>
+        ) : (
+          <>
+            <button onClick={() => handleSubmit(false)} disabled={status === "loading"} className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-4 hover:bg-[#E0C97A] transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+              {status === "loading" ? <><Loader2 size={18} className="animate-spin" /> Processing...</> : <>Claim Your Free Trial <ChevronRight size={18} /></>}
+            </button>
+            {ageMismatch && (
+              <button onClick={() => setShowOverride(true)} className="w-full border border-[#A8A9AD]/30 text-[#A8A9AD] font-bold text-xs tracking-widest uppercase py-3 hover:text-white hover:border-[#C9A84C]/50 transition-colors">
+                Request Age Override
+              </button>
+            )}
+          </>
+        )}
         <button onClick={() => setStep(2)} className="w-full flex items-center justify-center gap-2 text-xs text-[#A8A9AD] hover:text-white">
           <ArrowLeft size={14} /> Back
         </button>

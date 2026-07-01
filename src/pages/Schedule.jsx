@@ -158,7 +158,7 @@ function ClassCard({ cls }) {
         )}
       </div>
       {cls.is_trial_eligible && (
-        <a href="/#lead-form" className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-[#C9A84C] text-[#C9A84C] text-xs font-bold tracking-widest uppercase hover:bg-[#C9A84C] hover:text-black transition-colors">
+        <a href={`/#lead-form?class=${cls.id}`} className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-[#C9A84C] text-[#C9A84C] text-xs font-bold tracking-widest uppercase hover:bg-[#C9A84C] hover:text-black transition-colors">
           <CalendarCheck size={14} /> Book a Free Trial
         </a>
       )}

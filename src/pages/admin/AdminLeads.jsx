@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { Mail, Phone, Loader2, UserPlus, Send, LayoutDashboard, CheckSquare, List } from "lucide-react";
+import { Mail, Phone, Loader2, UserPlus, Send, LayoutDashboard, CheckSquare, List, AlertTriangle, CalendarCheck } from "lucide-react";
 import KanbanPipeline from "@/components/admin/leads/KanbanPipeline";
 import DailyTaskRoster from "@/components/admin/leads/DailyTaskRoster";
 
@@ -114,7 +114,24 @@ export default function AdminLeads() {
                         </span>
                         {lead.welcome_email_sent && <span className="text-[10px] text-green-400">✓ Email sent</span>}
                         {lead.trial_date && <span className="text-[10px] text-purple-400">Trial: {new Date(lead.trial_date).toLocaleDateString()}</span>}
+                        {lead.override_requested && <span className="text-[10px] tracking-widest uppercase px-2 py-1 border border-red-400/30 text-red-400 flex items-center gap-1"><AlertTriangle size={10} /> Override Requested</span>}
                       </div>
+                      {(lead.trial_class_name || lead.student_age) && (
+                        <div className="flex items-center gap-2 text-xs text-[#A8A9AD] mb-1">
+                          <CalendarCheck size={12} className="text-[#C9A84C]" />
+                          {lead.trial_class_name && <span>Class: {lead.trial_class_name}</span>}
+                          {lead.student_age != null && <span>· Age: {lead.student_age}</span>}
+                        </div>
+                      )}
+                      {lead.override_reason && (
+                        <div className="flex items-start gap-2 mt-2 border border-red-500/20 bg-red-500/5 p-3">
+                          <AlertTriangle size={14} className="text-red-400 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-[10px] tracking-widest uppercase text-red-400 font-bold mb-1">Override Reason</p>
+                            <p className="text-sm text-[#A8A9AD] italic">"{lead.override_reason}"</p>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex flex-wrap items-center gap-4 text-sm text-[#A8A9AD]">
                         <a href={`mailto:${lead.email}`} className="flex items-center gap-1.5 hover:text-[#C9A84C]"><Mail size={14} /> {lead.email}</a>
                         {lead.phone && lead.phone !== "N/A" && <a href={`tel:${lead.phone}`} className="flex items-center gap-1.5 hover:text-[#C9A84C]"><Phone size={14} /> {lead.phone}</a>}

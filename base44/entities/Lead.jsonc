@@ -82,6 +82,16 @@
       "type": "string",
       "format": "date"
     },
+    "student_age": {
+      "type": "number"
+    },
+    "override_requested": {
+      "type": "boolean",
+      "default": false
+    },
+    "override_reason": {
+      "type": "string"
+    },
     "pipeline_stage": {
       "type": "string",
       "enum": [
