@@ -109,6 +109,9 @@
     },
     "household_id": {
       "type": "string"
+    },
+    "linked_user_id": {
+      "type": "string"
     }
   },
   "required": [

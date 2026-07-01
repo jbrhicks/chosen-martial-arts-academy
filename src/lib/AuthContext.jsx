@@ -98,6 +98,11 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       setAuthChecked(true);
+
+      // Attempt to link any existing leads with the same email (idempotent — safe to call every login)
+      if (currentUser?.email) {
+        base44.functions.invoke("linkLeadToUser", { email: currentUser.email }).catch(() => {});
+      }
     } catch (error) {
       console.error('User auth check failed:', error);
       setIsLoadingAuth(false);
