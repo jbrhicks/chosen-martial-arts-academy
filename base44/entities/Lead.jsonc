@@ -51,7 +51,8 @@
         "Facebook Ad",
         "Referral",
         "Website",
-        "Exit Intent"
+        "Exit Intent",
+        "Guest Pass"
       ],
       "default": "Website"
     },
@@ -103,6 +104,9 @@
         "lost"
       ],
       "default": "new_lead"
+    },
+    "household_id": {
+      "type": "string"
     }
   },
   "required": [

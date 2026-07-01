@@ -3,12 +3,14 @@ import { base44 } from "@/api/base44Client";
 import { Mail, Phone, Loader2, UserPlus, Send, LayoutDashboard, CheckSquare, List, AlertTriangle, CalendarCheck } from "lucide-react";
 import KanbanPipeline from "@/components/admin/leads/KanbanPipeline";
 import DailyTaskRoster from "@/components/admin/leads/DailyTaskRoster";
+import LeadProfileDrawer from "@/components/admin/leads/LeadProfileDrawer";
 
 export default function AdminLeads() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("pipeline");
   const [filter, setFilter] = useState("all");
+  const [selectedLead, setSelectedLead] = useState(null);
 
   const loadLeads = useCallback(async () => {
     try {
@@ -78,7 +80,7 @@ export default function AdminLeads() {
             <p className="text-[#A8A9AD]">No leads yet. Leads will appear here when prospects submit the trial form.</p>
           </div>
         ) : (
-          <KanbanPipeline leads={leads} onStageChange={loadLeads} />
+          <KanbanPipeline leads={leads} onStageChange={loadLeads} onLeadClick={setSelectedLead} />
         )
       )}
 
@@ -104,7 +106,7 @@ export default function AdminLeads() {
           ) : (
             <div className="space-y-px bg-[#A8A9AD]/20 border border-[#A8A9AD]/20">
               {filtered.map((lead) => (
-                <div key={lead.id} className="bg-[#0A0A0A] p-5">
+                <div key={lead.id} className="bg-[#0A0A0A] p-5 cursor-pointer hover:bg-[#0A0A0A]/80" onClick={() => setSelectedLead(lead)}>
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -158,6 +160,14 @@ export default function AdminLeads() {
             </div>
           )}
         </>
+      )}
+
+      {selectedLead && (
+        <LeadProfileDrawer
+          lead={selectedLead}
+          onClose={() => setSelectedLead(null)}
+          onLeadUpdated={() => { loadLeads(); setSelectedLead(null); }}
+        />
       )}
     </div>
   );

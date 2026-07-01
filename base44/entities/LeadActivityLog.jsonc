@@ -1,0 +1,66 @@
+{
+  "name": "LeadActivityLog",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string"
+    },
+    "lead_name": {
+      "type": "string"
+    },
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "email",
+        "sms",
+        "web_form",
+        "staff_note",
+        "stage_change",
+        "trial_booked",
+        "call",
+        "enrolled",
+        "reminder_set"
+      ],
+      "default": "staff_note"
+    },
+    "content": {
+      "type": "string"
+    },
+    "admin_id": {
+      "type": "string"
+    },
+    "admin_name": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "lead_id",
+    "action_type",
+    "content"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
