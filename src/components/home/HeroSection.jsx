@@ -48,10 +48,11 @@ export default function HeroSection() {
 
       {/* Bottom stats bar */}
       <div className="absolute bottom-0 left-0 right-0 z-10 border-t border-[#A8A9AD]/20 bg-black/60 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-3 divide-x divide-[#A8A9AD]/20">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-2 sm:grid-cols-4 divide-x divide-[#A8A9AD]/20">
           {[
             { value: "150+", label: "Active Students" },
             { value: "15", label: "Belt Ranks" },
+            { value: "100%", label: "Beginner Friendly" },
             { value: "18", label: "Years of Excellence" },
           ].map((stat) => (
             <div key={stat.label} className="py-6 text-center">
