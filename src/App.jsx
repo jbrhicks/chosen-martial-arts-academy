@@ -61,6 +61,7 @@ import AdminReferralCampaigns from '@/pages/admin/AdminReferralCampaigns';
 import AdminReferralTracking from '@/pages/admin/AdminReferralTracking';
 import AdminBroadcasts from '@/pages/admin/AdminBroadcasts';
 import AdminInbox from '@/pages/admin/AdminInbox';
+import AdminNotificationSettings from '@/pages/admin/AdminNotificationSettings';
 import Progress from '@/pages/portal/Progress';
 import StudentCurriculum from '@/pages/portal/StudentCurriculum';
 import Messages from '@/pages/portal/Messages';
@@ -167,6 +168,7 @@ const AuthenticatedApp = () => {
             <Route path="/admin/referral-tracking" element={<AdminReferralTracking />} />
             <Route path="/admin/broadcasts" element={<AdminBroadcasts />} />
             <Route path="/admin/inbox" element={<AdminInbox />} />
+            <Route path="/admin/notification-settings" element={<AdminNotificationSettings />} />
           </Route>
         </Route>
       </Route>

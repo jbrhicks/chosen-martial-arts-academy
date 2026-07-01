@@ -4,6 +4,13 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
+    // Fetch notification settings
+    const settingsList = await base44.asServiceRole.entities.NotificationSettings.list().catch(() => []);
+    const settings = settingsList[0] || {};
+    const channel = settings.billing_alerts_channel || "email";
+
+    const appUrl = Deno.env.get("BASE44_APP_URL") || "";
+
     const pastDue = await base44.asServiceRole.entities.BillingRecord.filter({ status: "past_due" }).catch(() => []);
     const failed = await base44.asServiceRole.entities.BillingRecord.filter({ status: "failed" }).catch(() => []);
     const allRecords = [...pastDue, ...failed];
@@ -20,11 +27,27 @@ Deno.serve(async (req) => {
 
       for (const email of contactEmails) {
         try {
-          await base44.asServiceRole.integrations.Core.SendEmail({
-            to: email,
-            subject: "Action Needed: Payment Method Update Required",
-            body: `Hello,\n\nA recent payment for your Chosen Martial Arts Academy membership could not be processed. This may be due to an expired card or insufficient funds.\n\nAmount Due: $${(record.recurring_amount || 0).toFixed(2)}\nNext Billing Date: ${record.next_billing_date || "N/A"}\n\nWe will automatically retry this charge in 3 days. To avoid any interruption in service, please update your payment method by logging into your member portal.\n\nThank you,\nChosen Martial Arts Academy`,
-          });
+          if (channel === "email") {
+            await base44.asServiceRole.functions.invoke("sendBrandedEmail", {
+              to: email,
+              subject: "Action Needed: Payment Update Required",
+              body_lines: [
+                "Hello,",
+                "A recent payment for your Chosen Martial Arts Academy membership could not be processed. This may be due to an expired card or insufficient funds.",
+                `<strong>Amount Due:</strong> $${(record.recurring_amount || 0).toFixed(2)}`,
+                `<strong>Next Billing Date:</strong> ${record.next_billing_date || "N/A"}`,
+                "We will automatically retry this charge in 3 days. To avoid any interruption in service, please update your payment method by logging into your member portal.",
+              ],
+              action_url: `${appUrl}/portal/billing`,
+              action_label: "Update Payment Method",
+            });
+          } else {
+            await base44.asServiceRole.integrations.Core.SendEmail({
+              to: email,
+              subject: "Action Needed: Payment Method Update Required",
+              body: `Hello,\n\nA recent payment for your Chosen Martial Arts Academy membership could not be processed. This may be due to an expired card or insufficient funds.\n\nAmount Due: $${(record.recurring_amount || 0).toFixed(2)}\nNext Billing Date: ${record.next_billing_date || "N/A"}\n\nWe will automatically retry this charge in 3 days. To avoid any interruption in service, please update your payment method by logging into your member portal.\n\nThank you,\nChosen Martial Arts Academy`,
+            });
+          }
           emailsSent++;
         } catch (e) { console.error("Dunning email failed", e); }
       }

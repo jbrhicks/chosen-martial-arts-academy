@@ -4,6 +4,13 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
+    // Fetch notification settings
+    const settingsList = await base44.asServiceRole.entities.NotificationSettings.list().catch(() => []);
+    const settings = settingsList[0] || {};
+    const channel = settings.event_reminders_channel || "email";
+
+    const appUrl = Deno.env.get("BASE44_APP_URL") || "";
+
     const now = new Date();
     const in24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
@@ -25,14 +32,36 @@ Deno.serve(async (req) => {
         if (!reg.user_email) continue;
 
         const eventDate = new Date(event.start_date);
-        const whatToBring = event.what_to_bring ? `\n\nWhat to Bring:\n${event.what_to_bring}` : '';
-        const location = event.location ? `\nLocation: ${event.location}` : '';
+        const dateStr = eventDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        const timeStr = eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
-        await base44.integrations.Core.SendEmail({
-          to: reg.user_email,
-          subject: `Reminder: ${event.title} is tomorrow!`,
-          body: `Hi ${reg.user_name || reg.student_name},\n\nThis is a quick reminder that ${event.title} is happening tomorrow!\n\nDate: ${eventDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}\nTime: ${eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}${location}${whatToBring}\n\nSee you there!\n\n- Chosen Martial Arts Academy`,
-        });
+        if (channel === "email") {
+          const bodyLines = [
+            `Hi ${reg.user_name || reg.student_name},`,
+            `This is a quick reminder that <strong>${event.title}</strong> is happening tomorrow!`,
+            `<strong>Date:</strong> ${dateStr}`,
+            `<strong>Time:</strong> ${timeStr}`,
+          ];
+          if (event.location) bodyLines.push(`<strong>Location:</strong> ${event.location}`);
+          if (event.what_to_bring) bodyLines.push(`<strong>What to Bring:</strong> ${event.what_to_bring}`);
+          bodyLines.push("See you there!");
+
+          await base44.asServiceRole.functions.invoke("sendBrandedEmail", {
+            to: reg.user_email,
+            subject: `Reminder: ${event.title} is Tomorrow`,
+            body_lines: bodyLines,
+            action_url: `${appUrl}/portal/events`,
+            action_label: "View Event Details",
+          });
+        } else {
+          const whatToBring = event.what_to_bring ? `\n\nWhat to Bring:\n${event.what_to_bring}` : '';
+          const location = event.location ? `\nLocation: ${event.location}` : '';
+          await base44.asServiceRole.integrations.Core.SendEmail({
+            to: reg.user_email,
+            subject: `Reminder: ${event.title} is tomorrow!`,
+            body: `Hi ${reg.user_name || reg.student_name},\n\nThis is a quick reminder that ${event.title} is happening tomorrow!\n\nDate: ${dateStr}\nTime: ${timeStr}${location}${whatToBring}\n\nSee you there!\n\n- Chosen Martial Arts Academy`,
+          });
+        }
         remindersSent++;
       }
     }
