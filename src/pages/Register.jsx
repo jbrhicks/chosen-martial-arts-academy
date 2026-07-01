@@ -45,7 +45,8 @@ export default function Register() {
       if (result?.access_token) {
         base44.auth.setToken(result.access_token);
       }
-      // Link any existing leads with this email to the new account
+      // Set role to guest (no paid subscription yet) and link any existing leads
+      await base44.auth.updateMe({ role: "guest" }).catch(() => {});
       await base44.functions.invoke("linkLeadToUser", { email }).catch(() => {});
       window.location.href = "/";
     } catch (err) {

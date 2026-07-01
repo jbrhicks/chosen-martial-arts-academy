@@ -45,6 +45,25 @@ Deno.serve(async (req) => {
       token_expiration: "",
     });
 
+    // Sync role based on billing (student if they have active billing, guest otherwise)
+    try {
+      const billingRecords = await base44.asServiceRole.entities.BillingRecord
+        .filter({ family_id: user.family_id || '___none___' })
+        .catch(() => []);
+      const emailBilling = await base44.asServiceRole.entities.BillingRecord
+        .filter({ user_email: user.email })
+        .catch(() => []);
+      const allBilling = [...billingRecords, ...emailBilling.filter(eb => !billingRecords.some(b => b.id === eb.id))];
+      const hasActive = allBilling.some((b: any) => b.status === 'active');
+      const newRole = hasActive ? 'student' : 'guest';
+      const newSubStatus = hasActive ? 'active' : 'none';
+      if (user.role !== 'admin') {
+        await base44.asServiceRole.entities.User.update(user.id, { role: newRole, subscription_status: newSubStatus });
+      }
+    } catch (e) {
+      console.error('Role sync failed:', e);
+    }
+
     return Response.json({ success: true, email: user.email });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

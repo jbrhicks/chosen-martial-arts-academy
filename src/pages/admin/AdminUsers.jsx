@@ -49,7 +49,7 @@ export default function AdminUsers() {
     if (!inviteForm.email) return;
     setInviting(true);
     try {
-      await base44.users.inviteUser(inviteForm.email, inviteForm.role === "student" ? "user" : "admin");
+      await base44.users.inviteUser(inviteForm.email, inviteForm.role === "admin" ? "admin" : "user");
       alert(`Invitation sent to ${inviteForm.email}`);
       setShowInvite(false);
       setInviteForm({ email: "", role: "student", belt_rank: "White" });
@@ -152,12 +152,13 @@ export default function AdminUsers() {
                       onChange={(e) => updateRole(u.id, e.target.value)}
                       className="bg-[#0A0A0A] border border-[#A8A9AD]/30 px-2 py-1.5 text-xs text-white focus:border-[#C9A84C] focus:outline-none"
                     >
+                      <option value="guest">Guest</option>
                       <option value="student">Student</option>
                       <option value="admin">Admin</option>
-                    </select>
-                  </td>
-                  <td className="py-4 px-4">
-                    {editingPin === u.id ? (
+                      </select>
+                      </td>
+                      <td className="py-4 px-4">
+                        {editingPin === u.id ? (
                       <div className="flex items-center gap-2">
                         <input
                           type="password"
@@ -216,6 +217,7 @@ export default function AdminUsers() {
                   onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value })}
                   className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none"
                 >
+                  <option value="guest">Guest</option>
                   <option value="student">Student</option>
                   <option value="admin">Admin</option>
                 </select>

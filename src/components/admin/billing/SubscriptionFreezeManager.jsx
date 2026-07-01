@@ -29,6 +29,10 @@ export default function SubscriptionFreezeManager() {
         freeze_end: freezeForm.freeze_end,
         freeze_reason: freezeForm.freeze_reason,
       });
+      // Demote user to guest since their subscription is paused
+      if (freezeTarget.user_email) {
+        await base44.functions.invoke("syncUserRoles", { email: freezeTarget.user_email }).catch(() => {});
+      }
       setFreezeTarget(null);
       setFreezeForm({ freeze_end: "", freeze_reason: "" });
       load();
@@ -48,6 +52,10 @@ export default function SubscriptionFreezeManager() {
         freeze_reason: null,
         next_billing_date: nextDate.toISOString().split("T")[0],
       });
+      // Promote user back to student since their subscription is active again
+      if (record.user_email) {
+        await base44.functions.invoke("syncUserRoles", { email: record.user_email }).catch(() => {});
+      }
       load();
     } catch (e) { alert("Failed to unfreeze."); }
   };
