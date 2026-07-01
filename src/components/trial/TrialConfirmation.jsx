@@ -18,7 +18,7 @@ export default function TrialConfirmation({ selectedClass, selectedDate, leadEma
     startDate: selectedDate,
     startTime: selectedClass.start_time,
     endTime: selectedClass.end_time,
-    location: selectedClass.location || "Chosen Martial Arts Academy",
+    location: "Chosen Martial Arts Academy, 30 N Londonderry Square, Palmyra, PA 17078",
   };
 
   return (
