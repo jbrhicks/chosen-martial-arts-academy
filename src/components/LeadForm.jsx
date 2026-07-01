@@ -57,8 +57,8 @@ export default function LeadForm() {
       setError("Please fill in your name, email, and phone number.");
       return;
     }
-    if (selectedClass && !hasAge) {
-      setError("Please enter the student's age to verify class eligibility.");
+    if (!hasAge) {
+      setError("Please enter the student's age.");
       return;
     }
     if (ageMismatch && !override) {
@@ -194,13 +194,11 @@ export default function LeadForm() {
           <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Phone *</label>
           <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-white text-sm focus:border-[#C9A84C] focus:outline-none" placeholder="(555) 123-4567" />
         </div>
-        {selectedClass && (
-          <div>
-            <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Age of Student *</label>
-            <input type="number" min="0" max="99" value={form.student_age} onChange={e => setForm({ ...form, student_age: e.target.value })} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-white text-sm focus:border-[#C9A84C] focus:outline-none" placeholder="e.g., 8" />
-            <p className="text-xs text-[#A8A9AD] mt-1">Required to verify eligibility for this class.</p>
-          </div>
-        )}
+        <div>
+          <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Age of Student *</label>
+          <input type="number" min="0" max="99" value={form.student_age} onChange={e => setForm({ ...form, student_age: e.target.value })} className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-white text-sm focus:border-[#C9A84C] focus:outline-none" placeholder="e.g., 8" />
+          <p className="text-xs text-[#A8A9AD] mt-1">Required to match you with age-appropriate classes.</p>
+        </div>
         {ageMismatch && !showOverride && (
           <div className="border border-red-500/30 bg-red-500/5 p-4 flex items-start gap-3">
             <AlertTriangle size={18} className="text-red-400 shrink-0 mt-0.5" />

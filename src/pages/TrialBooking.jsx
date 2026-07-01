@@ -77,10 +77,21 @@ export default function TrialBooking() {
     }, 100);
   };
 
+  const handleAgeChange = async (val) => {
+    setStudentAge(val);
+    if (leadId && val) {
+      try {
+        await base44.entities.Lead.update(leadId, { student_age: parseInt(val) });
+      } catch (e) {}
+    }
+  };
+
   const handleBook = async () => {
-    if (!selectedClass || !selectedDate || !leadId) return;
+    if (!selectedClass || !selectedDate || !leadId || !studentAge) return;
     setBooking(true);
     try {
+      // Ensure lead has the latest age before booking
+      await base44.entities.Lead.update(leadId, { student_age: parseInt(studentAge) });
       await base44.functions.invoke("bookTrial", {
         lead_id: leadId,
         class_id: selectedClass.id,
@@ -177,8 +188,8 @@ export default function TrialBooking() {
             <input
               type="number"
               value={studentAge}
-              onChange={(e) => setStudentAge(e.target.value)}
-              placeholder="Any age"
+              onChange={(e) => handleAgeChange(e.target.value)}
+              placeholder="Required"
               min="3"
               max="99"
               className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-2 text-sm text-white focus:border-[#C9A84C] focus:outline-none"
@@ -227,6 +238,11 @@ export default function TrialBooking() {
                     <p className="text-xs text-[#A8A9AD]">Location: {selectedClass.location}</p>
                   )}
                 </div>
+                {!studentAge && (
+                  <p className="text-xs text-[#C9A84C] mb-4">
+                    Please enter the student's age above to verify class eligibility before booking.
+                  </p>
+                )}
                 {ageMismatch && (
                   <p className="text-xs text-red-400 mb-4">
                     This class is not available for the student's age. Please choose a class that matches their age group.
@@ -234,7 +250,7 @@ export default function TrialBooking() {
                 )}
                 <button
                   onClick={handleBook}
-                  disabled={booking || !selectedDate || !leadId || ageMismatch}
+                  disabled={booking || !selectedDate || !leadId || ageMismatch || !studentAge}
                   className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-4 hover:bg-[#E0C97A] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {booking ? (
