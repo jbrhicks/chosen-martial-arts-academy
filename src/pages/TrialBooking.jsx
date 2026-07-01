@@ -46,12 +46,25 @@ export default function TrialBooking() {
     load();
   }, [leadId]);
 
+  const getEffectiveAgeRange = (cls) => {
+    // If explicit min/max are set, use them; otherwise derive from age_preset
+    if (cls.min_age > 0 || cls.max_age > 0) {
+      return { min: cls.min_age || 0, max: cls.max_age || 99 };
+    }
+    switch (cls.age_preset) {
+      case "Youth": return { min: 4, max: 12 };
+      case "Teen/Adult": return { min: 13, max: 99 };
+      default: return { min: 0, max: 99 };
+    }
+  };
+
   const filteredClasses = classes.filter((cls) => {
     if (programFilter !== "All Programs" && cls.age_preset !== programFilter) return false;
     if (studentAge) {
       const age = parseInt(studentAge);
-      if (cls.min_age > 0 && age < cls.min_age) return false;
-      if (cls.max_age > 0 && age > cls.max_age) return false;
+      const range = getEffectiveAgeRange(cls);
+      if (range.min > 0 && age < range.min) return false;
+      if (range.max < 99 && age > range.max) return false;
     }
     return true;
   });
@@ -80,7 +93,12 @@ export default function TrialBooking() {
       });
       setBooked(true);
     } catch (e) {
-      alert("Failed to book trial. Please call us at (555) 123-4567.");
+      const serverError = e.response?.data?.error;
+      if (serverError) {
+        alert(serverError);
+      } else {
+        alert("Failed to book trial. Please call us at (555) 123-4567.");
+      }
     }
     setBooking(false);
   };
@@ -108,9 +126,10 @@ export default function TrialBooking() {
     studentAge &&
     (() => {
       const age = parseInt(studentAge);
+      const range = getEffectiveAgeRange(selectedClass);
       return (
-        (selectedClass.min_age > 0 && age < selectedClass.min_age) ||
-        (selectedClass.max_age > 0 && age > selectedClass.max_age)
+        (range.min > 0 && age < range.min) ||
+        (range.max < 99 && age > range.max)
       );
     })();
 
@@ -210,12 +229,12 @@ export default function TrialBooking() {
                 </div>
                 {ageMismatch && (
                   <p className="text-xs text-red-400 mb-4">
-                    Note: The student's age is outside the recommended range for this class. Our team will review and confirm.
+                    This class is not available for the student's age. Please choose a class that matches their age group.
                   </p>
                 )}
                 <button
                   onClick={handleBook}
-                  disabled={booking || !selectedDate || !leadId}
+                  disabled={booking || !selectedDate || !leadId || ageMismatch}
                   className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-4 hover:bg-[#E0C97A] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {booking ? (

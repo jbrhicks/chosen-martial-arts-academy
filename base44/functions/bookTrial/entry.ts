@@ -33,6 +33,39 @@ Deno.serve(async (req) => {
       return Response.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // Fetch lead and class to validate age eligibility
+    let lead = null;
+    try {
+      lead = await base44.asServiceRole.entities.Lead.get(lead_id);
+    } catch (e) {
+      return Response.json({ error: "Lead not found" }, { status: 404 });
+    }
+
+    let cls = null;
+    try {
+      cls = await base44.asServiceRole.entities.ClassSchedule.get(class_id);
+    } catch (e) {
+      return Response.json({ error: "Class not found" }, { status: 404 });
+    }
+
+    // Server-side age validation
+    if (lead.student_age != null && cls) {
+      const age = lead.student_age;
+      let minAge = cls.min_age || 0;
+      let maxAge = cls.max_age || 0;
+      // Derive from age_preset if explicit bounds not set
+      if (minAge === 0 && maxAge === 0) {
+        if (cls.age_preset === "Youth") { minAge = 4; maxAge = 12; }
+        else if (cls.age_preset === "Teen/Adult") { minAge = 13; maxAge = 99; }
+      }
+      if (minAge > 0 && age < minAge) {
+        return Response.json({ error: `This class requires age ${minAge}+. The student is ${age}.` }, { status: 403 });
+      }
+      if (maxAge > 0 && maxAge < 99 && age > maxAge) {
+        return Response.json({ error: `This class is for ages ${minAge}-${maxAge}. The student is ${age}.` }, { status: 403 });
+      }
+    }
+
     // Update the lead with trial booking info
     await base44.asServiceRole.entities.Lead.update(lead_id, {
       trial_class_id: class_id,
@@ -52,14 +85,6 @@ Deno.serve(async (req) => {
       }
     } catch (pipeErr) {
       console.error("Pipeline update failed:", pipeErr);
-    }
-
-    // Get lead info for confirmation email
-    let lead = null;
-    try {
-      lead = await base44.asServiceRole.entities.Lead.get(lead_id);
-    } catch (e) {
-      console.error("Lead fetch failed:", e);
     }
 
     // Send branded confirmation email
