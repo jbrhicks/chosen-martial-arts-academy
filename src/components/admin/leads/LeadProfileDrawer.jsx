@@ -188,7 +188,7 @@ export default function LeadProfileDrawer({ lead, onClose, onLeadUpdated }) {
     })),
     { date: lead.created_date, type: "created", content: "Lead submitted via website", author: "System", icon: Globe, color: "text-purple-400" },
     lead.welcome_email_sent && { date: lead.created_date, type: "welcome", content: "Welcome email sent automatically", author: "System", icon: Mail, color: "text-blue-400" },
-    lead.trial_date && { date: lead.trial_date, type: "trial", content: `Trial scheduled: ${lead.trial_class_name || 'Class'}`, author: "System", icon: CalendarCheck, color: "text-purple-400" },
+    lead.trial_date && { date: lead.trial_date, type: "trial", content: `Trial scheduled: ${lead.trial_class_name || 'Class'}`, author: "System", icon: CalendarCheck, color: "text-purple-400", dateOnly: true },
   ].filter(Boolean).sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const stage = STAGE_LABELS[lead.pipeline_stage] || "New Lead";
@@ -355,7 +355,9 @@ export default function LeadProfileDrawer({ lead, onClose, onLeadUpdated }) {
                         <span className="text-[10px] text-[#A8A9AD]">{item.author}</span>
                         <span className="text-[10px] text-[#A8A9AD]/50">·</span>
                         <span className="text-[10px] text-[#A8A9AD]">
-                          {new Date(item.date).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                          {item.dateOnly
+                            ? new Date(item.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" })
+                            : new Date(item.date).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" })}
                         </span>
                       </div>
                     </div>
