@@ -22,6 +22,8 @@
       "type": "string",
       "enum": [
         "Kids Program",
+        "Youth Program",
+        "Teen Program",
         "Adult Program",
         "Family Program",
         "Private Lessons",
