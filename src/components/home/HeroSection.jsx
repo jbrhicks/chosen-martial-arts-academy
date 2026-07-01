@@ -51,7 +51,6 @@ export default function HeroSection() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-2 sm:grid-cols-4 divide-x divide-[#A8A9AD]/20">
           {[
             { value: "150+", label: "Active Students" },
-            { value: "15", label: "Belt Ranks" },
             { value: "100%", label: "Beginner Friendly" },
             { value: "18", label: "Years of Excellence" },
           ].map((stat) => (
