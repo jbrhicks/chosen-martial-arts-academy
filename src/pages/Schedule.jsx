@@ -3,7 +3,9 @@ import PublicLayout from "@/components/PublicLayout";
 import { base44 } from "@/api/base44Client";
 import { DAYS_OF_WEEK, formatTime } from "@/lib/constants";
 import ScrollReveal from "@/components/ScrollReveal";
-import { Clock, MapPin, User, Loader2 } from "lucide-react";
+import { Clock, MapPin, User, Loader2, Users, CalendarCheck } from "lucide-react";
+import { getClassColor } from "@/lib/scheduleUtils";
+import { AGE_PRESETS } from "@/lib/constants";
 
 export default function Schedule() {
   const [classes, setClasses] = useState([]);
@@ -114,11 +116,18 @@ export default function Schedule() {
 }
 
 function ClassCard({ cls }) {
+  const color = getClassColor(cls);
+  const ageLabel = cls.age_preset && cls.age_preset !== "All Ages"
+    ? (AGE_PRESETS.find(p => p.value === cls.age_preset)?.label || cls.age_preset)
+    : cls.age_preset === "Custom" && cls.min_age
+      ? `Ages ${cls.min_age}${cls.max_age ? `–${cls.max_age}` : "+"}`
+      : null;
+
   return (
-    <div className="border border-[#A8A9AD]/20 p-6 hover:border-[#C9A84C]/40 transition-colors group">
+    <div className="border border-[#A8A9AD]/20 p-6 hover:border-[#C9A84C]/40 transition-colors group" style={{ borderTopColor: color, borderTopWidth: 3 }}>
       <div className="flex items-start justify-between mb-4">
         <h3 className="text-lg font-bold group-hover:text-[#C9A84C] transition-colors">{cls.class_name}</h3>
-        {cls.belt_level && (
+        {cls.belt_level && cls.belt_level !== "All Belts" && (
           <span className="text-[10px] tracking-widest uppercase text-[#A8A9AD] border border-[#A8A9AD]/30 px-2 py-1">
             {cls.belt_level}
           </span>
@@ -141,12 +150,18 @@ function ClassCard({ cls }) {
             {cls.location}
           </div>
         )}
-        {cls.age_group && (
-          <div className="pt-2">
-            <span className="text-[10px] tracking-widest uppercase text-[#C9A84C]">{cls.age_group}</span>
+        {ageLabel && (
+          <div className="flex items-center gap-2">
+            <Users size={14} style={{ color }} />
+            <span className="text-[10px] tracking-widest uppercase font-medium" style={{ color }}>{ageLabel}</span>
           </div>
         )}
       </div>
+      {cls.is_trial_eligible && (
+        <a href="/#lead-form" className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-[#C9A84C] text-[#C9A84C] text-xs font-bold tracking-widest uppercase hover:bg-[#C9A84C] hover:text-black transition-colors">
+          <CalendarCheck size={14} /> Book a Free Trial
+        </a>
+      )}
     </div>
   );
 }
