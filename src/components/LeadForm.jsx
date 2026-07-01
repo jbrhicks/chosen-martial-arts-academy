@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Loader2, ChevronRight, ArrowLeft } from "lucide-react";
+import { Loader2, ChevronRight, ArrowLeft, ShieldAlert } from "lucide-react";
 import TrialValueChecklist from "@/components/lead/TrialValueChecklist";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function LeadForm() {
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     inquiry_type: "",
@@ -38,6 +40,24 @@ export default function LeadForm() {
       setStatus("error");
     }
   };
+
+  if (isAuthenticated) {
+    return (
+      <div className="border border-[#A8A9AD]/20 p-6 text-center">
+        <ShieldAlert size={32} className="text-[#C9A84C] mx-auto mb-3" />
+        <h3 className="text-lg font-bold mb-2">You're Already a Member!</h3>
+        <p className="text-sm text-[#A8A9AD] mb-4">
+          The free trial is for new students. As a current member, head to your portal to explore classes and programs.
+        </p>
+        <button
+          onClick={() => navigate(user?.role === "admin" ? "/admin" : "/portal")}
+          className="px-6 py-3 bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase hover:bg-[#E0C97A] transition-colors"
+        >
+          Go to {user?.role === "admin" ? "Dashboard" : "Member Portal"}
+        </button>
+      </div>
+    );
+  }
 
   if (step === 1) {
     return (
