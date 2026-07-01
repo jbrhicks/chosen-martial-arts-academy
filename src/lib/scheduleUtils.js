@@ -193,7 +193,14 @@ export function getScheduleException(cls, date, exceptions = []) {
 // Resolve the display color for a class card
 export function getClassColor(cls) {
   if (cls?.color_code) return cls.color_code;
-  const badge = getScheduleBadge(cls);
-  if (badge) return badge.color;
+  if (cls?.age_preset) {
+    const AGE_COLORS = {
+      "All Ages": "#C9A84C",
+      "Youth": "#2B5CA0",
+      "Teen/Adult": "#1E293B",
+      "Custom": "#7A4A2B",
+    };
+    if (AGE_COLORS[cls.age_preset]) return AGE_COLORS[cls.age_preset];
+  }
   return "#C9A84C";
 }
