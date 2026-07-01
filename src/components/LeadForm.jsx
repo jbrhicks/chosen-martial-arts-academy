@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Loader2, ChevronRight, ArrowLeft } from "lucide-react";
+import TrialValueChecklist from "@/components/lead/TrialValueChecklist";
 
 export default function LeadForm() {
   const navigate = useNavigate();
@@ -100,6 +101,7 @@ export default function LeadForm() {
       </div>
       <h3 className="text-2xl font-bold mb-2">Claim your free trial</h3>
       <p className="text-sm text-[#A8A9AD] mb-6">Last step! Enter your info and we'll send your trial pass instantly.</p>
+      <TrialValueChecklist compact />
       <div className="space-y-4">
         <div>
           <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Full Name *</label>

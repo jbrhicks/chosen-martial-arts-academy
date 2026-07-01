@@ -95,6 +95,20 @@ export default function Schedule() {
           )}
         </div>
       </section>
+        {/* Contextual CTA */}
+        <section className="py-12 bg-black border-t border-[#A8A9AD]/20">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-8">
+              <div>
+                <h3 className="text-xl font-bold mb-1">Unsure which class to pick?</h3>
+                <p className="text-sm text-[#A8A9AD]">Book a free trial and our instructors will guide you to the perfect fit.</p>
+              </div>
+              <a href="/#lead-form" className="shrink-0 px-8 py-3.5 bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase hover:bg-[#E0C97A] transition-colors">
+                Claim Your Free Trial
+              </a>
+            </div>
+          </div>
+        </section>
     </PublicLayout>
   );
 }

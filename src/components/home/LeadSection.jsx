@@ -1,5 +1,6 @@
 import ScrollReveal from "@/components/ScrollReveal";
 import LeadForm from "@/components/LeadForm";
+import LeadSocialProof from "@/components/lead/LeadSocialProof";
 import { Gift } from "lucide-react";
 
 export default function LeadSection() {
@@ -38,6 +39,8 @@ export default function LeadSection() {
                 </div>
               )}
             </div>
+
+            <LeadSocialProof />
           </ScrollReveal>
 
           {/* Right: form */}

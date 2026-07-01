@@ -4,6 +4,11 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
+    // Fetch notification settings
+    const settingsList = await base44.asServiceRole.entities.NotificationSettings.list().catch(() => []);
+    const settings = settingsList[0] || {};
+    const channel = settings.lead_alerts_channel || "email";
+
     // Get all leads that haven't booked a trial or enrolled
     const allLeads = await base44.asServiceRole.entities.Lead.list();
     const activeLeads = allLeads.filter(l =>
@@ -13,21 +18,38 @@ Deno.serve(async (req) => {
 
     const now = new Date();
     let processed = 0;
+    const appUrl = Deno.env.get("BASE44_APP_URL") || "";
 
     for (const lead of activeLeads) {
       const createdDate = new Date(lead.created_date);
       const daysSince = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
-      const trialLink = `${Deno.env.get("BASE44_APP_URL") || ""}/trial-booking?lead=${lead.id}`;
+      const trialLink = `${appUrl}/trial-booking?lead=${lead.id}`;
       const leadName = lead.full_name || "there";
 
       // Day 2: Send testimonial email
       if (daysSince === 2) {
         try {
-          await base44.asServiceRole.integrations.Core.SendEmail({
-            to: lead.email,
-            subject: "See What Our Students Say About Chosen Martial Arts",
-            body: `Hi ${leadName},\n\nStill thinking about trying martial arts? Don't just take our word for it — hear from our students themselves:\n\n"My son has gained so much confidence and discipline since joining Chosen. It's been life-changing." — Sarah M., Parent\n\n"I was nervous to start as an adult, but the instructors made me feel welcome from day one. Best decision I've ever made." — James T., Student\n\nReady to see for yourself? Book your free trial: ${trialLink}\n\n— The Chosen Martial Arts Academy Team`,
-          });
+          if (channel === "email") {
+            await base44.asServiceRole.functions.invoke("sendBrandedEmail", {
+              to: lead.email,
+              subject: "See What Our Students Say",
+              body_lines: [
+                `Hi ${leadName},`,
+                "Still thinking about trying martial arts? Don't just take our word for it — hear from our students themselves:",
+                '<em>"My son has gained so much confidence and discipline since joining Chosen. It\'s been life-changing."</em> — Sarah M., Parent',
+                '<em>"I was nervous to start as an adult, but the instructors made me feel welcome from day one. Best decision I\'ve ever made."</em> — James T., Student',
+                "Ready to see for yourself? Book your free trial today."
+              ],
+              action_url: trialLink,
+              action_label: "Book Your Free Trial",
+            });
+          } else {
+            await base44.asServiceRole.integrations.Core.SendEmail({
+              to: lead.email,
+              subject: "See What Our Students Say About Chosen Martial Arts",
+              body: `Hi ${leadName},\n\nStill thinking about trying martial arts? Don't just take our word for it — hear from our students themselves:\n\n"My son has gained so much confidence and discipline since joining Chosen. It's been life-changing." — Sarah M., Parent\n\n"I was nervous to start as an adult, but the instructors made me feel welcome from day one. Best decision I've ever made." — James T., Student\n\nReady to see for yourself? Book your free trial: ${trialLink}\n\n— The Chosen Martial Arts Academy Team`,
+            });
+          }
           processed++;
         } catch (e) { console.error("Day 2 email failed:", e); }
       }
@@ -35,11 +57,30 @@ Deno.serve(async (req) => {
       // Day 4: Send facility/benefits email
       if (daysSince === 4) {
         try {
-          await base44.asServiceRole.integrations.Core.SendEmail({
-            to: lead.email,
-            subject: "Why Martial Arts Is More Than Just Kicks & Punches",
-            body: `Hi ${leadName},\n\nAt Chosen Martial Arts Academy, we believe martial arts is about more than just physical training. It's about building:\n\n• Discipline & Focus\n• Confidence & Self-Esteem\n• Respect & Character\n• Fitness & Healthy Habits\n\nOur experienced instructors create a supportive environment where students of all ages and abilities can thrive.\n\nReady to start your journey? Book your free trial today: ${trialLink}\n\n— The Chosen Martial Arts Academy Team`,
-          });
+          if (channel === "email") {
+            await base44.asServiceRole.functions.invoke("sendBrandedEmail", {
+              to: lead.email,
+              subject: "More Than Just Kicks & Punches",
+              body_lines: [
+                `Hi ${leadName},`,
+                "At Chosen Martial Arts Academy, we believe martial arts is about more than just physical training. It's about building:",
+                "<strong>• Discipline & Focus</strong>",
+                "<strong>• Confidence & Self-Esteem</strong>",
+                "<strong>• Respect & Character</strong>",
+                "<strong>• Fitness & Healthy Habits</strong>",
+                "Our experienced instructors create a supportive environment where students of all ages and abilities can thrive.",
+                "Ready to start your journey?"
+              ],
+              action_url: trialLink,
+              action_label: "Book Your Free Trial",
+            });
+          } else {
+            await base44.asServiceRole.integrations.Core.SendEmail({
+              to: lead.email,
+              subject: "Why Martial Arts Is More Than Just Kicks & Punches",
+              body: `Hi ${leadName},\n\nAt Chosen Martial Arts Academy, we believe martial arts is about more than just physical training. It's about building:\n\n• Discipline & Focus\n• Confidence & Self-Esteem\n• Respect & Character\n• Fitness & Healthy Habits\n\nOur experienced instructors create a supportive environment where students of all ages and abilities can thrive.\n\nReady to start your journey? Book your free trial today: ${trialLink}\n\n— The Chosen Martial Arts Academy Team`,
+            });
+          }
           processed++;
         } catch (e) { console.error("Day 4 email failed:", e); }
       }
@@ -47,11 +88,26 @@ Deno.serve(async (req) => {
       // Day 7: Final nurture email + admin task
       if (daysSince === 7) {
         try {
-          await base44.asServiceRole.integrations.Core.SendEmail({
-            to: lead.email,
-            subject: "Last Chance: Your Free Trial Offer Is Waiting!",
-            body: `Hi ${leadName},\n\nThis is your last chance to claim your FREE 2-week trial at Chosen Martial Arts Academy!\n\nDon't miss out on this opportunity to transform your life through martial arts training. Our community is waiting to welcome you.\n\nBook now before you forget: ${trialLink}\n\n— The Chosen Martial Arts Academy Team`,
-          });
+          if (channel === "email") {
+            await base44.asServiceRole.functions.invoke("sendBrandedEmail", {
+              to: lead.email,
+              subject: "Last Chance: Your Free Trial Is Waiting!",
+              body_lines: [
+                `Hi ${leadName},`,
+                "This is your last chance to claim your FREE 1-week trial at Chosen Martial Arts Academy!",
+                "Don't miss out on this opportunity to transform your life through martial arts training. Our community is waiting to welcome you.",
+                "Book now before you forget."
+              ],
+              action_url: trialLink,
+              action_label: "Claim My Free Trial",
+            });
+          } else {
+            await base44.asServiceRole.integrations.Core.SendEmail({
+              to: lead.email,
+              subject: "Last Chance: Your Free Trial Offer Is Waiting!",
+              body: `Hi ${leadName},\n\nThis is your last chance to claim your FREE 1-week trial at Chosen Martial Arts Academy!\n\nDon't miss out on this opportunity to transform your life through martial arts training. Our community is waiting to welcome you.\n\nBook now before you forget: ${trialLink}\n\n— The Chosen Martial Arts Academy Team`,
+            });
+          }
 
           // Create a final follow-up task for the admin
           await base44.asServiceRole.entities.FollowUpTask.create({
