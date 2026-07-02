@@ -32,7 +32,20 @@
     "create": {
       "created_by_id": "{{user.id}}"
     },
-    "read": {},
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "student"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
     "update": {
       "user_condition": {
         "role": "admin"
