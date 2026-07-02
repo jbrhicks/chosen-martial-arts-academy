@@ -34,11 +34,14 @@ export const BELT_STYLES = {
   "2nd Degree Black Belt": { bg: "#0A0A0A", text: "#FFFFFF", stripe: "#C9A84C", label: "2nd Degree" },
   "3rd Degree Black Belt": { bg: "#0A0A0A", text: "#FFFFFF", stripe: "#C9A84C", label: "3rd Degree" },
   "4th Degree Master": { bg: "#0A0A0A", text: "#FFFFFF", stripe: "#C9A84C", label: "Master" },
+  "All Ranks": { bg: "#C9A84C", text: "#000000", stripe: null, label: "All Ranks" },
 };
 
 // Returns true if the user's rank is high enough to access content requiring `requiredRank`
 export function canAccessRank(userRank, requiredRank) {
-  if (!userRank || !requiredRank) return false;
+  if (!requiredRank) return false;
+  if (requiredRank === "All Ranks") return true;
+  if (!userRank) return false;
   const userIndex = BELT_RANKS.indexOf(userRank);
   const requiredIndex = BELT_RANKS.indexOf(requiredRank);
   if (userIndex === -1 || requiredIndex === -1) return false;

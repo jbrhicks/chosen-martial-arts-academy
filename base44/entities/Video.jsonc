@@ -10,35 +10,10 @@
     },
     "belt_rank_required": {
       "type": "string",
-      "enum": [
-        "White",
-        "White w/ Black Stripe",
-        "Orange",
-        "Orange w/ White Stripe",
-        "Green",
-        "Green w/ White Stripe",
-        "Brown",
-        "Brown w/ White Stripe",
-        "Red",
-        "Red w/ White Stripe",
-        "Blue",
-        "1st Degree Black Belt",
-        "2nd Degree Black Belt",
-        "3rd Degree Black Belt",
-        "4th Degree Master"
-      ],
-      "default": "White"
+      "default": "All Ranks"
     },
     "category": {
       "type": "string",
-      "enum": [
-        "Basics",
-        "Kata",
-        "Kumite",
-        "Self-Defense",
-        "Conditioning",
-        "Philosophy"
-      ],
       "default": "Basics"
     },
     "video_url": {

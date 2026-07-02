@@ -2,9 +2,9 @@ import { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { BELT_RANKS } from "@/lib/constants";
 import BeltBadge from "@/components/BeltBadge";
-import { Loader2, Plus, X, Video, Pencil, Trash2, Upload, Link as LinkIcon } from "lucide-react";
+import { Loader2, Plus, X, Video, Pencil, Trash2, Upload, Link as LinkIcon, Settings2, GripVertical } from "lucide-react";
 
-const CATEGORIES = ["Basics", "Kata", "Kumite", "Self-Defense", "Conditioning", "Philosophy"];
+const FALLBACK_CATEGORIES = ["Basics", "Kata", "Kumite", "Self-Defense", "Conditioning", "Philosophy"];
 
 export default function AdminCurriculum() {
   const [videos, setVideos] = useState([]);
@@ -12,11 +12,15 @@ export default function AdminCurriculum() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
-    title: "", description: "", belt_rank_required: "White", category: "Basics",
+    title: "", description: "", belt_rank_required: "All Ranks", category: "Basics",
     video_url: "", embed_url: "", thumbnail_url: "", duration_minutes: "", is_published: true,
   });
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [rankOptions, setRankOptions] = useState(["All Ranks", ...BELT_RANKS]);
+  const [categories, setCategories] = useState(FALLBACK_CATEGORIES);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
 
   const loadVideos = useCallback(async () => {
     try {
@@ -26,10 +30,37 @@ export default function AdminCurriculum() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { loadVideos(); }, [loadVideos]);
+  const loadRankOptions = useCallback(async () => {
+    try {
+      const belts = await base44.entities.RankBelt.list();
+      if (belts.length > 0) {
+        const uniqueNames = [...new Set(belts.map(b => b.belt_name))]
+          .sort((a, b) => {
+            const ba = belts.find(belt => belt.belt_name === a);
+            const bb = belts.find(belt => belt.belt_name === b);
+            return (ba?.rank_order || 0) - (bb?.rank_order || 0);
+          });
+        // Merge any BELT_RANKS not already included
+        const merged = [...uniqueNames, ...BELT_RANKS.filter(r => !uniqueNames.includes(r))];
+        setRankOptions(["All Ranks", ...merged]);
+      }
+    } catch (e) { console.error(e); }
+  }, []);
+
+  const loadCategories = useCallback(async () => {
+    try {
+      const cats = await base44.entities.VideoCategory.list();
+      if (cats.length > 0) {
+        cats.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+        setCategories(cats.filter(c => c.is_active !== false).map(c => c.category_name));
+      }
+    } catch (e) { console.error(e); }
+  }, []);
+
+  useEffect(() => { loadVideos(); loadRankOptions(); loadCategories(); }, [loadVideos, loadRankOptions, loadCategories]);
 
   const resetForm = () => {
-    setForm({ title: "", description: "", belt_rank_required: "White", category: "Basics", video_url: "", embed_url: "", thumbnail_url: "", duration_minutes: "", is_published: true });
+    setForm({ title: "", description: "", belt_rank_required: "All Ranks", category: categories[0] || "Basics", video_url: "", embed_url: "", thumbnail_url: "", duration_minutes: "", is_published: true });
     setEditing(null);
   };
 
@@ -37,7 +68,7 @@ export default function AdminCurriculum() {
     setEditing(video);
     setForm({
       title: video.title || "", description: video.description || "",
-      belt_rank_required: video.belt_rank_required || "White", category: video.category || "Basics",
+      belt_rank_required: video.belt_rank_required || "All Ranks", category: video.category || categories[0] || "Basics",
       video_url: video.video_url || "", embed_url: video.embed_url || "",
       thumbnail_url: video.thumbnail_url || "", duration_minutes: video.duration_minutes || "",
       is_published: video.is_published !== false,
@@ -94,6 +125,26 @@ export default function AdminCurriculum() {
       await base44.entities.Video.delete(id);
       loadVideos();
     } catch (e) { alert("Delete failed"); }
+  };
+
+  const handleAddCategory = async () => {
+    const name = newCategory.trim();
+    if (!name) return;
+    if (categories.includes(name)) { alert("Category already exists."); return; }
+    try {
+      await base44.entities.VideoCategory.create({ category_name: name, display_order: categories.length + 1 });
+      setNewCategory("");
+      loadCategories();
+    } catch (e) { alert("Failed to add category: " + e.message); }
+  };
+
+  const handleDeleteCategory = async (catName) => {
+    if (!confirm(`Delete category "${catName}"? Videos using it will keep their current value but won't appear in filters until reassigned.`)) return;
+    try {
+      const cats = await base44.entities.VideoCategory.filter({ category_name: catName });
+      for (const c of cats) await base44.entities.VideoCategory.delete(c.id);
+      loadCategories();
+    } catch (e) { alert("Failed to delete category: " + e.message); }
   };
 
   return (
@@ -171,13 +222,19 @@ export default function AdminCurriculum() {
                 <div>
                   <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Belt Rank Required *</label>
                   <select value={form.belt_rank_required} onChange={(e) => setForm({ ...form, belt_rank_required: e.target.value })} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
-                    {BELT_RANKS.map((rank) => <option key={rank} value={rank}>{rank}</option>)}
+                    {rankOptions.map((rank) => <option key={rank} value={rank}>{rank}</option>)}
                   </select>
+                  <p className="text-xs text-[#A8A9AD] mt-1.5">"All Ranks" = visible to everyone. Higher belts automatically see lower-rank content.</p>
                 </div>
                 <div>
-                  <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Category</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs tracking-widest uppercase text-[#A8A9AD]">Category</label>
+                    <button type="button" onClick={() => setShowCategoryManager(true)} className="flex items-center gap-1 text-[10px] text-[#C9A84C] hover:text-[#E0C97A] tracking-wide uppercase">
+                      <Settings2 size={11} /> Manage
+                    </button>
+                  </div>
                   <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full bg-[#0A0A0A] border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none">
-                    {CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+                    {categories.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
                 </div>
               </div>
@@ -213,6 +270,46 @@ export default function AdminCurriculum() {
                 {submitting || uploading ? <Loader2 size={18} className="animate-spin" /> : <>{editing ? "Update" : "Create"} Video</>}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Category Manager modal */}
+      {showCategoryManager && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setShowCategoryManager(false)}>
+          <div className="w-full max-w-md border border-[#C9A84C]/30 bg-[#0A0A0A] p-8" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold">Manage Categories</h2>
+              <button onClick={() => setShowCategoryManager(false)} className="text-[#A8A9AD] hover:text-white"><X size={20} /></button>
+            </div>
+            <div className="space-y-2 mb-6 max-h-64 overflow-y-auto">
+              {categories.length === 0 ? (
+                <p className="text-sm text-[#A8A9AD] text-center py-4">No categories yet.</p>
+              ) : categories.map((cat) => (
+                <div key={cat} className="flex items-center gap-3 border border-[#A8A9AD]/20 px-4 py-2.5">
+                  <GripVertical size={14} className="text-[#A8A9AD]/40 shrink-0" />
+                  <span className="flex-1 text-sm text-white">{cat}</span>
+                  <button onClick={() => handleDeleteCategory(cat)} className="p-1.5 text-[#A8A9AD] hover:text-red-400 transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddCategory(); } }}
+                placeholder="New category name..."
+                className="flex-1 bg-transparent border border-[#A8A9AD]/30 px-4 py-2.5 text-sm text-white focus:border-[#C9A84C] focus:outline-none"
+                autoFocus
+              />
+              <button onClick={handleAddCategory} className="flex items-center gap-1.5 px-4 py-2.5 bg-[#C9A84C] text-black font-bold text-sm tracking-wide uppercase hover:bg-[#E0C97A] transition-colors">
+                <Plus size={16} /> Add
+              </button>
+            </div>
+            <p className="text-xs text-[#A8A9AD] mt-4">Categories are shared across all videos. Deleting a category won't delete videos but they'll need to be reassigned.</p>
           </div>
         </div>
       )}

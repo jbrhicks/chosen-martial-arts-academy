@@ -9,7 +9,7 @@ import { Play, Clock, Loader2, Search, Lock } from "lucide-react";
 import { useCommunityAccess } from "@/lib/CommunityAccessContext";
 import LockedCurriculum from "@/components/portal/community/LockedCurriculum";
 
-const CATEGORIES = ["All", "Basics", "Kata", "Kumite", "Self-Defense", "Conditioning", "Philosophy"];
+const FALLBACK_CATEGORIES = ["All", "Basics", "Kata", "Kumite", "Self-Defense", "Conditioning", "Philosophy"];
 
 export default function Curriculum() {
   const { user } = useAuth();
@@ -23,6 +23,7 @@ export default function Curriculum() {
   const [category, setCategory] = useState("All");
   const [search, setSearch] = useState("");
   const [activeProgramTab, setActiveProgramTab] = useState("all");
+  const [categories, setCategories] = useState(FALLBACK_CATEGORIES);
 
   useEffect(() => {
     base44.entities.Video.filter({ is_published: true })
@@ -35,6 +36,14 @@ export default function Curriculum() {
       .then(setEnrollments)
       .catch(() => {});
     base44.entities.Program.list().then(setPrograms).catch(() => {});
+    base44.entities.VideoCategory.list()
+      .then((cats) => {
+        if (cats.length > 0) {
+          cats.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+          setCategories(["All", ...cats.filter(c => c.is_active !== false).map(c => c.category_name)]);
+        }
+      })
+      .catch(() => {});
   }, [user, activeProfile]);
 
   if (isChecking) return <div className="flex justify-center py-20"><Loader2 size={28} className="animate-spin text-[#C9A84C]" /></div>;
@@ -60,11 +69,16 @@ export default function Curriculum() {
     return matchCat && matchSearch;
   });
 
-  // Group by belt rank
-  const grouped = BELT_RANKS.map((rank) => ({
+  // Group by belt rank — "All Ranks" videos shown first, then by rank progression
+  const allRanksGroup = filtered.filter((v) => v.belt_rank_required === "All Ranks");
+  const rankedGroups = BELT_RANKS.map((rank) => ({
     rank,
     items: filtered.filter((v) => v.belt_rank_required === rank),
   })).filter((g) => g.items.length > 0);
+  const grouped = [
+    ...(allRanksGroup.length > 0 ? [{ rank: "All Ranks", items: allRanksGroup }] : []),
+    ...rankedGroups,
+  ];
 
   return (
     <div className="space-y-6">
@@ -113,7 +127,7 @@ export default function Curriculum() {
           />
         </div>
         <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setCategory(cat)}
@@ -139,7 +153,11 @@ export default function Curriculum() {
           {grouped.map((group) => (
             <div key={group.rank}>
               <div className="flex items-center gap-3 mb-4">
-                <BeltBadge rank={group.rank} size="md" />
+                {group.rank === "All Ranks" ? (
+                  <span className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">All Ranks</span>
+                ) : (
+                  <BeltBadge rank={group.rank} size="md" />
+                )}
                 <span className="h-px flex-1 bg-[#A8A9AD]/20" />
                 <span className="text-xs text-[#A8A9AD]">{group.items.length} video{group.items.length > 1 ? "s" : ""}</span>
               </div>
