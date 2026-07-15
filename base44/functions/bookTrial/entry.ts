@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { lead_id, class_id, class_name, trial_date, start_time, end_time, instructor, location, student_age, lead_email } = body;
+    const { lead_id, class_id, trial_date, student_age, lead_email } = body;
 
     if (!lead_id || !class_id || !trial_date) {
       return Response.json({ error: "Missing required fields" }, { status: 400 });
@@ -74,10 +74,17 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Use server-verified class data (not client-provided) to prevent content/link injection
+    const className = cls.class_name || "";
+    const instructor = cls.instructor || "";
+    const location = cls.location || "";
+    const startTime = cls.start_time || "";
+    const endTime = cls.end_time || "";
+
     // Update the lead with trial booking info (and sync student_age from the form)
     const leadUpdate: Record<string, any> = {
       trial_class_id: class_id,
-      trial_class_name: class_name,
+      trial_class_name: className,
       trial_date: trial_date,
       pipeline_stage: "trial_booked",
     };
@@ -102,10 +109,10 @@ Deno.serve(async (req) => {
       try {
         const appUrl = Deno.env.get("BASE44_APP_URL") || "";
         const formattedDate = new Date(trial_date + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-        const timeStr = start_time ? `${formatTime(start_time)}${end_time ? ` – ${formatTime(end_time)}` : ""}` : "TBD";
+        const timeStr = startTime ? `${formatTime(startTime)}${endTime ? ` – ${formatTime(endTime)}` : ""}` : "TBD";
 
-        const calDescription = `Free Trial Class at Chosen Martial Arts Academy\n\nClass: ${class_name}\nDate: ${formattedDate}\nTime: ${timeStr}\nInstructor: ${instructor || "TBD"}\n\nWhat to bring:\n- Comfortable workout clothes\n- A water bottle\n- A positive attitude!\n\nWe can't wait to see you on the mat!`;
-        const calUrl = generateGoogleCalendarUrl(`Free Trial — ${class_name}`, calDescription, trial_date, start_time, end_time, location || "");
+        const calDescription = `Free Trial Class at Chosen Martial Arts Academy\n\nClass: ${className}\nDate: ${formattedDate}\nTime: ${timeStr}\nInstructor: ${instructor || "TBD"}\n\nWhat to bring:\n- Comfortable workout clothes\n- A water bottle\n- A positive attitude!\n\nWe can't wait to see you on the mat!`;
+        const calUrl = generateGoogleCalendarUrl(`Free Trial — ${className}`, calDescription, trial_date, startTime, endTime, location);
 
         await base44.asServiceRole.functions.invoke("sendBrandedEmail", {
           to: lead.email,
@@ -113,7 +120,7 @@ Deno.serve(async (req) => {
           body_lines: [
             `Hi ${lead.full_name || "there"},`,
             "Your trial class is officially booked! Here are your details:",
-            `<strong>Class:</strong> ${class_name}`,
+            `<strong>Class:</strong> ${className}`,
             `<strong>Date:</strong> ${formattedDate}`,
             `<strong>Time:</strong> ${timeStr}`,
             instructor ? `<strong>Instructor:</strong> ${instructor}` : "",

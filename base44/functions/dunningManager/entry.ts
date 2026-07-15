@@ -4,6 +4,12 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
+    // Require authentication — allows platform scheduler (no user) or admin, blocks anonymous/non-admin
+    const isAuth = await base44.auth.isAuthenticated();
+    if (!isAuth) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    const user = await base44.auth.me().catch(() => null);
+    if (user && user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
+
     // Fetch notification settings
     const settingsList = await base44.asServiceRole.entities.NotificationSettings.list().catch(() => []);
     const settings = settingsList[0] || {};
