@@ -3,6 +3,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    if (user.role !== "admin") return Response.json({ error: "Forbidden" }, { status: 403 });
     const body = await req.json();
     const { email, first_name } = body;
 
@@ -11,7 +14,12 @@ Deno.serve(async (req) => {
     // Find the user by email
     const users = await base44.asServiceRole.entities.User.filter({ email });
     if (users.length === 0) return Response.json({ error: "User not found" }, { status: 404 });
-    const user = users[0];
+    const targetUser = users[0];
+
+    // Prevent resetting already-active accounts
+    if (targetUser.account_status === "active") {
+      return Response.json({ error: "Cannot reset an already-active account" }, { status: 400 });
+    }
 
     // Generate cryptographic token
     const token = crypto.randomUUID();
@@ -19,7 +27,7 @@ Deno.serve(async (req) => {
     expiration.setHours(expiration.getHours() + 48);
 
     // Store token on user record
-    await base44.asServiceRole.entities.User.update(user.id, {
+    await base44.asServiceRole.entities.User.update(targetUser.id, {
       activation_token: token,
       token_expiration: expiration.toISOString(),
       account_status: "pending_activation",
@@ -28,7 +36,7 @@ Deno.serve(async (req) => {
     // Build activation URL
     const baseUrl = Deno.env.get("BASE44_APP_URL") || "";
     const activationUrl = `${baseUrl}/activate?token=${token}`;
-    const firstName = first_name || (user.full_name ? user.full_name.split(" ")[0] : "there");
+    const firstName = first_name || (targetUser.full_name ? targetUser.full_name.split(" ")[0] : "there");
 
     // Send welcome email with HTML template
     const htmlBody = `<!DOCTYPE html>

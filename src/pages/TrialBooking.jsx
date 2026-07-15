@@ -78,6 +78,7 @@ export default function TrialBooking() {
     try {
       await base44.functions.invoke("bookTrial", {
         lead_id: leadId,
+        lead_email: leadEmail,
         class_id: selectedClass.id,
         class_name: selectedClass.class_name,
         trial_date: selectedDate,
