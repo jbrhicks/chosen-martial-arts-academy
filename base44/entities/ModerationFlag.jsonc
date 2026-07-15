@@ -56,7 +56,20 @@
     "reason"
   ],
   "rls": {
-    "create": {},
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "student"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
     "read": {
       "user_condition": {
         "role": "admin"
