@@ -7,10 +7,23 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 // validates the sender phone against known family groups.
 Deno.serve(async (req) => {
   try {
-    // Validate shared secret to ensure only the configured SMS provider can call this webhook
+    // Validate shared secret with constant-time comparison
     const secret = Deno.env.get("SMS_WEBHOOK_SECRET");
     const providedSecret = req.headers.get("X-Webhook-Secret");
-    if (!secret || !providedSecret || secret !== providedSecret) {
+    if (!secret || !providedSecret) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    // Constant-time comparison to prevent timing attacks
+    const secretBytes = new TextEncoder().encode(secret);
+    const providedBytes = new TextEncoder().encode(providedSecret);
+    if (secretBytes.length !== providedBytes.length) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    let diff = 0;
+    for (let i = 0; i < secretBytes.length; i++) {
+      diff |= secretBytes[i] ^ providedBytes[i];
+    }
+    if (diff !== 0) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -26,8 +39,18 @@ Deno.serve(async (req) => {
     // Normalize phone (strip non-digits, keep trailing digits after country code)
     const normalized = fromPhone.replace(/\D/g, '').slice(-10);
 
-    // Find a family group whose cc_phones contains this number
-    const families = await base44.asServiceRole.entities.FamilyGroup.list();
+    // Find a family group whose cc_phones contains this number (indexed filter, not full list)
+    const digits = normalized.split('');
+    const regexPattern = digits.join('\\D*');
+    let families = [];
+    try {
+      families = await base44.asServiceRole.entities.FamilyGroup.filter({
+        cc_phones: { $regex: regexPattern }
+      });
+    } catch (e) {
+      // Fallback: if $regex is not supported, scan with a limited list
+      families = await base44.asServiceRole.entities.FamilyGroup.list('-updated_date', 100);
+    }
     const match = families.find(f => {
       const phones = (f.cc_phones || '').replace(/\D/g, '');
       return phones.includes(normalized);

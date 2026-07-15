@@ -1,15 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-function escapeHtml(str: string): string {
-  if (str == null) return "";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
 function formatTime(time: string): string {
   if (!time) return "";
   const [h, m] = time.split(":").map(Number);
@@ -114,11 +104,6 @@ Deno.serve(async (req) => {
         const formattedDate = new Date(trial_date + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
         const timeStr = start_time ? `${formatTime(start_time)}${end_time ? ` – ${formatTime(end_time)}` : ""}` : "TBD";
 
-        const safeClassName = escapeHtml(class_name);
-        const safeInstructor = escapeHtml(instructor);
-        const safeLocation = escapeHtml(location);
-        const safeFullName = escapeHtml(lead.full_name);
-
         const calDescription = `Free Trial Class at Chosen Martial Arts Academy\n\nClass: ${class_name}\nDate: ${formattedDate}\nTime: ${timeStr}\nInstructor: ${instructor || "TBD"}\n\nWhat to bring:\n- Comfortable workout clothes\n- A water bottle\n- A positive attitude!\n\nWe can't wait to see you on the mat!`;
         const calUrl = generateGoogleCalendarUrl(`Free Trial — ${class_name}`, calDescription, trial_date, start_time, end_time, location || "");
 
@@ -126,13 +111,13 @@ Deno.serve(async (req) => {
           to: lead.email,
           subject: "Trial Class Confirmed!",
           body_lines: [
-            `Hi ${safeFullName || "there"},`,
+            `Hi ${lead.full_name || "there"},`,
             "Your trial class is officially booked! Here are your details:",
-            `<strong>Class:</strong> ${safeClassName}`,
+            `<strong>Class:</strong> ${class_name}`,
             `<strong>Date:</strong> ${formattedDate}`,
             `<strong>Time:</strong> ${timeStr}`,
-            safeInstructor ? `<strong>Instructor:</strong> ${safeInstructor}` : "",
-            safeLocation ? `<strong>Location:</strong> ${safeLocation}` : "",
+            instructor ? `<strong>Instructor:</strong> ${instructor}` : "",
+            location ? `<strong>Location:</strong> ${location}` : "",
             "",
             "<strong>What to bring:</strong> Comfortable workout clothes, a water bottle, and a positive attitude!",
             `Add this class to your calendar so you don't forget: <a href="${calUrl}" style="color:#C9A84C;text-decoration:underline;">Google Calendar</a>`,

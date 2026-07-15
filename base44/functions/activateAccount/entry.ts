@@ -19,15 +19,14 @@ Deno.serve(async (req) => {
     if (user.token_expiration) {
       const expiration = new Date(user.token_expiration);
       if (expiration < new Date()) {
-        return Response.json({ valid: false, reason: "expired", email: user.email });
+        return Response.json({ valid: false, reason: "expired" });
       }
     }
 
-    // If no PIN provided, just return verification status
+    // If no PIN provided, return verification status without exposing PII
     if (!pin) {
       return Response.json({
         valid: true,
-        email: user.email,
         first_name: user.full_name ? user.full_name.split(" ")[0] : "there",
       });
     }

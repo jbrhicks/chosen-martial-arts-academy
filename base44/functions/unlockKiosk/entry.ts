@@ -6,8 +6,17 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { pin, device_name, action, session_id } = body;
 
-    // Lock action: end the session
+    // Lock action: end the session (verify session exists first)
     if (action === "lock" && session_id) {
+      let session = null;
+      try {
+        session = await base44.asServiceRole.entities.KioskSession.get(session_id);
+      } catch (e) {
+        return Response.json({ error: "Session not found" }, { status: 404 });
+      }
+      if (!session || !session.is_active) {
+        return Response.json({ error: "Session not active" }, { status: 400 });
+      }
       await base44.asServiceRole.entities.KioskSession.update(session_id, {
         end_time: new Date().toISOString(),
         is_active: false,
@@ -32,7 +41,8 @@ Deno.serve(async (req) => {
       is_active: true,
     });
 
-    return Response.json({ success: true, admin_id: admin.id, admin_name: admin.full_name, session_id: session.id });
+    // Return only session_id and display name — do NOT expose admin_id
+    return Response.json({ success: true, admin_name: admin.full_name, session_id: session.id });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

@@ -8,12 +8,22 @@ function getRankIndex(rank) {
   return idx === -1 ? 0 : idx;
 }
 
+function escapeHtml(str) {
+  if (str == null) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function personalize(text, user, studentName, nextClass) {
   let result = text || '';
-  const firstName = (user.full_name || '').split(' ')[0];
+  const firstName = escapeHtml((user.full_name || '').split(' ')[0]);
   result = result.replace(/\[Guardian First Name\]/g, firstName);
-  result = result.replace(/\[Student First Name\]/g, studentName || firstName);
-  result = result.replace(/\[Next Class Time\]/g, nextClass || 'your next scheduled class');
+  result = result.replace(/\[Student First Name\]/g, escapeHtml(studentName) || firstName);
+  result = result.replace(/\[Next Class Time\]/g, escapeHtml(nextClass) || 'your next scheduled class');
   return result;
 }
 
