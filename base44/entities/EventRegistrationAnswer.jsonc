@@ -23,17 +23,7 @@
     "create": {
       "$or": [
         {
-          "data.registration_id": {
-            "$in": {
-              "_filter": {
-                "entity": "EventRegistration",
-                "field": "id",
-                "filter": {
-                  "data.user_id": "{{user.id}}"
-                }
-              }
-            }
-          }
+          "created_by_id": "{{user.id}}"
         },
         {
           "user_condition": {
@@ -45,17 +35,7 @@
     "read": {
       "$or": [
         {
-          "data.registration_id": {
-            "$in": {
-              "_filter": {
-                "entity": "EventRegistration",
-                "field": "id",
-                "filter": {
-                  "data.user_id": "{{user.id}}"
-                }
-              }
-            }
-          }
+          "created_by_id": "{{user.id}}"
         },
         {
           "user_condition": {

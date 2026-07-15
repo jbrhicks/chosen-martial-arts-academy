@@ -106,19 +106,7 @@
     "read": {
       "$or": [
         {
-          "data.family_id": "{{user.family_id}}",
-          "$or": [
-            {
-              "user_condition": {
-                "family_role": "primary_guardian"
-              }
-            },
-            {
-              "user_condition": {
-                "family_role": "secondary_guardian"
-              }
-            }
-          ]
+          "data.family_id": "{{user.data.family_id}}"
         },
         {
           "user_condition": {

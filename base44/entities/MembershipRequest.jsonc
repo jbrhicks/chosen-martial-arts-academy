@@ -83,7 +83,7 @@
     "create": {
       "$or": [
         {
-          "data.family_id": "{{user.family_id}}"
+          "data.family_id": "{{user.data.family_id}}"
         },
         {
           "user_condition": {
@@ -95,7 +95,7 @@
     "read": {
       "$or": [
         {
-          "data.family_id": "{{user.family_id}}"
+          "data.family_id": "{{user.data.family_id}}"
         },
         {
           "user_condition": {

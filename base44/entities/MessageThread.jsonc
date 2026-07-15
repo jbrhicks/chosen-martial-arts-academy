@@ -93,17 +93,7 @@
           }
         },
         {
-          "id": {
-            "$in": {
-              "_filter": {
-                "entity": "ThreadParticipant",
-                "field": "data.thread_id",
-                "filter": {
-                  "data.user_id": "{{user.id}}"
-                }
-              }
-            }
-          }
+          "created_by_id": "{{user.id}}"
         }
       ]
     },

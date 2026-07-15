@@ -64,17 +64,14 @@
           }
         },
         {
-          "user_condition": {
-            "family_role": "primary_guardian"
-          },
-          "data.family_id": "{{user.family_id}}"
+          "data.family_id": "{{user.data.family_id}}"
         }
       ]
     },
     "read": {
       "$or": [
         {
-          "data.family_id": "{{user.family_id}}"
+          "data.family_id": "{{user.data.family_id}}"
         },
         {
           "user_condition": {
@@ -91,10 +88,7 @@
           }
         },
         {
-          "user_condition": {
-            "family_role": "primary_guardian"
-          },
-          "data.family_id": "{{user.family_id}}"
+          "data.family_id": "{{user.data.family_id}}"
         }
       ]
     },

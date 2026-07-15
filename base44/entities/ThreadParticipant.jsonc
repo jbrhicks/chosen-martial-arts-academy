@@ -55,26 +55,7 @@
           }
         },
         {
-          "data.thread_id": {
-            "$in": {
-              "_filter": {
-                "entity": "MessageThread",
-                "field": "id",
-                "filter": {
-                  "$or": [
-                    {
-                      "data.created_by_id": "{{user.id}}"
-                    },
-                    {
-                      "user_condition": {
-                        "role": "admin"
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
+          "created_by_id": "{{user.id}}"
         }
       ]
     },
