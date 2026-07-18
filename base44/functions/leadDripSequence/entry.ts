@@ -138,6 +138,11 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
+    const isAuth = await base44.auth.isAuthenticated();
+    if (!isAuth) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    const caller = await base44.auth.me().catch(() => null);
+    if (caller && caller.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
+
     const settingsList = await base44.asServiceRole.entities.NotificationSettings.list().catch(() => []);
     const settings = settingsList[0] || {};
     const channel = settings.lead_alerts_channel || 'email';

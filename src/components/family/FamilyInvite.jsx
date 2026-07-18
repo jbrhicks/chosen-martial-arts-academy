@@ -36,15 +36,24 @@ export default function FamilyInvite() {
     if (!linkEmail.trim()) return;
     setLinking(true);
     try {
-      const users = await base44.entities.User.filter({ email: linkEmail.trim().toLowerCase() });
-      if (users.length === 0) { alert("No user found with that email. Ask them to register first, then link them."); setLinking(false); return; }
-      const targetUser = users[0];
-      if (targetUser.family_id) { alert("This user is already in a family group."); setLinking(false); return; }
-      await base44.entities.User.update(targetUser.id, { family_id: familyGroup.id, family_role: linkRole });
-      alert(`Linked ${targetUser.full_name || targetUser.email} to your family as ${linkRole === "student" ? "Student" : "Secondary Guardian"}.`);
+      const res = await base44.functions.invoke("linkFamilyMember", {
+        email: linkEmail.trim().toLowerCase(),
+        family_id: familyGroup.id,
+        family_role: linkRole,
+      });
+      const data = res.data || res;
+      if (!data.success) {
+        alert(data.error || "Failed to link user.");
+        setLinking(false);
+        return;
+      }
+      const target = data.user || {};
+      alert(`Linked ${target.full_name || target.email} to your family as ${linkRole === "student" ? "Student" : "Secondary Guardian"}.`);
       setLinkEmail("");
       refreshFamily();
-    } catch (e) { alert("Failed to link user."); }
+    } catch (e) {
+      alert(e?.message?.includes("already") ? "This user is already in a family group." : "Failed to link user. Ask them to register first, then try again.");
+    }
     setLinking(false);
   };
 
