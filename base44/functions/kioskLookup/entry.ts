@@ -107,7 +107,8 @@ Deno.serve(async (req) => {
 
     if (action === 'search') {
       const query = String(body.query || '').trim().toLowerCase();
-      if (query.length < 2) {
+      // Require 3+ characters to make directory harvesting impractical
+      if (query.length < 3) {
         return Response.json({ success: true, users: [] });
       }
       const all = await base44.asServiceRole.entities.User.list().catch(() => []);
@@ -115,11 +116,15 @@ Deno.serve(async (req) => {
         .filter((u: Record<string, unknown>) => {
           if (!isCheckInEligible(u)) return false;
           const name = String(u.full_name || '').toLowerCase();
-          const email = String(u.email || '').toLowerCase();
-          return name.includes(query) || email.includes(query);
+          // Match on name only (not email) to prevent PII harvesting via email fragments
+          return name.includes(query);
         })
-        .slice(0, 15)
-        .map(publicUser);
+        .slice(0, 10)
+        // Return only id + full_name — no email, phone, belt_rank, or other PII
+        .map((u: Record<string, unknown>) => ({
+          id: u.id,
+          full_name: u.full_name,
+        }));
       return Response.json({ success: true, users });
     }
 

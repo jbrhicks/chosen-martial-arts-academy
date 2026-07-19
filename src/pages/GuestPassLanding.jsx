@@ -31,16 +31,15 @@ export default function GuestPassLanding() {
 
   const validatePass = async () => {
     try {
-      const passes = await base44.entities.ReferralsGuestPass.filter({ pass_token: token });
-      if (passes.length === 0) {
-        setInvalid(true);
+      const res = await base44.functions.invoke("claimGuestPass", { token });
+      const data = res.data || res;
+      if (data.valid) {
+        setPassData({
+          referring_student_name: data.referring_student_name,
+          date_created: data.date_created,
+        });
       } else {
-        const pass = passes[0];
-        if (pass.pass_status !== "generated") {
-          setInvalid(true);
-        } else {
-          setPassData(pass);
-        }
+        setInvalid(true);
       }
     } catch (e) {
       console.error(e);
@@ -52,31 +51,26 @@ export default function GuestPassLanding() {
   const handleClaim = async () => {
     setClaiming(true);
     try {
-      await base44.entities.ReferralsGuestPass.update(passData.id, {
-        guest_first_name: formData.first_name,
-        guest_email: formData.email,
-        guest_phone: formData.phone,
-        pass_status: "claimed",
-        date_claimed: new Date().toISOString(),
-      });
-
-      const lead = await base44.entities.Lead.create({
+      const res = await base44.functions.invoke("claimGuestPass", {
+        token,
         first_name: formData.first_name,
-        last_name: "",
         email: formData.email,
         phone: formData.phone,
-        source: "referral_guest_pass",
-        status: "new",
-        notes: `Referred by ${passData.referring_student_name} via guest pass ${token}`,
       });
-
-      await base44.entities.ReferralsGuestPass.update(passData.id, {
-        linked_lead_id: lead.id,
-      });
-
-      setClaimed(true);
+      const data = res.data || res;
+      if (data.success) {
+        setPassData((prev) => ({
+          ...prev,
+          referring_student_name: data.referring_student_name || prev?.referring_student_name,
+        }));
+        setClaimed(true);
+      } else {
+        alert(data.error || "Failed to claim pass.");
+        setInvalid(true);
+      }
     } catch (e) {
-      alert("Failed to claim: " + e.message);
+      const serverError = e.response?.data?.error;
+      alert(serverError || "Failed to claim pass. Please try again.");
     }
     setClaiming(false);
   };

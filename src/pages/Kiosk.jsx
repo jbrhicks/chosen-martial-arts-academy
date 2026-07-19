@@ -53,7 +53,7 @@ export default function Kiosk() {
   }, [today]);
 
   useEffect(() => {
-    if (mode !== "search" || search.length < 2) {
+    if (mode !== "search" || search.length < 3) {
       setUsers([]);
       return;
     }
@@ -323,13 +323,12 @@ export default function Kiosk() {
                           </div>
                           <div>
                             <p className="text-lg font-medium">{u.full_name}</p>
-                            <p className="text-sm text-[#A8A9AD]">{u.email}</p>
                           </div>
                         </button>
                       ))}
                     </div>
                   )}
-                  {search.length >= 2 && filtered.length === 0 && (
+                  {search.length >= 3 && filtered.length === 0 && (
                     <p className="text-center text-[#A8A9AD] py-4">No students found. Check the spelling or ask the front desk for help.</p>
                   )}
                 </div>
