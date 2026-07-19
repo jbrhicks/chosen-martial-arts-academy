@@ -12,6 +12,12 @@ Deno.serve(async (req) => {
     const thread = await base44.entities.MessageThread.get(threadId);
     if (!thread) return Response.json({ error: 'Thread not found' }, { status: 404 });
 
+    const participants = await base44.entities.ThreadParticipant.filter({ thread_id: threadId });
+    const isParticipant = participants.some((p: { user_id: string }) => p.user_id === user.id);
+    if (!isParticipant && user.role !== 'admin') {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const messageData = {
       thread_id: threadId,
       sender_id: user.id,
@@ -26,8 +32,6 @@ Deno.serve(async (req) => {
     }
 
     const message = await base44.entities.Message.create(messageData);
-
-    const participants = await base44.entities.ThreadParticipant.filter({ thread_id: threadId });
 
     // Update thread preview so the inbox list reflects the latest message
     await base44.entities.MessageThread.update(threadId, {

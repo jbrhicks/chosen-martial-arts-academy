@@ -3,6 +3,12 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+
+    // Automation/scheduler (authenticated) or admin; authenticated users may only link their own email
+    const isAuth = await base44.auth.isAuthenticated();
+    if (!isAuth) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    const caller = await base44.auth.me().catch(() => null);
+
     const body = await req.json();
 
     // Supports two invocation modes:
@@ -21,6 +27,13 @@ Deno.serve(async (req) => {
 
     if (!email) {
       return Response.json({ error: "Missing email" }, { status: 400 });
+    }
+
+    if (caller && caller.role !== 'admin') {
+      if (caller.email?.toLowerCase() !== String(email).toLowerCase()) {
+        return Response.json({ error: 'Forbidden' }, { status: 403 });
+      }
+      userId = caller.id;
     }
 
     // If we don't have a userId yet (direct invocation with email only), look it up

@@ -24,27 +24,36 @@ export default function KioskPOS({ onBack }) {
     base44.entities.Inventory.filter({ is_active: true }).then(setInventory).catch(() => {});
   }, []);
 
-  const handleQRScan = (data) => {
-    base44.entities.User.list().then(users => {
-      const u = users.find(x => x.id === data);
-      if (u) { setMember(u); loadPaymentMethods(u); setStage("storefront"); }
-    }).catch(() => {});
+  const handleQRScan = async (data) => {
+    try {
+      const res = await base44.functions.invoke("kioskLookup", { action: "id", id: data });
+      const result = res.data || res;
+      if (result.user) { setMember(result.user); loadPaymentMethods(result.user); setStage("storefront"); }
+    } catch (e) { /* not found */ }
   };
 
-  const handlePhoneSearch = () => {
-    base44.entities.User.list().then(users => {
-      const u = users.find(x => x.phone === search || x.phone?.replace(/\D/g, "") === search.replace(/\D/g, ""));
-      if (u) { setMember(u); loadPaymentMethods(u); setStage("storefront"); }
+  const handlePhoneSearch = async () => {
+    try {
+      const res = await base44.functions.invoke("kioskLookup", { action: "phone", phone: search });
+      const result = res.data || res;
+      if (result.user) { setMember(result.user); loadPaymentMethods(result.user); setStage("storefront"); }
       else alert("No member found with that phone number.");
-    }).catch(() => {});
+    } catch (e) {
+      alert("No member found with that phone number.");
+    }
   };
 
-  const handlePinLookup = () => {
-    base44.entities.User.list().then(users => {
-      const u = users.find(x => x.pin_code === pinInput);
-      if (u) { setMember(u); loadPaymentMethods(u); setStage("storefront"); }
+  const handlePinLookup = async () => {
+    try {
+      const res = await base44.functions.invoke("kioskLookup", { action: "pin", pin: pinInput });
+      const result = res.data || res;
+      if (result.user) { setMember(result.user); loadPaymentMethods(result.user); setStage("storefront"); }
       else alert("No member found with that PIN.");
-    }).catch(() => {});
+    } catch (e) {
+      alert(e?.message?.includes("429") || e?.status === 429
+        ? "Too many attempts. Try again later."
+        : "No member found with that PIN.");
+    }
   };
 
   const loadPaymentMethods = (u) => {

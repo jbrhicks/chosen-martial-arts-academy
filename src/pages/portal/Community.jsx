@@ -64,7 +64,10 @@ export default function Community() {
       loadGroups();
       base44.entities.Event.filter({ status: "active", is_public: true }).then(setEvents).catch(() => {});
       base44.entities.Video.list().then(setVideos).catch(() => {});
-      base44.entities.User.list().then(u => setStudents(u.filter(s => s.role === "student" || s.role === "user"))).catch(() => {});
+      base44.functions.invoke("listMemberDirectory").then((res) => {
+        const data = res.data || res;
+        setStudents(data.users || []);
+      }).catch(() => {});
     } else if (!isChecking) {
       setLoading(false);
     }

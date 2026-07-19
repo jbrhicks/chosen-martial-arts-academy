@@ -41,7 +41,7 @@ export default function IDCard({ user, onClose }) {
 
         {!showPinSettings ? (
           <button onClick={() => setShowPinSettings(true)} className="w-full flex items-center justify-center gap-2 py-3 border border-[#A8A9AD]/30 text-sm text-[#A8A9AD] hover:text-white hover:border-[#C9A84C]/30 transition-colors">
-            <Settings size={16} /> {user.pin_code ? "Reset PIN" : "Set PIN"}
+            <Settings size={16} /> Set / Reset PIN
           </button>
         ) : (
           <div className="space-y-3">

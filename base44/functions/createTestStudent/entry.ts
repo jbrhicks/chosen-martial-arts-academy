@@ -2,6 +2,11 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
   try {
+    // Disabled in production unless explicitly enabled — fixed PIN "1234" is a known risk.
+    if (Deno.env.get('ALLOW_CREATE_TEST_STUDENT') !== 'true') {
+      return Response.json({ error: 'createTestStudent is disabled' }, { status: 403 });
+    }
+
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user || user.role !== 'admin') {

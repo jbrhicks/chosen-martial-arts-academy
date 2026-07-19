@@ -38,11 +38,12 @@ export default function EventRegistrationModal({ event, user, onClose, onRegiste
 
   const loadStudents = async () => {
     try {
-      const enrollments = await base44.entities.Enrollment.filter({ user_id: user.id, status: "active" });
-      const users = await base44.entities.User.list();
-      const studentIds = enrollments.map(e => e.user_id);
-      const familyMembers = users.filter(u => studentIds.includes(u.id));
-      setStudents(familyMembers);
+      if (user.family_id) {
+        const familyMembers = await base44.entities.User.filter({ family_id: user.family_id });
+        setStudents(familyMembers.filter(u => u.family_role === "student" || u.id === user.id));
+      } else {
+        setStudents([user]);
+      }
     } catch (e) { console.error(e); }
   };
 

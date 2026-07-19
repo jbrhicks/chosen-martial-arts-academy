@@ -36,14 +36,12 @@ export default function Kiosk() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [u, c, cd, cancels, bl] = await Promise.all([
-          base44.entities.User.list(),
+        const [c, cd, cancels, bl] = await Promise.all([
           base44.entities.ClassSchedule.filter({ is_active: true }),
           base44.entities.ClassCustomDate.list().catch(() => []),
           base44.entities.ClassCancellation.list().catch(() => []),
           base44.entities.BlackoutDate.list().catch(() => []),
         ]);
-        setUsers(u);
         setClasses(c);
         setCustomDates(cd);
         setCancellations(cancels);
@@ -54,21 +52,46 @@ export default function Kiosk() {
     load();
   }, [today]);
 
-  const filtered = search.length >= 2
-    ? users.filter(u => u.full_name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()))
-    : [];
+  useEffect(() => {
+    if (mode !== "search" || search.length < 2) {
+      setUsers([]);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const res = await base44.functions.invoke("kioskLookup", { action: "search", query: search });
+        const data = res.data || res;
+        if (!cancelled) setUsers(data.users || []);
+      } catch (e) {
+        if (!cancelled) setUsers([]);
+      }
+    }, 250);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [mode, search]);
 
-  const handleQRScan = (data) => {
-    const user = users.find(u => u.id === data);
-    if (user) setSelectedUser(user);
+  const filtered = users;
+
+  const handleQRScan = async (data) => {
+    try {
+      const res = await base44.functions.invoke("kioskLookup", { action: "id", id: data });
+      const result = res.data || res;
+      if (result.user) setSelectedUser(result.user);
+    } catch (e) { console.error(e); }
   };
 
-  const handlePinSubmit = (pin) => {
-    const user = users.find(u => u.pin_code === pin);
-    if (user) {
-      setSelectedUser(user);
-      setPinError(false);
-    } else {
+  const handlePinSubmit = async (pin) => {
+    try {
+      const res = await base44.functions.invoke("kioskLookup", { action: "pin", pin });
+      const data = res.data || res;
+      if (data.user) {
+        setSelectedUser(data.user);
+        setPinError(false);
+      } else {
+        setPinError(true);
+        setTimeout(() => setPinError(false), 2000);
+      }
+    } catch (e) {
       setPinError(true);
       setTimeout(() => setPinError(false), 2000);
     }
@@ -85,36 +108,28 @@ export default function Kiosk() {
         setChecking(false);
         return;
       }
-      if (!override) {
-        const enrollments = await base44.entities.Enrollment.filter({ user_id: selectedUser.id, status: "active" });
-        const enrollment = enrollments[0];
-        if (enrollment?.linked_tier_id) {
-          const allTiers = await base44.entities.SubscriptionTier.list();
-          const tier = allTiers.find(t => t.id === enrollment.linked_tier_id);
-          if (tier && tier.classes_allowed_per_week > 0) {
-            const now = new Date();
-            const day = now.getDay();
-            const weekStart = new Date(now);
-            weekStart.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-            weekStart.setHours(0, 0, 0, 0);
-            const weekAtt = await base44.entities.AttendanceRecord.filter({ user_id: selectedUser.id });
-            const thisWeek = weekAtt.filter(a => new Date(a.check_in_date) >= weekStart);
-            if (thisWeek.length >= tier.classes_allowed_per_week) {
-              setCapAlert({ tier, weekCount: thisWeek.length, limit: tier.classes_allowed_per_week });
-              setChecking(false);
-              return;
-            }
-          }
-        }
-      }
-      await base44.entities.AttendanceRecord.create({
+      const res = await base44.functions.invoke("kioskCheckIn", {
         user_id: selectedUser.id,
-        user_name: selectedUser.full_name,
         class_name: selectedClass,
-        check_in_date: new Date().toISOString(),
         check_in_method: override ? "Manual" : mode === "qr" ? "QR" : mode === "pin" ? "PIN" : "Manual",
+        override,
       });
-      setSuccess(selectedUser.full_name);
+      const data = res.data || res;
+      if (data.cap_reached) {
+        setCapAlert({
+          tier: { tier_name: data.tier_name },
+          weekCount: data.weekCount,
+          limit: data.limit,
+        });
+        setChecking(false);
+        return;
+      }
+      if (!data.success) {
+        alert(data.error || "Check-in failed. Please try again.");
+        setChecking(false);
+        return;
+      }
+      setSuccess(data.user_name || selectedUser.full_name);
     } catch (e) {
       alert("Check-in failed. Please try again.");
     }
@@ -127,31 +142,19 @@ export default function Kiosk() {
     if (!selectedUser || !selectedClass) return;
     setDropInProcessing(true);
     try {
-      const enrollments = await base44.entities.Enrollment.filter({ user_id: selectedUser.id, status: "active" });
-      const enrollment = enrollments[0];
-      const allPrograms = await base44.entities.Program.list();
-      const program = enrollment ? allPrograms.find(p => p.id === enrollment.program_id) : null;
-      const dropInPrice = program?.drop_in_price || 0;
-      if (dropInPrice === 0) {
-        alert("Drop-in class purchase is not available for this program. Please see the front desk.");
+      const res = await base44.functions.invoke("kioskCheckIn", {
+        user_id: selectedUser.id,
+        class_name: selectedClass,
+        drop_in: true,
+      });
+      const data = res.data || res;
+      if (!data.success) {
+        alert(data.error || "Drop-in purchase failed. Please see the front desk.");
         setDropInProcessing(false);
         return;
       }
-      await base44.entities.AttendanceRecord.create({
-        user_id: selectedUser.id,
-        user_name: selectedUser.full_name,
-        class_name: selectedClass,
-        check_in_date: new Date().toISOString(),
-        check_in_method: "kiosk",
-      });
-      await base44.entities.GeneralLedger.create({
-        type: "income",
-        amount: dropInPrice,
-        date: new Date().toISOString(),
-        category: "tuition",
-        description: `Drop-in class: ${selectedClass} — ${selectedUser.full_name}`,
-      });
-      setSuccess(`${selectedUser.full_name} — Drop-in class purchased ($${dropInPrice.toFixed(2)})`);
+      const price = data.drop_in_price || 0;
+      setSuccess(`${data.user_name || selectedUser.full_name} — Drop-in class purchased ($${Number(price).toFixed(2)})`);
       setCapAlert(null);
     } catch (e) { alert("Drop-in purchase failed. Please see the front desk."); }
     setDropInProcessing(false);

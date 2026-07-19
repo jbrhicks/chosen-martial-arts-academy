@@ -47,6 +47,12 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
+    // Scheduler (authenticated, no user) or admin only — block anonymous callers
+    const isAuth = await base44.auth.isAuthenticated();
+    if (!isAuth) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    const caller = await base44.auth.me().catch(() => null);
+    if (caller && caller.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
+
     // Find all scheduled broadcasts whose time has arrived
     const allBroadcasts = await base44.asServiceRole.entities.BroadcastMessage.filter({ status: 'scheduled' });
     const now = new Date();
