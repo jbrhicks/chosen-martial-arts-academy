@@ -88,6 +88,9 @@
           "data.created_by_id": "{{user.id}}"
         },
         {
+          "data.dm_participant_id": "{{user.id}}"
+        },
+        {
           "user_condition": {
             "role": "admin"
           }
