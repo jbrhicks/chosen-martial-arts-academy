@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Loader2, BookOpen, Calendar, CheckCircle, Send } from "lucide-react";
+import { Loader2, BookOpen, Calendar, CheckCircle } from "lucide-react";
 import LessonPlanBuilder from "@/components/admin/lessons/LessonPlanBuilder";
 import SectionManager from "@/components/admin/lessons/SectionManager";
 

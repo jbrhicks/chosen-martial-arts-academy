@@ -1,5 +1,3 @@
-import { Search } from "lucide-react";
-
 export default function ProgramSelector({ programs, selectedId, onSelect }) {
   return (
     <div>
