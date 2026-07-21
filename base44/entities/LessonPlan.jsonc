@@ -11,6 +11,12 @@
     "program_name": {
       "type": "string"
     },
+    "program_ids": {
+      "type": "string"
+    },
+    "program_names": {
+      "type": "string"
+    },
     "plan_type": {
       "type": "string",
       "enum": [
@@ -77,7 +83,7 @@
     }
   },
   "required": [
-    "program_id",
+    "program_ids",
     "plan_type"
   ],
   "rls": {

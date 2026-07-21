@@ -68,9 +68,12 @@ export default function TeachingPlaybook() {
   );
 
   const groupedByProgram = visiblePlans.reduce((acc, p) => {
-    const key = p.program_name || "General";
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(p);
+    const namesStr = p.program_names || p.program_name || "";
+    const names = namesStr ? namesStr.split(", ").filter(Boolean) : ["General"];
+    names.forEach((name) => {
+      if (!acc[name]) acc[name] = [];
+      acc[name].push(p);
+    });
     return acc;
   }, {});
 

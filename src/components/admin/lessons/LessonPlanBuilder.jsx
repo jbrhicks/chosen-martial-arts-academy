@@ -21,7 +21,7 @@ const getWeekRange = (dateStr) => {
 export default function LessonPlanBuilder({ programs, events, editingPlan, onSaved, onCancel }) {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-  const [programId, setProgramId] = useState("");
+  const [programIds, setProgramIds] = useState([]);
   const [planType, setPlanType] = useState("ad_hoc");
   const [targetDate, setTargetDate] = useState("");
   const [weekOfDate, setWeekOfDate] = useState("");
@@ -36,9 +36,13 @@ export default function LessonPlanBuilder({ programs, events, editingPlan, onSav
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  const toggleProgram = (id) => {
+    setProgramIds((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+  };
+
   useEffect(() => {
     if (editingPlan) {
-      setProgramId(editingPlan.program_id || "");
+      setProgramIds(editingPlan.program_ids ? editingPlan.program_ids.split(",").filter(Boolean) : editingPlan.program_id ? [editingPlan.program_id] : []);
       setPlanType(editingPlan.plan_type || "ad_hoc");
       setTargetDate(editingPlan.target_date || "");
       setWeekOfDate(editingPlan.week_start_date || "");
@@ -58,7 +62,7 @@ export default function LessonPlanBuilder({ programs, events, editingPlan, onSav
       }
       loadLinks(editingPlan.id);
     } else {
-      setProgramId(""); setPlanType("ad_hoc"); setTargetDate(""); setWeekOfDate("");
+      setProgramIds([]); setPlanType("ad_hoc"); setTargetDate(""); setWeekOfDate("");
       setSelectedEventId(""); setTitle(""); setSections([]); setUniversalNotes("");
       setRankGroupNotes({}); setLinkedItems([]); setStatus("draft"); setReviewRequested(false);
     }
@@ -78,14 +82,15 @@ export default function LessonPlanBuilder({ programs, events, editingPlan, onSav
   const handleRemoveLink = (cid) => setLinkedItems(linkedItems.filter((l) => l.criteria_id !== cid));
 
   const handleSave = async (publishNow = false) => {
-    if (!programId || !planType) { alert("Please select a program and plan type."); return; }
+    if (programIds.length === 0 || !planType) { alert("Please select at least one program."); return; }
     if (planType === "ad_hoc" && !targetDate) { alert("Please select a target date."); return; }
     if (planType === "weekly" && !weekOfDate) { alert("Please select a week."); return; }
     if (planType === "event" && !selectedEventId) { alert("Please select an event."); return; }
 
     setSaving(true);
     try {
-      const program = programs.find((p) => p.id === programId);
+      const selectedPrograms = programs.filter((p) => programIds.includes(p.id));
+      const firstProgram = selectedPrograms[0];
       const weekRange = planType === "weekly" ? getWeekRange(weekOfDate) : { start: "", end: "" };
       const selectedEvent = planType === "event" ? events.find((e) => e.id === selectedEventId) : null;
       const eventDate = selectedEvent?.start_date ? new Date(selectedEvent.start_date).toISOString().split("T")[0] : "";
@@ -96,9 +101,11 @@ export default function LessonPlanBuilder({ programs, events, editingPlan, onSav
       const finalStatus = publishNow ? "published" : status;
 
       const planData = {
-        title: title || `${program?.program_name || "Class"} — ${dateLabel}`,
-        program_id: programId,
-        program_name: program?.program_name || "",
+        title: title || `${firstProgram?.program_name || "Class"} — ${dateLabel}`,
+        program_id: firstProgram?.id || "",
+        program_name: firstProgram?.program_name || "",
+        program_ids: programIds.join(","),
+        program_names: selectedPrograms.map((p) => p.program_name).join(", "),
         plan_type: planType,
         target_date: effectiveTargetDate || null,
         week_start_date: weekRange.start || null,
@@ -183,7 +190,7 @@ export default function LessonPlanBuilder({ programs, events, editingPlan, onSav
         </div>
       </div>
 
-      <ProgramSelector programs={programs} selectedId={programId} onSelect={setProgramId} />
+      <ProgramSelector programs={programs} selectedIds={programIds} onToggle={toggleProgram} />
 
       <div>
         <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-1.5">Plan Type</label>

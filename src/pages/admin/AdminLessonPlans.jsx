@@ -86,7 +86,7 @@ export default function AdminLessonPlans() {
                   <Calendar size={16} className="text-[#A8A9AD] shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{plan.title || "Untitled"}</p>
-                    <p className="text-xs text-[#A8A9AD]">{plan.program_name} · {plan.target_date ? formatDate(plan.target_date) : "No date"} · {planLinks.length} video link{planLinks.length !== 1 ? "s" : ""}</p>
+                    <p className="text-xs text-[#A8A9AD]">{plan.program_names || plan.program_name} · {plan.target_date ? formatDate(plan.target_date) : "No date"} · {planLinks.length} video link{planLinks.length !== 1 ? "s" : ""}</p>
                   </div>
                   <span className={`text-[10px] tracking-widest uppercase border px-2 py-0.5 ${badge.cls}`}>{badge.label}</span>
                   {plan.review_requested && plan.status !== "published" && (
