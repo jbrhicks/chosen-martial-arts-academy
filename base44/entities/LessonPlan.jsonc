@@ -11,11 +11,62 @@
     "program_name": {
       "type": "string"
     },
+    "plan_type": {
+      "type": "string",
+      "enum": [
+        "ad_hoc",
+        "weekly",
+        "event"
+      ],
+      "default": "ad_hoc"
+    },
     "target_date": {
       "type": "string",
       "format": "date"
     },
+    "week_start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "week_end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "event_id": {
+      "type": "string"
+    },
+    "event_title": {
+      "type": "string"
+    },
+    "sections": {
+      "type": "string"
+    },
+    "universal_notes": {
+      "type": "string"
+    },
+    "rank_group_notes": {
+      "type": "string"
+    },
     "plan_content": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "published",
+        "archived"
+      ],
+      "default": "draft"
+    },
+    "review_requested": {
+      "type": "boolean",
+      "default": false
+    },
+    "reviewed_by_id": {
+      "type": "string"
+    },
+    "reviewed_by_name": {
       "type": "string"
     },
     "author_admin_id": {
@@ -27,13 +78,22 @@
   },
   "required": [
     "program_id",
-    "target_date"
+    "plan_type"
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "student"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "read": {
       "$or": [
@@ -50,14 +110,28 @@
       ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "data.author_admin_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "data.author_admin_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     }
   }
 }
