@@ -70,7 +70,7 @@ export default function InstructorAccessToggle({ user, onRefresh, logActivity })
       {isInstructor && (
         <div className="mt-4 pt-4 border-t border-[#A8A9AD]/20">
           <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-1.5">Instructor Tier</label>
-          <select value={tier} onChange={(e) => handleTierChange(e.target.value)} disabled={saving} className={inputClass}>
+          <select value={tier} onChange={(e) => handleTierChange(e.target.value)} disabled={saving} className={`${inputClass} [&>option]:bg-black [&>option]:text-white`}>
             <option value="">Select tier...</option>
             <option value="Jr. Instructor">Jr. Instructor</option>
             <option value="Lead Instructor">Lead Instructor</option>
