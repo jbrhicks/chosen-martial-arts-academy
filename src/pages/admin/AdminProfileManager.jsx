@@ -36,7 +36,7 @@ export default function AdminProfileManager() {
   const loadProfileData = useCallback(async (userId) => {
     setDataLoading(true);
     try {
-      const u = allUsers.find(x => x.id === userId);
+      const u = await base44.entities.User.get(userId);
       const familyId = u?.family_id;
       const [emergencyContacts, enrollments, programs, attendance, eventRegs, events, customFields, customFieldValues, activityLogs, billingRecords, paymentMethods, familyGroups, tiers, belts] = await Promise.all([
         base44.entities.EmergencyContact.filter({ user_id: userId }).catch(() => []),

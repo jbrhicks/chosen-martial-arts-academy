@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Shield, Loader2, Check, Star } from "lucide-react";
 
@@ -7,7 +7,13 @@ export default function InstructorAccessToggle({ user, onRefresh, logActivity })
   const [tier, setTier] = useState(user?.instructor_tier || "");
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    setIsInstructor(user?.is_instructor || false);
+    setTier(user?.instructor_tier || "");
+  }, [user?.id, user?.is_instructor, user?.instructor_tier]);
+
   const handleToggle = async () => {
+    if (!user?.id) { alert("User not loaded yet."); return; }
     setSaving(true);
     const newVal = !isInstructor;
     const effectiveTier = newVal ? (tier || "Jr. Instructor") : "";
@@ -16,20 +22,21 @@ export default function InstructorAccessToggle({ user, onRefresh, logActivity })
       setIsInstructor(newVal);
       if (!newVal) setTier("");
       else if (!tier) setTier("Jr. Instructor");
-      await logActivity("edit", `Instructor access ${newVal ? "granted" : "revoked"}`);
+      try { await logActivity("edit", `Instructor access ${newVal ? "granted" : "revoked"}`); } catch (_) {}
       onRefresh();
-    } catch (e) { alert("Failed to update: " + e.message); }
+    } catch (e) { alert("Failed to update: " + (e.response?.data?.error || e.message)); }
     setSaving(false);
   };
 
   const handleTierChange = async (newTier) => {
+    if (!user?.id) { alert("User not loaded yet."); return; }
     setTier(newTier);
     setSaving(true);
     try {
       await base44.entities.User.update(user.id, { instructor_tier: newTier });
-      await logActivity("edit", `Instructor tier set to ${newTier}`);
+      try { await logActivity("edit", `Instructor tier set to ${newTier}`); } catch (_) {}
       onRefresh();
-    } catch (e) { alert("Failed to update tier: " + e.message); }
+    } catch (e) { alert("Failed to update tier: " + (e.response?.data?.error || e.message)); }
     setSaving(false);
   };
 
