@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import toast from "react-hot-toast";
 import MessageBubble from "@/components/messages/MessageBubble";
 import MessageMediaUploader from "@/components/messages/MessageMediaUploader";
+import MemberDirectoryPicker from "@/components/messages/MemberDirectoryPicker";
 
 export default function Messages() {
   const [threads, setThreads] = useState([]);
@@ -29,6 +30,8 @@ export default function Messages() {
   const [loading, setLoading] = useState(true);
   const [reactions, setReactions] = useState([]);
   const [attachments, setAttachments] = useState([]);
+  const [showNewMessage, setShowNewMessage] = useState(false);
+  const [userMap, setUserMap] = useState({});
 
   useEffect(() => {
     loadData();
@@ -56,6 +59,14 @@ export default function Messages() {
       const participantThreadIds = participants.map(p => p.thread_id);
       const userThreads = allThreads.filter(t => participantThreadIds.includes(t.id) && t.status !== "archived");
       setThreads(userThreads);
+
+      try {
+        const dirResult = await base44.functions.invoke("listMemberDirectory", {});
+        const dirUsers = dirResult?.data?.users || dirResult?.users || [];
+        const map = {};
+        dirUsers.forEach(u => { map[u.id] = u.full_name; });
+        setUserMap(map);
+      } catch (e) { console.error("Error loading directory:", e); }
 
       if (user.family_id) {
         const families = await base44.entities.FamilyGroup.filter({ id: user.family_id });
@@ -117,6 +128,33 @@ export default function Messages() {
       setAttachments([]);
       fetchMessages(selectedThread.id);
       toast.success("Message sent!");
+    } catch (error) {
+      toast.error("Failed to send message: " + error.message);
+    }
+  };
+
+  const getThreadDisplayName = (thread) => {
+    if (thread.type === "dm") {
+      if (thread.dm_participant_id === currentUser?.id) {
+        return userMap[thread.created_by_id] || "Direct Message";
+      }
+      return thread.dm_participant_name || thread.thread_name || "Direct Message";
+    }
+    return thread.thread_name || "Announcement";
+  };
+
+  const handleStartDM = async (targetUserId, targetUserName, content) => {
+    try {
+      const res = await base44.functions.invoke("sendMemberDM", { targetUserId, content });
+      const threadId = res?.data?.threadId;
+      setShowNewMessage(false);
+      await loadData();
+      if (threadId) {
+        const allThreads = await base44.entities.MessageThread.list("-updated_date");
+        const found = allThreads.find(t => t.id === threadId);
+        if (found) setSelectedThread(found);
+      }
+      toast.success("Message sent to " + targetUserName + "!");
     } catch (error) {
       toast.error("Failed to send message: " + error.message);
     }
@@ -193,6 +231,14 @@ export default function Messages() {
             Preferences
           </Button>
           <Button
+            onClick={() => setShowNewMessage(true)}
+            variant="outline"
+            className="border-[#A8A9AD]/20"
+          >
+            <Plus size={18} />
+            New Message
+          </Button>
+          <Button
             onClick={() => setShowContactDesk(true)}
             className="bg-[#C9A84C] hover:bg-[#C9A84C]/90"
           >
@@ -232,9 +278,9 @@ export default function Messages() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <Bell size={16} className="text-[#A8A9AD]" />
+                        {thread.type === "dm" ? <MessageSquare size={16} className="text-[#C9A84C]" /> : <Bell size={16} className="text-[#A8A9AD]" />}
                         <span className="font-medium text-white truncate">
-                          {thread.thread_name || "Announcement"}
+                          {getThreadDisplayName(thread)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-1">
@@ -255,8 +301,8 @@ export default function Messages() {
             <>
               <CardHeader className="pb-3 border-b border-[#A8A9AD]/20">
                 <CardTitle className="text-white flex items-center gap-3">
-                  <Bell size={20} className="text-[#C9A84C]" />
-                  <span>{selectedThread.thread_name || "Conversation"}</span>
+                  {selectedThread.type === "dm" ? <MessageSquare size={20} className="text-[#C9A84C]" /> : <Bell size={20} className="text-[#C9A84C]" />}
+                  <span>{getThreadDisplayName(selectedThread)}</span>
                 </CardTitle>
               </CardHeader>
 
@@ -310,6 +356,13 @@ export default function Messages() {
           )}
         </Card>
       </div>
+
+      <MemberDirectoryPicker
+        open={showNewMessage}
+        onClose={() => setShowNewMessage(false)}
+        currentUser={currentUser}
+        onStartDM={handleStartDM}
+      />
 
       <Dialog open={showContactDesk} onOpenChange={setShowContactDesk}>
         <DialogContent className="bg-black border-[#A8A9AD]/20 max-w-2xl">
