@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { hashPin, verifyPin } from '../../shared/pinHash.ts';
 
 // In-memory rate limit (per isolate). Enough to blunt PIN spraying on public kiosk.
 const attempts = new Map<string, { count: number; resetAt: number }>();
@@ -69,8 +70,20 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Invalid PIN' }, { status: 401 });
       }
 
-      const matches = await base44.asServiceRole.entities.User.filter({ pin_code: pin }).catch(() => []);
-      const user = matches.find(isCheckInEligible);
+      const allUsers = await base44.asServiceRole.entities.User.list().catch(() => []);
+      let user = null;
+      for (const u of allUsers) {
+        if (!isCheckInEligible(u) || !u.pin_code) continue;
+        const { valid, needsUpgrade } = await verifyPin(pin, String(u.pin_code));
+        if (valid) {
+          user = u;
+          if (needsUpgrade) {
+            const hashedPin = await hashPin(pin, u.id);
+            await base44.asServiceRole.entities.User.update(u.id, { pin_code: hashedPin }).catch(() => {});
+          }
+          break;
+        }
+      }
       if (!user) {
         return Response.json({ error: 'Invalid PIN' }, { status: 401 });
       }

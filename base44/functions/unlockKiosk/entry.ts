@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { hashPin, verifyPin } from '../../shared/pinHash.ts';
 
 const attempts = new Map<string, { count: number; resetAt: number }>();
 const WINDOW_MS = 15 * 60 * 1000;
@@ -64,12 +65,23 @@ Deno.serve(async (req) => {
 
     const admins = await base44.asServiceRole.entities.User.filter({
       role: 'admin',
-      pin_code: normalizedPin,
-    });
-    if (admins.length === 0) {
+    }).catch(() => []);
+    let admin = null;
+    for (const a of admins) {
+      if (!a.pin_code) continue;
+      const { valid, needsUpgrade } = await verifyPin(normalizedPin, String(a.pin_code));
+      if (valid) {
+        admin = a;
+        if (needsUpgrade) {
+          const hashedPin = await hashPin(normalizedPin, a.id);
+          await base44.asServiceRole.entities.User.update(a.id, { pin_code: hashedPin }).catch(() => {});
+        }
+        break;
+      }
+    }
+    if (!admin) {
       return Response.json({ error: 'Invalid PIN' }, { status: 401 });
     }
-    const admin = admins[0];
 
     const session = await base44.asServiceRole.entities.KioskSession.create({
       admin_id: admin.id,

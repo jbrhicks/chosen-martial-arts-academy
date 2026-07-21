@@ -24,6 +24,10 @@ export default function Kiosk() {
   const [cancellations, setCancellations] = useState([]);
   const [blackouts, setBlackouts] = useState([]);
   const [offWeekAlert, setOffWeekAlert] = useState(null);
+  const [kioskSession, setKioskSession] = useState(null);
+  const [showAdminUnlock, setShowAdminUnlock] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+  const [unlockError, setUnlockError] = useState(false);
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const todayDate = new Date();
@@ -97,8 +101,13 @@ export default function Kiosk() {
     }
   };
 
-  const handleCheckIn = async (override = false) => {
+  const handleCheckIn = async (override = false, session = kioskSession) => {
     if (!selectedUser || !selectedClass) return;
+    if (override && !session) {
+      setPendingAction("override");
+      setShowAdminUnlock(true);
+      return;
+    }
     setChecking(true);
     try {
       const selectedCls = todayClasses.find(c => c.class_name === selectedClass);
@@ -113,6 +122,7 @@ export default function Kiosk() {
         class_name: selectedClass,
         check_in_method: override ? "Manual" : mode === "qr" ? "QR" : mode === "pin" ? "PIN" : "Manual",
         override,
+        session_id: session?.session_id,
       });
       const data = res.data || res;
       if (data.cap_reached) {
@@ -138,14 +148,20 @@ export default function Kiosk() {
 
   const handleOverride = () => { setCapAlert(null); handleCheckIn(true); };
 
-  const handleDropInPurchase = async () => {
+  const handleDropInPurchase = async (session = kioskSession) => {
     if (!selectedUser || !selectedClass) return;
+    if (!session) {
+      setPendingAction("drop_in");
+      setShowAdminUnlock(true);
+      return;
+    }
     setDropInProcessing(true);
     try {
       const res = await base44.functions.invoke("kioskCheckIn", {
         user_id: selectedUser.id,
         class_name: selectedClass,
         drop_in: true,
+        session_id: session?.session_id,
       });
       const data = res.data || res;
       if (!data.success) {
@@ -158,6 +174,28 @@ export default function Kiosk() {
       setCapAlert(null);
     } catch (e) { alert("Drop-in purchase failed. Please see the front desk."); }
     setDropInProcessing(false);
+  };
+
+  const handleAdminUnlock = async (pin) => {
+    try {
+      const res = await base44.functions.invoke("unlockKiosk", { pin, device_name: "Kiosk Tablet" });
+      const data = res.data || res;
+      if (data.success) {
+        const session = { session_id: data.session_id, admin_name: data.admin_name };
+        setKioskSession(session);
+        setShowAdminUnlock(false);
+        setUnlockError(false);
+        if (pendingAction === "override") handleCheckIn(true, session);
+        else if (pendingAction === "drop_in") handleDropInPurchase(session);
+        setPendingAction(null);
+      } else {
+        setUnlockError(true);
+        setTimeout(() => setUnlockError(false), 2000);
+      }
+    } catch (e) {
+      setUnlockError(true);
+      setTimeout(() => setUnlockError(false), 2000);
+    }
   };
 
   const reset = () => {
@@ -389,6 +427,21 @@ export default function Kiosk() {
       <div className="border-t border-[#A8A9AD]/10 p-4 text-center">
         <p className="text-xs text-[#A8A9AD]/40">Chosen Martial Arts Academy • Kiosk Mode</p>
       </div>
+
+      {showAdminUnlock && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-6">
+          <div className="w-full max-w-sm space-y-6">
+            <div className="text-center">
+              <ShieldCheck size={40} className="text-[#C9A84C] mx-auto mb-3" />
+              <h2 className="text-2xl font-bold mb-2">Admin Authorization Required</h2>
+              <p className="text-[#A8A9AD]">Enter your admin PIN to authorize this action.</p>
+            </div>
+            {unlockError && <p className="text-center text-red-400 text-sm">Invalid PIN. Try again.</p>}
+            <PinPad onSubmit={handleAdminUnlock} />
+            <button onClick={() => { setShowAdminUnlock(false); setPendingAction(null); setUnlockError(false); }} className="w-full text-sm text-[#A8A9AD] hover:text-white py-2">Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

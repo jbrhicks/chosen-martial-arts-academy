@@ -35,10 +35,26 @@ Deno.serve(async (req) => {
 
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { user_id, class_name, check_in_method = 'PIN', override = false, drop_in = false } = body;
+    const { user_id, class_name, check_in_method = 'PIN', override = false, drop_in = false, session_id } = body;
 
     if (!user_id || !class_name) {
       return Response.json({ error: 'user_id and class_name are required' }, { status: 400 });
+    }
+
+    // Require active admin kiosk session for privileged operations (override / drop-in)
+    if (override || drop_in) {
+      if (!session_id) {
+        return Response.json({ error: 'Admin authorization required' }, { status: 403 });
+      }
+      let session = null;
+      try {
+        session = await base44.asServiceRole.entities.KioskSession.get(session_id);
+      } catch {
+        return Response.json({ error: 'Invalid or expired session' }, { status: 403 });
+      }
+      if (!session || !session.is_active || !session.admin_id) {
+        return Response.json({ error: 'Invalid or expired session' }, { status: 403 });
+      }
     }
 
     const user = await base44.asServiceRole.entities.User.get(user_id).catch(() => null);
