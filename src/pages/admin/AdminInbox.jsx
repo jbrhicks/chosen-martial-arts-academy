@@ -28,6 +28,7 @@ export default function AdminInbox() {
   const [sendingPending, setSendingPending] = useState(false);
   const [showNewMessageModal, setShowNewMessageModal] = useState(false);
   const [viewMode, setViewMode] = useState("active");
+  const [feedFilter, setFeedFilter] = useState("all");
 
   const loadThreads = useCallback(async () => {
     try {
@@ -154,17 +155,44 @@ export default function AdminInbox() {
     );
   }
 
+  const statusMatch = (t) => viewMode === "archived" ? t.status === "archived" : t.status !== "archived";
+  const isMemberDm = (t) => t.type === "dm" && !t.assigned_admin_id;
+  const isAdminDm = (t) => t.type === "support" || (t.type === "dm" && !!t.assigned_admin_id);
+  const displayThreads = threads.filter(t => {
+    if (!statusMatch(t)) return false;
+    if (feedFilter === "member") return isMemberDm(t);
+    if (feedFilter === "admin") return isAdminDm(t);
+    return true;
+  });
+
   return (
     <div className="space-y-4">
       <div>
         <p className="text-xs tracking-widest uppercase text-[#C9A84C] mb-1">Direct Messaging</p>
         <h1 className="text-2xl font-bold text-white">Admin Inbox</h1>
-        <p className="text-sm text-[#A8A9AD] mt-1">Unified 1-on-1 chat with students and parents across in-app, SMS, and email.</p>
+        <p className="text-sm text-[#A8A9AD] mt-1">Monitor member-to-member DMs separately from admin conversations and support requests.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 h-[calc(100vh-220px)] border border-[#A8A9AD]/20 bg-black">
         {/* Left: thread list */}
         <div className="lg:col-span-4 xl:col-span-3 border-r border-[#A8A9AD]/20 flex flex-col">
+          <div className="flex gap-1 p-2 border-b border-[#A8A9AD]/20 flex-wrap">
+            {[
+              { val: "all", label: "All", count: threads.filter(t => statusMatch(t)).length },
+              { val: "member", label: "Member DMs", count: threads.filter(t => statusMatch(t) && isMemberDm(t)).length },
+              { val: "admin", label: "Admin / Support", count: threads.filter(t => statusMatch(t) && isAdminDm(t)).length },
+            ].map(f => (
+              <button
+                key={f.val}
+                onClick={() => setFeedFilter(f.val)}
+                className={`px-2.5 py-1 text-xs font-medium transition-colors ${
+                  feedFilter === f.val ? "bg-[#C9A84C] text-black" : "text-[#A8A9AD] hover:text-white border border-[#A8A9AD]/20"
+                }`}
+              >
+                {f.label} <span className="opacity-60">({f.count})</span>
+              </button>
+            ))}
+          </div>
           <div className="flex border-b border-[#A8A9AD]/20">
             <button
               onClick={() => setViewMode("active")}
@@ -184,7 +212,7 @@ export default function AdminInbox() {
             </button>
           </div>
           <ChatThreadList
-            threads={viewMode === "archived" ? threads.filter(t => t.status === "archived") : threads.filter(t => t.status !== "archived")}
+            threads={displayThreads}
             selectedThreadId={selectedThread?.id}
             onSelect={handleSelectThread}
             searchQuery={searchQuery}
