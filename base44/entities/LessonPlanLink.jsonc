@@ -1,0 +1,60 @@
+{
+  "name": "LessonPlanLink",
+  "type": "object",
+  "properties": {
+    "plan_id": {
+      "type": "string"
+    },
+    "curriculum_item_id": {
+      "type": "string"
+    },
+    "curriculum_item_title": {
+      "type": "string"
+    },
+    "video_url": {
+      "type": "string"
+    },
+    "embed_url": {
+      "type": "string"
+    },
+    "thumbnail_url": {
+      "type": "string"
+    },
+    "belt_rank_required": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "curriculum_item_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.is_instructor": true
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

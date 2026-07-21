@@ -270,6 +270,32 @@
         "type": "string"
       },
       "default": []
+    },
+    "is_instructor": {
+      "type": "boolean",
+      "default": false,
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
+    },
+    "instructor_tier": {
+      "type": "string",
+      "enum": [
+        "Lead Instructor",
+        "Jr. Instructor",
+        "Assistant Instructor"
+      ],
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     }
   },
   "required": [
