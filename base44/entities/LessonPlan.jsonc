@@ -44,7 +44,9 @@
           }
         },
         {
-          "data.is_instructor": true
+          "user_condition": {
+            "is_instructor": true
+          }
         }
       ]
     },
