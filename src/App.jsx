@@ -42,6 +42,7 @@ import AdminUsers from '@/pages/admin/AdminUsers';
 import AdminBilling from '@/pages/admin/AdminBilling';
 import AdminCurriculum from '@/pages/admin/AdminCurriculum';
 import AdminCurriculumBuilder from '@/pages/admin/AdminCurriculumBuilder';
+import AdminLessonPlans from '@/pages/admin/AdminLessonPlans';
 import InstructorEvaluation from '@/pages/admin/InstructorEvaluation';
 import AdminCommunity from '@/pages/admin/AdminCommunity';
 import AdminEvents from '@/pages/admin/AdminEvents';
@@ -64,6 +65,7 @@ import AdminInbox from '@/pages/admin/AdminInbox';
 import AdminNotificationSettings from '@/pages/admin/AdminNotificationSettings';
 import Progress from '@/pages/portal/Progress';
 import StudentCurriculum from '@/pages/portal/StudentCurriculum';
+import Teaching from '@/pages/portal/Teaching';
 import Messages from '@/pages/portal/Messages';
 import Family from '@/pages/portal/Family';
 import Wallet from '@/pages/portal/Wallet';
@@ -128,6 +130,7 @@ const AuthenticatedApp = () => {
           <Route path="/portal/community" element={<Community />} />
           <Route path="/portal/progress" element={<Progress />} />
           <Route path="/portal/journey" element={<StudentCurriculum />} />
+          <Route path="/portal/teaching" element={<Teaching />} />
           <Route path="/portal/messages" element={<Messages />} />
           <Route path="/portal/family" element={<Family />} />
           <Route path="/portal/events" element={<Events />} />
@@ -149,6 +152,7 @@ const AuthenticatedApp = () => {
             <Route path="/admin/billing" element={<AdminBilling />} />
             <Route path="/admin/curriculum" element={<AdminCurriculum />} />
             <Route path="/admin/curriculum-builder" element={<AdminCurriculumBuilder />} />
+            <Route path="/admin/lesson-plans" element={<AdminLessonPlans />} />
             <Route path="/admin/evaluation" element={<InstructorEvaluation />} />
             <Route path="/admin/community" element={<AdminCommunity />} />
             <Route path="/admin/events" element={<AdminEvents />} />

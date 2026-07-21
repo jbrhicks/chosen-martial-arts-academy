@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useState } from "react";
-import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, CalendarDays, UserPlus, LogOut, Menu, X, TrendingUp, ClipboardCheck, BarChart3, BookOpen, ListChecks, FormInput, Tag, Inbox, Tablet, ShieldAlert, UserSearch, Award, UserCheck, UsersRound, Mail, Bell } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, CalendarDays, UserPlus, LogOut, Menu, X, TrendingUp, ClipboardCheck, ClipboardList, BarChart3, BookOpen, ListChecks, FormInput, Tag, Inbox, Tablet, ShieldAlert, UserSearch, Award, UserCheck, UsersRound, Mail, Bell } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import Logo from "@/components/Logo";
 
@@ -21,6 +21,7 @@ export default function AdminLayout() {
     { label: "Discounts", path: "/admin/discounts", icon: Tag },
     { label: "Curriculum", path: "/admin/curriculum", icon: Video },
     { label: "Curriculum Builder", path: "/admin/curriculum-builder", icon: BookOpen },
+    { label: "Lesson Plans", path: "/admin/lesson-plans", icon: ClipboardList },
     { label: "Progress", path: "/admin/progress", icon: TrendingUp },
     { label: "Evaluation", path: "/admin/evaluation", icon: ListChecks },
     { label: "Attendance", path: "/admin/attendance", icon: ClipboardCheck },

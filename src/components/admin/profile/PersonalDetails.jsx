@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Save, Plus, X, Loader2, MessageSquare } from "lucide-react";
+import InstructorAccessToggle from "@/components/admin/profile/InstructorAccessToggle";
 
 export default function PersonalDetails({ user, customFields, customFieldValues, onRefresh, logActivity }) {
   const navigate = useNavigate();
@@ -64,6 +65,7 @@ export default function PersonalDetails({ user, customFields, customFieldValues,
 
   return (
     <div className="space-y-6">
+      <InstructorAccessToggle user={user} onRefresh={onRefresh} logActivity={logActivity} />
       <div className="border border-[#A8A9AD]/20 bg-black p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">Contact Information</h3>

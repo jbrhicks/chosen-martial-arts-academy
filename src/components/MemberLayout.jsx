@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useState } from "react";
-import { Home, Video, Users, Calendar, CreditCard, LogOut, Menu, TrendingUp, UserCog, Eye, Map, MessageCircle, Lock, Wallet, CalendarClock, UserCircle, Gift, Share2 } from "lucide-react";
+import { Home, Video, Users, Calendar, CreditCard, LogOut, Menu, TrendingUp, UserCog, Eye, Map, MessageCircle, Lock, Wallet, CalendarClock, UserCircle, Gift, Share2, BookOpen } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { FamilyProvider, useFamily } from "@/lib/FamilyContext";
 import BeltBadge from "@/components/BeltBadge";
@@ -18,6 +18,7 @@ function MemberLayoutContent() {
 
   const navItems = [
     { label: "Dashboard", path: "/portal", icon: Home },
+    ...(user?.is_instructor ? [{ label: "Teaching", path: "/portal/teaching", icon: BookOpen }] : []),
     { label: "Curriculum", path: "/portal/curriculum", icon: Video, communityAccess: true },
     { label: "Progression", path: "/portal/progress", icon: TrendingUp, communityAccess: true },
     { label: "My Journey", path: "/portal/journey", icon: Map, communityAccess: true },

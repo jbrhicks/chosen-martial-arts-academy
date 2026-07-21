@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Users, CreditCard, Video, CalendarDays, UserPlus, TrendingUp, DollarSign, ChevronRight } from "lucide-react";
 import BounceManagementWidget from "@/components/admin/broadcasts/BounceManagementWidget";
+import DebriefInboxWidget from "@/components/admin/dashboard/DebriefInboxWidget";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({ users: 0, leads: 0, payments: 0, revenue: 0, videos: 0, events: 0, classes: 0, posts: 0 });
@@ -69,6 +70,9 @@ export default function AdminDashboard() {
           );
         })}
       </div>
+
+      {/* Debrief Inbox */}
+      <DebriefInboxWidget />
 
       {/* Bounce Management Widget */}
       <BounceManagementWidget />
