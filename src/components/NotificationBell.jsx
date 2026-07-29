@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, CheckCheck, X } from "lucide-react";
+import { Bell, CheckCheck, Trash2, X } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
   getNotificationLink, getNotificationIcon, formatNotificationTime,
@@ -15,7 +15,7 @@ const ADMIN_FILTERS = [
 ];
 
 export default function NotificationBell({ isAdmin = false, align = "right" }) {
-  const { notifications, unreadCount, loading, markAsRead, markAllRead } = useNotifications();
+  const { notifications, unreadCount, loading, markAsRead, markAllRead, deleteNotification, clearAll } = useNotifications();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("all");
   const ref = useRef(null);
@@ -73,7 +73,16 @@ export default function NotificationBell({ isAdmin = false, align = "right" }) {
                   className="flex items-center gap-1 text-[10px] tracking-widest uppercase text-[#A8A9AD] hover:text-[#C9A84C] transition-colors px-2 py-1"
                   title="Mark all as read"
                 >
-                  <CheckCheck size={12} /> Clear All
+                  <CheckCheck size={12} /> Mark Read
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  onClick={clearAll}
+                  className="flex items-center gap-1 text-[10px] tracking-widest uppercase text-[#A8A9AD] hover:text-red-400 transition-colors px-2 py-1"
+                  title="Delete all notifications"
+                >
+                  <Trash2 size={12} /> Clear
                 </button>
               )}
               <button onClick={() => setOpen(false)} className="p-1 text-[#A8A9AD] hover:text-white">
@@ -112,10 +121,10 @@ export default function NotificationBell({ isAdmin = false, align = "right" }) {
               visible.map(n => {
                 const Icon = getNotificationIcon(n.notification_type);
                 return (
-                  <button
+                  <div
                     key={n.id}
                     onClick={() => handleClick(n)}
-                    className={`w-full text-left px-4 py-3 flex items-start gap-3 border-b border-[#A8A9AD]/10 hover:bg-white/5 transition-colors ${
+                    className={`w-full text-left px-4 py-3 flex items-start gap-3 border-b border-[#A8A9AD]/10 hover:bg-white/5 transition-colors cursor-pointer ${
                       !n.is_read ? "bg-[#C9A84C]/5" : ""
                     }`}
                   >
@@ -128,8 +137,17 @@ export default function NotificationBell({ isAdmin = false, align = "right" }) {
                       </p>
                       <p className="text-[10px] text-[#A8A9AD] mt-1">{formatNotificationTime(n.created_date)}</p>
                     </div>
-                    {!n.is_read && <span className="w-2 h-2 bg-[#C9A84C] rounded-full shrink-0 mt-1.5" />}
-                  </button>
+                    <div className="flex items-center gap-2 shrink-0 mt-1">
+                      {!n.is_read && <span className="w-2 h-2 bg-[#C9A84C] rounded-full" />}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }}
+                        className="p-1 text-[#A8A9AD] hover:text-red-400 transition-colors"
+                        title="Delete notification"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
                 );
               })
             )}

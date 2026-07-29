@@ -40,6 +40,19 @@ export function useNotifications() {
     setNotifications(prev => prev.map(n => (n.id === id ? { ...n, is_read: true } : n)));
   }, []);
 
+  const deleteNotification = useCallback(async (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+    await base44.entities.Notification.delete(id).catch((e) => console.error("delete failed", e));
+  }, []);
+
+  const clearAll = useCallback(async () => {
+    if (notifications.length === 0) return;
+    setNotifications([]);
+    const query = isAdmin ? { recipient_type: "admin" } : (user ? { recipient_id: user.id } : null);
+    if (!query) return;
+    await base44.entities.Notification.deleteMany(query).catch((e) => console.error("clearAll failed", e));
+  }, [notifications.length, isAdmin, user]);
+
   const markAllRead = useCallback(async () => {
     const unread = notifications.filter(n => !n.is_read);
     if (unread.length === 0) return;
@@ -58,5 +71,5 @@ export function useNotifications() {
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
   }, [notifications, isAdmin, user]);
 
-  return { notifications, unreadCount, loading, markAsRead, markAllRead, isAdmin };
+  return { notifications, unreadCount, loading, markAsRead, markAllRead, deleteNotification, clearAll, isAdmin };
 }
