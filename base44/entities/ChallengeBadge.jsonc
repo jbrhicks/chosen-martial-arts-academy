@@ -1,0 +1,82 @@
+{
+  "name": "ChallengeBadge",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string"
+    },
+    "student_name": {
+      "type": "string"
+    },
+    "family_id": {
+      "type": "string"
+    },
+    "challenge_id": {
+      "type": "string"
+    },
+    "challenge_title": {
+      "type": "string"
+    },
+    "badge_name": {
+      "type": "string"
+    },
+    "badge_graphic_url": {
+      "type": "string"
+    },
+    "date_earned": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reward_fulfilled": {
+      "type": "boolean",
+      "default": false
+    },
+    "fulfilled_by_id": {
+      "type": "string"
+    },
+    "fulfilled_by_name": {
+      "type": "string"
+    },
+    "fulfilled_date": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "student_id",
+    "challenge_id",
+    "badge_name"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.student_id": "{{user.id}}"
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

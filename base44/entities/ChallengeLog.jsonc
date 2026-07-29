@@ -1,0 +1,124 @@
+{
+  "name": "ChallengeLog",
+  "type": "object",
+  "properties": {
+    "challenge_id": {
+      "type": "string"
+    },
+    "challenge_title": {
+      "type": "string"
+    },
+    "student_id": {
+      "type": "string"
+    },
+    "student_name": {
+      "type": "string"
+    },
+    "family_id": {
+      "type": "string"
+    },
+    "logged_value": {
+      "type": "number",
+      "default": 1
+    },
+    "log_type": {
+      "type": "string",
+      "enum": [
+        "attendance",
+        "manual",
+        "media_upload"
+      ],
+      "default": "manual"
+    },
+    "proof_media_url": {
+      "type": "string"
+    },
+    "proof_description": {
+      "type": "string"
+    },
+    "verification_status": {
+      "type": "string",
+      "enum": [
+        "pending_guardian",
+        "approved",
+        "auto_verified",
+        "rejected"
+      ],
+      "default": "auto_verified"
+    },
+    "logged_by_id": {
+      "type": "string"
+    },
+    "logged_by_name": {
+      "type": "string"
+    },
+    "guardian_id": {
+      "type": "string"
+    },
+    "guardian_name": {
+      "type": "string"
+    },
+    "verified_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "requires_guardian": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "challenge_id",
+    "student_id",
+    "logged_value"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "data.student_id": "{{user.id}}"
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "data.student_id": "{{user.id}}"
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
