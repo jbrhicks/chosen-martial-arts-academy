@@ -7,9 +7,19 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { challenge_id, logged_value = 1, log_type = 'manual', proof_media_url, proof_description, student_id } = body;
+    const { challenge_id, log_type = 'manual', proof_media_url, proof_description, student_id } = body;
 
     if (!challenge_id) return Response.json({ error: 'challenge_id required' }, { status: 400 });
+
+    // Non-admin loggers may only add 1 unit per log (manual / media_proof).
+    // Admins may specify a custom logged_value (e.g. retroactive corrections).
+    // This prevents a single request from inflating a score to instantly
+    // complete a challenge and auto-award a badge.
+    let logged_value = 1;
+    if (user.role === 'admin' && body.logged_value != null) {
+      const requested = Number(body.logged_value);
+      logged_value = Number.isFinite(requested) && requested > 0 ? Math.floor(requested) : 1;
+    }
 
     // The student being logged for (defaults to current user; guardians can log for their child)
     const targetStudentId = student_id || user.id;

@@ -49,6 +49,15 @@ Deno.serve(async (req) => {
       .catch(() => []);
     const record = existing[0];
 
+    // Honor the admin lock: once an admin locks a student's settings,
+    // guardians may not change them until the admin lifts the lock.
+    if (record?.admin_locked && !callerIsAdmin) {
+      return Response.json(
+        { error: 'These access settings are locked by an administrator. Please contact the front desk.' },
+        { status: 403 }
+      );
+    }
+
     const payload = {
       student_id: studentId,
       student_name: student.full_name || '',

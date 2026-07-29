@@ -53,8 +53,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: "Class not found" }, { status: 404 });
     }
 
-    // Use student_age from request if provided (frontend doesn't have admin access to update lead)
-    const effectiveAge = student_age != null ? student_age : lead.student_age;
+    // Prefer the admin-set student_age on the lead record when it exists.
+    // Only accept a client-supplied age to populate a previously-empty field —
+    // never let a caller override an established age to bypass class age-gating.
+    const effectiveAge = lead.student_age != null ? lead.student_age : student_age;
 
     // Server-side age validation
     if (effectiveAge != null && cls) {
