@@ -34,7 +34,7 @@ export default function AdminLayout() {
     { label: "Event Check-In", path: "/admin/event-checkin", icon: UserCheck },
     { label: "Custom Fields", path: "/admin/custom-fields", icon: FormInput },
     { label: "Schedule", path: "/admin/schedule", icon: CalendarDays },
-    { label: "Family Challenges", path: "/admin/family-challenges", icon: Trophy },
+    { label: "Challenges", path: "/admin/family-challenges", icon: Trophy },
     { label: "Badges", path: "/admin/badges", icon: Award },
     { label: "Referral Campaigns", path: "/admin/referral-campaigns", icon: Tag },
     { label: "Referral Tracking", path: "/admin/referral-tracking", icon: TrendingUp },

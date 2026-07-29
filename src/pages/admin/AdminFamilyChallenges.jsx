@@ -59,7 +59,7 @@ export default function AdminFamilyChallenges() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <p className="text-xs tracking-widest uppercase text-[#C9A84C] mb-2">Gamification Engine</p>
-          <h1 className="text-3xl font-bold">Challenge Engine</h1>
+          <h1 className="text-3xl font-bold">Challenges</h1>
           <p className="text-sm text-[#A8A9AD] mt-1">Create targeted challenges, track engagement, and reward achievements.</p>
         </div>
         <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2.5 bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase hover:bg-[#E0C97A] transition-colors">
