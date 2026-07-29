@@ -1,0 +1,97 @@
+{
+  "name": "FamilyInvitation",
+  "type": "object",
+  "properties": {
+    "family_id": {
+      "type": "string"
+    },
+    "family_name": {
+      "type": "string"
+    },
+    "inviter_id": {
+      "type": "string"
+    },
+    "inviter_name": {
+      "type": "string"
+    },
+    "invitee_id": {
+      "type": "string"
+    },
+    "invitee_email": {
+      "type": "string"
+    },
+    "proposed_role": {
+      "type": "string",
+      "enum": [
+        "student",
+        "secondary_guardian"
+      ],
+      "default": "student"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "declined"
+      ],
+      "default": "pending"
+    },
+    "responded_date": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "family_id",
+    "inviter_id",
+    "invitee_id",
+    "proposed_role"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.inviter_id": "{{user.id}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "data.invitee_id": "{{user.id}}"
+        },
+        {
+          "data.inviter_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.invitee_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

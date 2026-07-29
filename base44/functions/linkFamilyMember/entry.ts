@@ -35,14 +35,44 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'This user is already in a family group' }, { status: 400 });
     }
 
-    await base44.asServiceRole.entities.User.update(target.id, {
+    // Check for an existing pending invitation to avoid duplicates
+    const existingInv = await base44.asServiceRole.entities.FamilyInvitation.filter({
+      invitee_id: target.id,
       family_id: familyId,
-      family_role: familyRole,
+      status: 'pending',
+    }).catch(() => []);
+    if (existingInv.length > 0) {
+      return Response.json({ error: 'An invitation has already been sent to this user' }, { status: 400 });
+    }
+
+    // Create a pending invitation — the target user MUST consent before being
+    // linked. This prevents a guardian from silently attaching another user
+    // (and gaining read access to their private data) without consent.
+    await base44.asServiceRole.entities.FamilyInvitation.create({
+      family_id: familyId,
+      family_name: family.family_name,
+      inviter_id: caller.id,
+      inviter_name: caller.full_name,
+      invitee_id: target.id,
+      invitee_email: target.email,
+      proposed_role: familyRole,
+      status: 'pending',
+    });
+
+    // Notify the target user about the pending invitation
+    await base44.asServiceRole.functions.invoke("createNotification", {
+      recipient_type: "user",
+      recipient_id: target.id,
+      notification_type: "announcement",
+      preview_text: `${caller.full_name} invited you to join the ${family.family_name} family. Go to Family to accept.`,
+      target_type: "none",
+      sender_name: caller.full_name,
     });
 
     return Response.json({
       success: true,
-      user: { id: target.id, full_name: target.full_name, email: target.email },
+      invitation_sent: true,
+      message: `Invitation sent to ${target.full_name || target.email}. They must accept it before being added to your family.`,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

@@ -3,6 +3,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
+    // Require authentication — blocks unauthenticated external callers from
+    // injecting notifications via direct HTTP POST
+    const caller = await base44.auth.me().catch(() => null);
+    if (!caller) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     const body = await req.json();
     const {
       recipient_type = 'user',
@@ -18,6 +22,16 @@ export default async function(req) {
 
     if (!notification_type || !preview_text) {
       return Response.json({ error: 'notification_type and preview_text required' }, { status: 400 });
+    }
+
+    // Broadcast/admin notifications require admin or service-role privileges.
+    // Service-role is detected by the no-reply email pattern used for internal
+    // function-to-function calls (e.g. deliverAlert, triggerNotification).
+    const isServiceRole = (caller.email || '').startsWith('service+') || (caller.email || '').includes('@no-reply.base44.com');
+    if (recipient_type === 'all' || recipient_type === 'admin') {
+      if (caller.role !== 'admin' && !isServiceRole) {
+        return Response.json({ error: 'Forbidden — admin privileges required for broadcasts' }, { status: 403 });
+      }
     }
 
     // Admin-shared notifications: throttle/aggregate high-volume alerts (e.g. new leads)

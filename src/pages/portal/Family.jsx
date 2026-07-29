@@ -12,6 +12,7 @@ import CommunicationSettings from "@/components/family/CommunicationSettings";
 import FamilyBilling from "@/components/family/FamilyBilling";
 import DocumentHub from "@/components/family/DocumentHub";
 import FamilyInvite from "@/components/family/FamilyInvite";
+import PendingFamilyInvitations from "@/components/family/PendingFamilyInvitations";
 import AccessControls from "@/components/family/AccessControls";
 import { Users, Calendar, Award, QrCode, MessageSquare, Target, Trophy, FileText, Mail, CreditCard, ShieldCheck, UserPlus, Shield } from "lucide-react";
 
@@ -21,8 +22,11 @@ export default function Family() {
 
   if (!isGuardian) {
     return (
-      <div className="text-center py-20">
-        <p className="text-[#A8A9AD]">Family management is available for guardians only.</p>
+      <div className="space-y-6">
+        <PendingFamilyInvitations onResponded={() => window.location.reload()} />
+        <div className="text-center py-20">
+          <p className="text-[#A8A9AD]">Family management is available for guardians only.</p>
+        </div>
       </div>
     );
   }
@@ -59,6 +63,7 @@ export default function Family() {
 
   return (
     <div className="space-y-6">
+      <PendingFamilyInvitations onResponded={() => window.location.reload()} />
       <div>
         <p className="text-xs tracking-widest uppercase text-[#C9A84C] mb-2">Family Account</p>
         <h1 className="text-3xl font-bold">Family Management</h1>

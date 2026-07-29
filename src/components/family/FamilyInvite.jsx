@@ -47,12 +47,11 @@ export default function FamilyInvite() {
         setLinking(false);
         return;
       }
-      const target = data.user || {};
-      alert(`Linked ${target.full_name || target.email} to your family as ${linkRole === "student" ? "Student" : "Secondary Guardian"}.`);
+      alert(data.message || `Invitation sent. They'll need to accept it from their Family page.`);
       setLinkEmail("");
       refreshFamily();
     } catch (e) {
-      alert(e?.message?.includes("already") ? "This user is already in a family group." : "Failed to link user. Ask them to register first, then try again.");
+      alert(e?.message?.includes("already") ? (e.message.includes("invitation") ? "An invitation has already been sent to this user." : "This user is already in a family group.") : "Failed to send invitation. Make sure they've registered an account first.");
     }
     setLinking(false);
   };
@@ -91,9 +90,9 @@ export default function FamilyInvite() {
       <div>
         <div className="flex items-center gap-2 mb-4">
           <UserPlus size={18} className="text-[#C9A84C]" />
-          <h3 className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">Link Existing Account</h3>
+          <h3 className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">Invite Existing Account</h3>
         </div>
-        <p className="text-xs text-[#A8A9AD] mb-4">If someone already has an account, link them to your family by their email address.</p>
+        <p className="text-xs text-[#A8A9AD] mb-4">If someone already has an account, send them an invitation. They must accept it before being linked to your family.</p>
         <form onSubmit={linkExisting} className="space-y-4 max-w-lg">
           <div>
             <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Email Address *</label>
@@ -118,7 +117,7 @@ export default function FamilyInvite() {
             </select>
           </div>
           <button type="submit" disabled={linking} className="flex items-center gap-2 px-5 py-2.5 bg-[#C9A84C] text-black font-bold text-sm tracking-wide uppercase hover:bg-[#E0C97A] transition-colors disabled:opacity-50">
-            {linking ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />} Link to Family
+            {linking ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />} Send Invitation
           </button>
         </form>
       </div>
@@ -130,8 +129,8 @@ export default function FamilyInvite() {
           <p>1. Share the invite code or registration link with your family member.</p>
           <p>2. They register a new account (or log in if they already have one).</p>
           <p>3. They go to Family → Join with Code and enter the code.</p>
-          <p>4. Or, use "Link Existing Account" above to add them directly by email.</p>
-          <p>5. Once linked, they appear in your family group and can be managed from the Overview tab.</p>
+          <p>4. Or, use "Invite Existing Account" above to send an invitation by email — they must accept it before being linked.</p>
+          <p>5. Once they accept, they appear in your family group and can be managed from the Overview tab.</p>
         </div>
       </div>
     </div>
