@@ -100,10 +100,11 @@ Deno.serve(async (req) => {
       console.log('SMS direct message queued for:', family.cc_phones);
     }
 
-    // Bump unread count for the target user participant
-    const targetParticipant = (await base44.entities.ThreadParticipant.filter({ thread_id: thread.id, user_id: targetUserId }))[0];
+    // Bump unread count for the target user participant.
+    // Use asServiceRole so RLS doesn't hide the target's participant record from the admin caller.
+    const targetParticipant = (await base44.asServiceRole.entities.ThreadParticipant.filter({ thread_id: thread.id, user_id: targetUserId }))[0];
     if (targetParticipant) {
-      await base44.entities.ThreadParticipant.update(targetParticipant.id, {
+      await base44.asServiceRole.entities.ThreadParticipant.update(targetParticipant.id, {
         unread_count: (targetParticipant.unread_count || 0) + 1
       });
     }
