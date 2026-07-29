@@ -12,7 +12,9 @@ Deno.serve(async (req) => {
     const thread = await base44.entities.MessageThread.get(threadId);
     if (!thread) return Response.json({ error: 'Thread not found' }, { status: 404 });
 
-    const participants = await base44.entities.ThreadParticipant.filter({ thread_id: threadId });
+    // Use asServiceRole so RLS returns ALL participants (not just the caller's own record),
+    // enabling the recipient loop to bump unread counts and send notifications.
+    const participants = await base44.asServiceRole.entities.ThreadParticipant.filter({ thread_id: threadId });
     const isParticipant = participants.some((p: { user_id: string }) => p.user_id === user.id);
     if (!isParticipant && user.role !== 'admin') {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
@@ -42,10 +44,10 @@ Deno.serve(async (req) => {
     for (const participant of participants) {
       if (participant.user_id === user.id) continue;
 
-      const targetUser = await base44.entities.User.get(participant.user_id);
+      const targetUser = await base44.asServiceRole.entities.User.get(participant.user_id);
       if (!targetUser) continue;
 
-      const familyGroups = await base44.entities.FamilyGroup.filter({ primary_contact_id: participant.user_id });
+      const familyGroups = await base44.asServiceRole.entities.FamilyGroup.filter({ primary_contact_id: participant.user_id });
       const family = familyGroups[0];
       const optInEmail = family?.opt_in_email !== false;
       const optInSms = family?.opt_in_sms !== false;
@@ -63,7 +65,7 @@ Deno.serve(async (req) => {
         console.log('SMS would be sent to:', family.cc_phones);
       }
 
-      await base44.entities.ThreadParticipant.update(participant.id, {
+      await base44.asServiceRole.entities.ThreadParticipant.update(participant.id, {
         unread_count: (participant.unread_count || 0) + 1
       });
     }
