@@ -7,6 +7,7 @@ import BeltBadge from "@/components/BeltBadge";
 import ProfileSwitcher from "@/components/family/ProfileSwitcher";
 import Logo from "@/components/Logo";
 import { CommunityAccessProvider, useCommunityAccess } from "@/lib/CommunityAccessContext";
+import NotificationBell from "@/components/NotificationBell";
 
 function MemberLayoutContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -68,6 +69,7 @@ function MemberLayoutContent() {
               <p className="text-sm font-medium truncate">{user?.full_name || "Student"}</p>
               {user?.belt_rank && <BeltBadge rank={user.belt_rank} size="sm" />}
             </div>
+            <NotificationBell />
           </div>
         </div>
 
@@ -119,7 +121,7 @@ function MemberLayoutContent() {
             <Menu size={22} />
           </button>
           <span className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">Chosen</span>
-          <div className="w-10" />
+          <NotificationBell />
         </header>
 
         <div className="p-6 lg:p-8 max-w-6xl mx-auto">

@@ -92,52 +92,20 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Send in-app notification to admins (no integration credits used)
+    // 4. Send in-app notification to admins via the Notification Center (no integration credits)
     try {
-      const admins = await base44.asServiceRole.entities.User.filter({ role: "admin" });
       const leadDisplayName = lead.full_name || lead.email || "New Prospect";
-      const alertBody = [
-        `A new lead has just submitted a trial request!`,
-        `Name: ${lead.full_name || "N/A"}`,
-        `Email: ${lead.email || "N/A"}`,
-        `Phone: ${lead.phone || "N/A"}`,
-        `Program: ${lead.program_of_interest || lead.interest || "Not specified"}`,
-        `Inquiring for: ${lead.inquiry_type === "child" ? "My Child" : "Myself"}`,
-        `Source: ${lead.lead_source || "Website"}`,
-        `View this lead in the CRM to follow up immediately.`,
-      ].join("\n");
-
-      const thread = await base44.asServiceRole.entities.MessageThread.create({
-        thread_name: `⚡ New Lead — ${leadDisplayName}`,
-        type: "support",
-        created_by_id: lead.linked_user_id || null,
-        support_category: "general",
-        is_admin_managed: true,
-        last_message_preview: alertBody.slice(0, 140),
-        last_message_date: new Date().toISOString(),
-      });
-
-      for (const admin of admins) {
-        await base44.asServiceRole.entities.ThreadParticipant.create({
-          thread_id: thread.id,
-          user_id: admin.id,
-          user_name: admin.full_name,
-          joined_date: new Date().toISOString(),
-          is_admin: true,
-          unread_count: 1,
-        });
-      }
-
-      await base44.asServiceRole.entities.Message.create({
-        thread_id: thread.id,
-        sender_id: admins[0]?.id || null,
+      const programLabel = lead.program_of_interest || lead.interest || "Not specified";
+      await base44.asServiceRole.functions.invoke("createNotification", {
+        recipient_type: "admin",
+        notification_type: "new_lead",
+        preview_text: `New lead: ${leadDisplayName} — ${programLabel}. Tap to review in the pipeline.`,
+        target_type: "lead",
+        target_id: lead.id,
         sender_name: "Lead System",
-        content: alertBody,
-        message_type: "private",
-        channel_used: "in_app",
       });
     } catch (adminErr) {
-      console.error("Admin in-app alert failed:", adminErr);
+      console.error("Admin notification failed:", adminErr);
     }
 
     // 5. Mark welcome email as sent

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, CalendarDays, UserPlus, LogOut, Menu, X, TrendingUp, ClipboardCheck, ClipboardList, BarChart3, BookOpen, ListChecks, FormInput, Tag, Inbox, Tablet, ShieldAlert, UserSearch, Award, UserCheck, UsersRound, Mail, Bell } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import Logo from "@/components/Logo";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -75,6 +76,7 @@ export default function AdminLayout() {
               <p className="text-sm font-medium truncate">{user?.full_name || "Admin"}</p>
               <p className="text-[10px] text-[#C9A84C] tracking-widest uppercase">Administrator</p>
             </div>
+            <NotificationBell isAdmin />
           </div>
         </div>
 
@@ -125,7 +127,7 @@ export default function AdminLayout() {
             <Menu size={22} />
           </button>
           <span className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">Admin</span>
-          <div className="w-10" />
+          <NotificationBell isAdmin />
         </header>
 
         <div className="p-6 lg:p-8">
