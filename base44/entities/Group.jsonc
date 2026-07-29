@@ -13,12 +13,24 @@
       "enum": [
         "Global",
         "Program-Specific",
+        "Challenge",
         "Custom"
       ],
       "default": "Custom"
     },
     "linked_program_id": {
       "type": "string"
+    },
+    "linked_challenge_id": {
+      "type": "string"
+    },
+    "auto_archive_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "is_archived": {
+      "type": "boolean",
+      "default": false
     },
     "is_private": {
       "type": "boolean",
@@ -36,14 +48,24 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.created_by_id": "{{user.id}}"
+        }
+      ]
     },
     "read": {
       "$or": [
         {
           "data.is_private": false
+        },
+        {
+          "data.created_by_id": "{{user.id}}"
         },
         {
           "user_condition": {
