@@ -1,12 +1,17 @@
 import { useState } from "react";
 import { useFamily } from "@/lib/FamilyContext";
 import FamilyOverview from "@/components/family/FamilyOverview";
+import FamilyCalendar from "@/components/family/FamilyCalendar";
+import MilestonesTimeline from "@/components/family/MilestonesTimeline";
+import FamilyCheckInCards from "@/components/family/FamilyCheckInCards";
+import InstructorNotesFeed from "@/components/family/InstructorNotesFeed";
+import FamilyGoals from "@/components/family/FamilyGoals";
 import CommunicationSettings from "@/components/family/CommunicationSettings";
 import FamilyBilling from "@/components/family/FamilyBilling";
 import DocumentHub from "@/components/family/DocumentHub";
 import FamilyInvite from "@/components/family/FamilyInvite";
 import AccessControls from "@/components/family/AccessControls";
-import { Users, Mail, CreditCard, FileText, UserPlus, Shield } from "lucide-react";
+import { Users, Calendar, Award, QrCode, MessageSquare, Target, Mail, CreditCard, FileText, UserPlus, Shield } from "lucide-react";
 
 export default function Family() {
   const { isPrimaryGuardian, isGuardian } = useFamily();
@@ -23,6 +28,11 @@ export default function Family() {
   const tabs = isPrimaryGuardian
     ? [
         { id: "overview", label: "Overview", icon: Users },
+        { id: "schedule", label: "Schedule", icon: Calendar },
+        { id: "milestones", label: "Milestones", icon: Award },
+        { id: "checkin", label: "Check-In", icon: QrCode },
+        { id: "notes", label: "Instructor Notes", icon: MessageSquare },
+        { id: "goals", label: "Goals", icon: Target },
         { id: "access", label: "Access Controls", icon: Shield },
         { id: "communications", label: "Communications", icon: Mail },
         { id: "billing", label: "Billing", icon: CreditCard },
@@ -31,6 +41,11 @@ export default function Family() {
       ]
     : [
         { id: "overview", label: "Overview", icon: Users },
+        { id: "schedule", label: "Schedule", icon: Calendar },
+        { id: "milestones", label: "Milestones", icon: Award },
+        { id: "checkin", label: "Check-In", icon: QrCode },
+        { id: "notes", label: "Instructor Notes", icon: MessageSquare },
+        { id: "goals", label: "Goals", icon: Target },
         { id: "access", label: "Access Controls", icon: Shield },
         { id: "billing", label: "Billing", icon: CreditCard },
         { id: "documents", label: "Documents", icon: FileText },
@@ -61,6 +76,11 @@ export default function Family() {
       </div>
 
       {tab === "overview" && <FamilyOverview onTabChange={setTab} />}
+      {tab === "schedule" && <FamilyCalendar />}
+      {tab === "milestones" && <MilestonesTimeline />}
+      {tab === "checkin" && <FamilyCheckInCards />}
+      {tab === "notes" && <InstructorNotesFeed />}
+      {tab === "goals" && <FamilyGoals />}
       {tab === "access" && <AccessControls />}
       {tab === "communications" && <CommunicationSettings />}
       {tab === "billing" && <FamilyBilling />}

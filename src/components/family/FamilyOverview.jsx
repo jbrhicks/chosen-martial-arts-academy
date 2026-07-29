@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useFamily } from "@/lib/FamilyContext";
 import BeltBadge from "@/components/BeltBadge";
+import DashboardHome from "@/components/family/DashboardHome";
 import { Loader2, UserPlus, Users, Link2, X, Crown, Shield, GraduationCap, CreditCard, FileText, Mail } from "lucide-react";
 
 const ROLE_CONFIG = {
@@ -125,68 +126,7 @@ export default function FamilyOverview({ onTabChange }) {
     );
   }
 
-  const students = members.filter((m) => m.family_role === "student");
-  const guardians = members.filter((m) => m.family_role !== "student");
-
-  return (
-    <div className="space-y-6">
-      {/* Family header */}
-      <div className="border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <p className="text-[10px] tracking-widest uppercase text-[#A8A9AD] mb-1">Family Group</p>
-            <h2 className="text-2xl font-bold">{familyGroup?.family_name || "My Family"}</h2>
-            <p className="text-sm text-[#A8A9AD] mt-1">{members.length} member{members.length !== 1 ? "s" : ""} • {students.length} student{students.length !== 1 ? "s" : ""}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] tracking-widest uppercase text-[#A8A9AD] mb-1">Billing Status</p>
-            <span className={`text-sm font-bold uppercase tracking-wide ${familyGroup?.billing_status === "active" ? "text-green-400" : familyGroup?.billing_status === "past_due" ? "text-red-400" : "text-[#A8A9AD]"}`}>
-              {familyGroup?.billing_status || "none"}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick actions */}
-      {isPrimaryGuardian && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <QuickAction icon={Mail} label="Communications" desc="Manage CC emails & phones" onClick={() => onTabChange("communications")} />
-          <QuickAction icon={CreditCard} label="Family Billing" desc="Consolidated ledger" onClick={() => onTabChange("billing")} />
-          <QuickAction icon={FileText} label="Documents" desc="Sign waivers & slips" onClick={() => onTabChange("documents")} />
-          <QuickAction icon={UserPlus} label="Invite" desc="Add members" onClick={() => onTabChange("invite")} />
-        </div>
-      )}
-
-      {/* Members */}
-      <div>
-        <h3 className="text-sm font-bold tracking-widest uppercase text-[#C9A84C] mb-4">Family Members</h3>
-        <div className="space-y-2">
-          {members.map((m) => {
-            const cfg = ROLE_CONFIG[m.family_role] || ROLE_CONFIG.student;
-            const Icon = cfg.icon;
-            return (
-              <div key={m.id} className="border border-[#A8A9AD]/20 bg-black p-4 flex items-center gap-4">
-                <div className="w-10 h-10 bg-[#C9A84C]/10 border border-[#C9A84C]/30 flex items-center justify-center text-sm font-bold text-[#C9A84C] shrink-0">
-                  {m.full_name?.charAt(0) || "?"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{m.full_name || "Unnamed"}</p>
-                  <p className="text-xs text-[#A8A9AD] truncate">{m.email}</p>
-                </div>
-                <div className="hidden sm:block">
-                  {m.belt_rank && <BeltBadge rank={m.belt_rank} size="sm" />}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Icon size={14} className={cfg.color} />
-                  <span className={`text-[10px] tracking-widest uppercase ${cfg.color}`}>{cfg.label}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
+  return <DashboardHome onTabChange={onTabChange} />;
 }
 
 function QuickAction({ icon: Icon, label, desc, onClick }) {
