@@ -1,0 +1,87 @@
+{
+  "name": "FamilyChallenge",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "challenge_type": {
+      "type": "string",
+      "enum": [
+        "attendance_count",
+        "goal_completions",
+        "class_streak",
+        "custom"
+      ],
+      "default": "attendance_count"
+    },
+    "target_value": {
+      "type": "number",
+      "default": 100
+    },
+    "unit_label": {
+      "type": "string",
+      "default": "classes"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "completed",
+        "draft"
+      ],
+      "default": "active"
+    },
+    "created_by_id": {
+      "type": "string"
+    },
+    "created_by_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "challenge_type",
+    "target_value"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.status": "active"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

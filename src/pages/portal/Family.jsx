@@ -6,12 +6,14 @@ import MilestonesTimeline from "@/components/family/MilestonesTimeline";
 import FamilyCheckInCards from "@/components/family/FamilyCheckInCards";
 import InstructorNotesFeed from "@/components/family/InstructorNotesFeed";
 import FamilyGoals from "@/components/family/FamilyGoals";
+import FamilyChallenges from "@/components/family/FamilyChallenges";
+import FamilyWaiverWallet from "@/components/family/FamilyWaiverWallet";
 import CommunicationSettings from "@/components/family/CommunicationSettings";
 import FamilyBilling from "@/components/family/FamilyBilling";
 import DocumentHub from "@/components/family/DocumentHub";
 import FamilyInvite from "@/components/family/FamilyInvite";
 import AccessControls from "@/components/family/AccessControls";
-import { Users, Calendar, Award, QrCode, MessageSquare, Target, Mail, CreditCard, FileText, UserPlus, Shield } from "lucide-react";
+import { Users, Calendar, Award, QrCode, MessageSquare, Target, Trophy, FileText, Mail, CreditCard, ShieldCheck, UserPlus, Shield } from "lucide-react";
 
 export default function Family() {
   const { isPrimaryGuardian, isGuardian } = useFamily();
@@ -33,6 +35,8 @@ export default function Family() {
         { id: "checkin", label: "Check-In", icon: QrCode },
         { id: "notes", label: "Instructor Notes", icon: MessageSquare },
         { id: "goals", label: "Goals", icon: Target },
+        { id: "challenges", label: "Challenges", icon: Trophy },
+        { id: "waivers", label: "Waivers", icon: ShieldCheck },
         { id: "access", label: "Access Controls", icon: Shield },
         { id: "communications", label: "Communications", icon: Mail },
         { id: "billing", label: "Billing", icon: CreditCard },
@@ -46,6 +50,8 @@ export default function Family() {
         { id: "checkin", label: "Check-In", icon: QrCode },
         { id: "notes", label: "Instructor Notes", icon: MessageSquare },
         { id: "goals", label: "Goals", icon: Target },
+        { id: "challenges", label: "Challenges", icon: Trophy },
+        { id: "waivers", label: "Waivers", icon: ShieldCheck },
         { id: "access", label: "Access Controls", icon: Shield },
         { id: "billing", label: "Billing", icon: CreditCard },
         { id: "documents", label: "Documents", icon: FileText },
@@ -81,6 +87,8 @@ export default function Family() {
       {tab === "checkin" && <FamilyCheckInCards />}
       {tab === "notes" && <InstructorNotesFeed />}
       {tab === "goals" && <FamilyGoals />}
+      {tab === "challenges" && <FamilyChallenges />}
+      {tab === "waivers" && <FamilyWaiverWallet />}
       {tab === "access" && <AccessControls />}
       {tab === "communications" && <CommunicationSettings />}
       {tab === "billing" && <FamilyBilling />}

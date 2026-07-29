@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Loader2, RefreshCw, Cake, HeartPulse, Star, Award, HelpCircle, AlertTriangle, Users, Flag } from "lucide-react";
+import { Loader2, RefreshCw, Cake, HeartPulse, Star, Award, HelpCircle, AlertTriangle, AlertCircle, Users, MessageSquare, Flag } from "lucide-react";
 import StudentFlagModal from "@/components/teaching/StudentFlagModal";
 
 const alertConfig = {
@@ -11,6 +11,9 @@ const alertConfig = {
   ready_to_test: { icon: Award, color: "text-[#C9A84C]", bg: "bg-[#C9A84C]/10", border: "border-[#C9A84C]/30" },
   needs_help: { icon: HelpCircle, color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/30" },
   behavior: { icon: AlertTriangle, color: "text-orange-400", bg: "bg-orange-400/10", border: "border-orange-400/30" },
+  billing_issue: { icon: AlertCircle, color: "text-red-400", bg: "bg-red-400/10", border: "border-red-400/30" },
+  custody_note: { icon: Users, color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/30" },
+  communication_pref: { icon: MessageSquare, color: "text-cyan-400", bg: "bg-cyan-400/10", border: "border-cyan-400/30" },
 };
 
 export default function MatIntel() {

@@ -49,6 +49,18 @@ Deno.serve(async (req) => {
       flagsByStudent[sid].push(f);
     });
 
+    // Fetch family context for operational transparency alerts
+    const allBilling = await base44.asServiceRole.entities.BillingRecord.list().catch(() => []);
+    const allFamilies = await base44.asServiceRole.entities.FamilyGroup.list().catch(() => []);
+    const familyMap: Record<string, Record<string, unknown>> = {};
+    allFamilies.forEach((f: Record<string, unknown>) => { familyMap[f.id as string] = f; });
+    const billingByFamily: Record<string, Record<string, unknown>[]> = {};
+    allBilling.forEach((b: Record<string, unknown>) => {
+      const fid = b.family_id as string;
+      if (!billingByFamily[fid]) billingByFamily[fid] = [];
+      billingByFamily[fid].push(b);
+    });
+
     const roster = relevantAtt.map((att: Record<string, unknown>) => {
       const u = userMap[att.user_id as string];
       const alerts: Array<{ type: string; label: string }> = [];
@@ -70,6 +82,24 @@ Deno.serve(async (req) => {
         // Trial student alert
         if (u.role === 'guest' || u.subscription_status === 'none') {
           alerts.push({ type: 'trial', label: 'Trial student' });
+        }
+
+        // Family context alerts (operational transparency)
+        if (u.family_id) {
+          const famBilling = billingByFamily[u.family_id as string] || [];
+          const hasBillingIssue = famBilling.some((b: Record<string, unknown>) => b.status === 'past_due' || b.status === 'failed');
+          if (hasBillingIssue) {
+            alerts.push({ type: 'billing_issue', label: 'Billing issue on file' });
+          }
+          const fam = familyMap[u.family_id as string];
+          if (fam) {
+            if (fam.custody_notes) {
+              alerts.push({ type: 'custody_note', label: 'Custody notes on file' });
+            }
+            if (fam.send_to_both_households === false) {
+              alerts.push({ type: 'communication_pref', label: 'Restricted communication' });
+            }
+          }
         }
       }
 

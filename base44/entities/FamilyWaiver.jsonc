@@ -1,0 +1,89 @@
+{
+  "name": "FamilyWaiver",
+  "type": "object",
+  "properties": {
+    "family_id": {
+      "type": "string"
+    },
+    "waiver_id": {
+      "type": "string"
+    },
+    "waiver_name": {
+      "type": "string"
+    },
+    "waiver_type": {
+      "type": "string"
+    },
+    "body_text": {
+      "type": "string"
+    },
+    "signed_by_id": {
+      "type": "string"
+    },
+    "signed_by_name": {
+      "type": "string"
+    },
+    "signature_text": {
+      "type": "string"
+    },
+    "signed_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "applies_to_member_ids": {
+      "type": "string"
+    },
+    "applies_to_member_names": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "family_id",
+    "waiver_id",
+    "signed_by_id",
+    "signature_text"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

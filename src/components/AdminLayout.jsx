@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useState } from "react";
-import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, CalendarDays, UserPlus, LogOut, Menu, X, TrendingUp, ClipboardCheck, ClipboardList, BarChart3, BookOpen, ListChecks, FormInput, Tag, Inbox, Tablet, ShieldAlert, UserSearch, Award, UserCheck, UsersRound, Mail, Bell } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, CalendarDays, UserPlus, LogOut, Menu, X, TrendingUp, ClipboardCheck, ClipboardList, BarChart3, BookOpen, ListChecks, FormInput, Tag, Inbox, Tablet, ShieldAlert, UserSearch, Award, UserCheck, UsersRound, Mail, Bell, Trophy } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import Logo from "@/components/Logo";
 import NotificationBell from "@/components/NotificationBell";
@@ -34,6 +34,7 @@ export default function AdminLayout() {
     { label: "Event Check-In", path: "/admin/event-checkin", icon: UserCheck },
     { label: "Custom Fields", path: "/admin/custom-fields", icon: FormInput },
     { label: "Schedule", path: "/admin/schedule", icon: CalendarDays },
+    { label: "Family Challenges", path: "/admin/family-challenges", icon: Trophy },
     { label: "Badges", path: "/admin/badges", icon: Award },
     { label: "Referral Campaigns", path: "/admin/referral-campaigns", icon: Tag },
     { label: "Referral Tracking", path: "/admin/referral-tracking", icon: TrendingUp },
