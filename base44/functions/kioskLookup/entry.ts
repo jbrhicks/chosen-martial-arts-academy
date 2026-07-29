@@ -39,6 +39,15 @@ function publicUser(u: Record<string, unknown>) {
   };
 }
 
+// Minimal public profile for unauthenticated lookups — only the fields
+// needed for kiosk check-in (id + name). No email, phone, or family_id.
+function minimalUser(u: Record<string, unknown>) {
+  return {
+    id: u.id,
+    full_name: u.full_name,
+  };
+}
+
 function isCheckInEligible(u: Record<string, unknown>): boolean {
   if (u.role === 'admin') return false;
   if (u.is_active === false) return false;
@@ -101,7 +110,7 @@ Deno.serve(async (req) => {
       if (!user || !isCheckInEligible(user)) {
         return Response.json({ error: 'Not found' }, { status: 404 });
       }
-      return Response.json({ success: true, user: publicUser(user) });
+      return Response.json({ success: true, user: minimalUser(user) });
     }
 
     if (action === 'phone') {
@@ -115,7 +124,7 @@ Deno.serve(async (req) => {
         return ud === digits || ud.endsWith(digits) || digits.endsWith(ud);
       });
       if (!user) return Response.json({ error: 'Not found' }, { status: 404 });
-      return Response.json({ success: true, user: publicUser(user) });
+      return Response.json({ success: true, user: minimalUser(user) });
     }
 
     if (action === 'search') {
