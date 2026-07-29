@@ -75,53 +75,38 @@ export default function GuestRegistrationModal({ event, onClose, onRegistered })
 
     setLoading(true);
     try {
-      const existingRegs = await base44.entities.EventRegistration.filter({ event_id: event.id });
-      const activeCount = existingRegs.filter(r => r.status === "registered" || r.status === "checked-in").length;
-      const waitlistCount = existingRegs.filter(r => r.status === "waitlisted").length;
-      const isFull = event.max_capacity > 0 && activeCount >= event.max_capacity;
-      const ticketHash = `${event.id}-guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const customFieldAnswers = customFields
+        .filter(f => answers[f.id] !== undefined && answers[f.id] !== null && String(answers[f.id]).trim() !== "")
+        .map(f => ({
+          field_id: f.id,
+          question_text: f.question_text,
+          value: Array.isArray(answers[f.id]) ? answers[f.id].join(", ") : answers[f.id],
+        }));
 
-      const registration = await base44.entities.EventRegistration.create({
+      const res = await base44.functions.invoke("registerForEvent", {
         event_id: event.id,
-        event_title: event.title,
-        event_date: event.start_date,
-        user_id: null,
-        user_name: formData.parent_name,
-        user_email: formData.email,
-        family_id: null,
-        student_id: null,
-        student_name: formData.student_name,
-        student_belt_rank: formData.belt_rank || "N/A",
-        payment_status: event.price > 0 ? "pending" : "paid",
-        amount_paid: event.price,
-        registration_date: new Date().toISOString(),
-        status: isFull ? "waitlisted" : "registered",
-        waitlist_position: isFull ? waitlistCount + 1 : null,
         is_guest: true,
-        ticket_qr_hash: ticketHash,
+        guest_info: {
+          student_name: formData.student_name,
+          parent_name: formData.parent_name,
+          email: formData.email,
+          belt_rank: formData.belt_rank,
+        },
+        custom_field_answers: customFieldAnswers,
+        waiver_agreed: !!waiverAgreed,
       });
-
-      for (const field of customFields) {
-        if (answers[field.id]) {
-          const answerValue = Array.isArray(answers[field.id]) ? answers[field.id].join(", ") : answers[field.id];
-          await base44.entities.EventRegistrationAnswer.create({
-            registration_id: registration.id,
-            field_id: field.id,
-            question_text: field.question_text,
-            answer_value: answerValue,
-          });
-        }
+      const data = res.data || res;
+      if (!data.success) {
+        alert(data.error || "Failed to register.");
+        setLoading(false);
+        return;
       }
-
-      await base44.integrations.Core.SendEmail({
-        to: formData.email,
-        subject: `Event Registration: ${event.title}`,
-        body: `Hi ${formData.parent_name},\n\nThank you for registering for ${event.title}!\n\nStudent: ${formData.student_name}\nDate: ${new Date(event.start_date).toLocaleDateString()}\nLocation: ${event.location || "TBA"}\nAmount: $${event.price}${isFull ? "\n\nYou have been added to the waitlist. We'll notify you if a spot opens up." : ""}${event.what_to_bring ? `\n\nWhat to bring: ${event.what_to_bring}` : ""}\n\nWe look forward to seeing you there!\n\n- Chosen Martial Arts Academy`,
-      });
-
+      if (data.any_waitlisted) {
+        alert("The event is full. You have been added to the waitlist — we'll notify you if a spot opens up.");
+      }
       onRegistered();
     } catch (e) {
-      alert("Failed to register: " + e.message);
+      alert("Failed to register: " + (e?.message || e));
     }
     setLoading(false);
   };
