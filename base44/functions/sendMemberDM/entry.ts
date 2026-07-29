@@ -14,6 +14,15 @@ Deno.serve(async (req) => {
     if (!targetUser) return Response.json({ error: 'User not found' }, { status: 404 });
     if (targetUser.role === 'admin') return Response.json({ error: 'Use Contact Front Desk to reach administrators' }, { status: 403 });
 
+    // Enforce parental controls — minors with restricted DM access cannot send direct messages
+    if (user.role !== 'admin') {
+      const accessSettings = await base44.asServiceRole.entities.StudentAccessSettings.filter({ student_id: user.id }).catch(() => []);
+      const settings = accessSettings[0];
+      if (settings && (settings.allow_member_direct_messages === false || settings.admin_locked === true)) {
+        return Response.json({ error: 'Direct messaging is not available for your account. Ask a guardian to enable it in Family Access Controls.' }, { status: 403 });
+      }
+    }
+
     // Find existing DM thread between these two members (either direction)
     const myDms = await base44.entities.MessageThread.filter({ type: 'dm', dm_participant_id: targetUserId });
     let thread = myDms.find((t: Record<string, unknown>) => t.created_by_id === user.id);

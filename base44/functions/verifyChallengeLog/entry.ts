@@ -12,10 +12,17 @@ Deno.serve(async (req) => {
     const log = await base44.asServiceRole.entities.ChallengeLog.get(log_id).catch(() => null);
     if (!log) return Response.json({ error: 'Log not found' }, { status: 404 });
 
-    // Verify the user is the guardian for this log's family
+    // Verify the user is a guardian for this log's family (not the student who created it)
     if (user.role !== 'admin') {
+      const isGuardian = user.family_role === 'primary_guardian' || user.family_role === 'secondary_guardian';
+      if (!isGuardian) {
+        return Response.json({ error: 'Not authorized — must be a family guardian' }, { status: 403 });
+      }
       if (!user.family_id || log.family_id !== user.family_id) {
         return Response.json({ error: 'Not authorized — must be the family guardian' }, { status: 403 });
+      }
+      if (user.id === log.student_id) {
+        return Response.json({ error: 'Cannot verify your own challenge log' }, { status: 403 });
       }
     }
 
