@@ -7,6 +7,7 @@ import BeltBadge from "@/components/BeltBadge";
 import ProfileSwitcher from "@/components/family/ProfileSwitcher";
 import Logo from "@/components/Logo";
 import { CommunityAccessProvider, useCommunityAccess } from "@/lib/CommunityAccessContext";
+import { StudentAccessProvider } from "@/lib/StudentAccessContext";
 import NotificationBell from "@/components/NotificationBell";
 
 function MemberLayoutContent() {
@@ -150,7 +151,9 @@ export default function MemberLayout() {
   return (
     <FamilyProvider>
       <CommunityAccessProvider>
-        <MemberLayoutContent />
+        <StudentAccessProvider>
+          <MemberLayoutContent />
+        </StudentAccessProvider>
       </CommunityAccessProvider>
     </FamilyProvider>
   );

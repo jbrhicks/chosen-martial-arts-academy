@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Loader2, Search, ArrowLeft, User, Users, GraduationCap, CreditCard, Activity, ClipboardList, Ban, Trash2, AlertTriangle } from "lucide-react";
+import { Loader2, Search, ArrowLeft, User, Users, GraduationCap, CreditCard, Activity, ClipboardList, Ban, Trash2, AlertTriangle, Shield } from "lucide-react";
 import EmergencyBanner from "@/components/admin/profile/EmergencyBanner";
 import PersonalDetails from "@/components/admin/profile/PersonalDetails";
 import FamilyManager from "@/components/admin/profile/FamilyManager";
@@ -9,6 +9,7 @@ import ProgramManager from "@/components/admin/profile/ProgramManager";
 import BillingHub from "@/components/admin/profile/BillingHub";
 import ActivityLog from "@/components/admin/profile/ActivityLog";
 import AttendanceHistory from "@/components/admin/profile/AttendanceHistory";
+import StudentAccessControls from "@/components/admin/profile/StudentAccessControls";
 
 export default function AdminProfileManager() {
   const { user: adminUser } = useAuth();
@@ -130,6 +131,7 @@ export default function AdminProfileManager() {
     { id: 4, label: "Billing", icon: CreditCard },
     { id: 5, label: "Activity Log", icon: Activity },
     { id: 6, label: "Attendance & Events", icon: ClipboardList },
+    { id: 7, label: "Access Controls", icon: Shield },
   ];
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-[#C9A84C]" /></div>;
@@ -218,6 +220,7 @@ export default function AdminProfileManager() {
               {activeTab === 4 && <BillingHub user={profileData.user} family={profileData.family} billingRecords={profileData.billingRecords} paymentMethods={profileData.paymentMethods} onRefresh={refresh} logActivity={logActivity} />}
               {activeTab === 5 && <ActivityLog user={profileData.user} activityLogs={profileData.activityLogs} onRefresh={refresh} logActivity={logActivity} />}
               {activeTab === 6 && <AttendanceHistory user={profileData.user} attendance={profileData.attendance} eventRegs={profileData.eventRegs} events={profileData.events} enrollments={profileData.enrollments} belts={profileData.belts} onRefresh={refresh} logActivity={logActivity} />}
+              {activeTab === 7 && <StudentAccessControls user={profileData.user} logActivity={logActivity} />}
             </div>
 
             {/* Danger Zone */}

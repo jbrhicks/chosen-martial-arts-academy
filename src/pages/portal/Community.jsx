@@ -3,16 +3,19 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useFamily } from "@/lib/FamilyContext";
 import { useCommunityAccess } from "@/lib/CommunityAccessContext";
+import { useStudentAccess } from "@/lib/StudentAccessContext";
 import PostComposer from "@/components/PostComposer";
 import PostCard from "@/components/PostCard";
 import GroupSelector from "@/components/portal/community/GroupSelector";
 import LockedCommunity from "@/components/portal/community/LockedCommunity";
+import LockedByParent from "@/components/portal/community/LockedByParent";
 import { Loader2, Megaphone } from "lucide-react";
 
 export default function Community() {
   const { user } = useAuth();
   const { isGuardian, members } = useFamily();
   const { hasAccess, isChecking, childGroupIds } = useCommunityAccess();
+  const { isMinor, canAccessCommunity } = useStudentAccess();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState(null);
@@ -93,6 +96,11 @@ export default function Community() {
 
   if (!hasAccess) {
     return <LockedCommunity />;
+  }
+
+  // Parental controls: a minor whose guardian has not enabled Community is locked out.
+  if (isMinor && !canAccessCommunity) {
+    return <LockedByParent />;
   }
 
   return (

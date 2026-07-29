@@ -1,0 +1,72 @@
+{
+  "name": "StudentAccessSettings",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string"
+    },
+    "student_name": {
+      "type": "string"
+    },
+    "family_id": {
+      "type": "string"
+    },
+    "is_minor": {
+      "type": "boolean",
+      "default": false
+    },
+    "allow_community": {
+      "type": "boolean",
+      "default": false
+    },
+    "allow_member_direct_messages": {
+      "type": "boolean",
+      "default": false
+    },
+    "admin_locked": {
+      "type": "boolean",
+      "default": false
+    },
+    "set_by_guardian_id": {
+      "type": "string"
+    },
+    "set_by_guardian_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "student_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.student_id": "{{user.id}}"
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

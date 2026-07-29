@@ -14,8 +14,12 @@ import toast from "react-hot-toast";
 import MessageBubble from "@/components/messages/MessageBubble";
 import MessageMediaUploader from "@/components/messages/MessageMediaUploader";
 import MemberDirectoryPicker from "@/components/messages/MemberDirectoryPicker";
+import { useStudentAccess } from "@/lib/StudentAccessContext";
+import { Shield } from "lucide-react";
 
 export default function Messages() {
+  const { isMinor, canDirectMessageMembers } = useStudentAccess();
+  const dmRestricted = isMinor && !canDirectMessageMembers;
   const [threads, setThreads] = useState([]);
   const [messages, setMessages] = useState([]);
   const [selectedThread, setSelectedThread] = useState(null);
@@ -234,6 +238,8 @@ export default function Messages() {
             onClick={() => setShowNewMessage(true)}
             variant="outline"
             className="border-[#A8A9AD]/20"
+            disabled={dmRestricted}
+            title={dmRestricted ? "Your guardian has restricted direct messages to other members" : "Start a new message"}
           >
             <Plus size={18} />
             New Message
@@ -247,6 +253,16 @@ export default function Messages() {
           </Button>
         </div>
       </div>
+
+      {dmRestricted && (
+        <div className="flex items-center gap-3 border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-4">
+          <Shield size={18} className="text-[#C9A84C] shrink-0" />
+          <p className="text-xs text-[#A8A9AD]">
+            Direct messages to other members are managed by your guardian. You can still reach the
+            Front Desk anytime using <span className="text-white font-medium">Contact Front Desk</span>.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-250px)]">
         <Card className="bg-black border-[#A8A9AD]/20 lg:col-span-1">

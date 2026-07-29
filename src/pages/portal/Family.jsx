@@ -5,7 +5,8 @@ import CommunicationSettings from "@/components/family/CommunicationSettings";
 import FamilyBilling from "@/components/family/FamilyBilling";
 import DocumentHub from "@/components/family/DocumentHub";
 import FamilyInvite from "@/components/family/FamilyInvite";
-import { Users, Mail, CreditCard, FileText, UserPlus } from "lucide-react";
+import AccessControls from "@/components/family/AccessControls";
+import { Users, Mail, CreditCard, FileText, UserPlus, Shield } from "lucide-react";
 
 export default function Family() {
   const { isPrimaryGuardian, isGuardian } = useFamily();
@@ -22,6 +23,7 @@ export default function Family() {
   const tabs = isPrimaryGuardian
     ? [
         { id: "overview", label: "Overview", icon: Users },
+        { id: "access", label: "Access Controls", icon: Shield },
         { id: "communications", label: "Communications", icon: Mail },
         { id: "billing", label: "Billing", icon: CreditCard },
         { id: "documents", label: "Documents", icon: FileText },
@@ -29,6 +31,7 @@ export default function Family() {
       ]
     : [
         { id: "overview", label: "Overview", icon: Users },
+        { id: "access", label: "Access Controls", icon: Shield },
         { id: "billing", label: "Billing", icon: CreditCard },
         { id: "documents", label: "Documents", icon: FileText },
       ];
@@ -58,6 +61,7 @@ export default function Family() {
       </div>
 
       {tab === "overview" && <FamilyOverview onTabChange={setTab} />}
+      {tab === "access" && <AccessControls />}
       {tab === "communications" && <CommunicationSettings />}
       {tab === "billing" && <FamilyBilling />}
       {tab === "documents" && <DocumentHub />}
