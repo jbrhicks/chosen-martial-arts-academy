@@ -27,6 +27,7 @@ export default function Kiosk() {
   const [kioskSession, setKioskSession] = useState(null);
   const [showAdminUnlock, setShowAdminUnlock] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
+  const [checkInToken, setCheckInToken] = useState(null);
   const [unlockError, setUnlockError] = useState(false);
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
@@ -80,7 +81,7 @@ export default function Kiosk() {
     try {
       const res = await base44.functions.invoke("kioskLookup", { action: "id", id: data });
       const result = res.data || res;
-      if (result.user) setSelectedUser(result.user);
+      if (result.user) { setSelectedUser(result.user); setCheckInToken(result.check_in_token); }
     } catch (e) { console.error(e); }
   };
 
@@ -90,6 +91,7 @@ export default function Kiosk() {
       const data = res.data || res;
       if (data.user) {
         setSelectedUser(data.user);
+        setCheckInToken(data.check_in_token);
         setPinError(false);
       } else {
         setPinError(true);
@@ -99,6 +101,17 @@ export default function Kiosk() {
       setPinError(true);
       setTimeout(() => setPinError(false), 2000);
     }
+  };
+
+  const handleSelectUser = async (user) => {
+    try {
+      const res = await base44.functions.invoke("kioskLookup", { action: "select", id: user.id });
+      const data = res.data || res;
+      if (data.user) {
+        setSelectedUser(data.user);
+        setCheckInToken(data.check_in_token);
+      }
+    } catch (e) { console.error(e); }
   };
 
   const handleCheckIn = async (override = false, session = kioskSession) => {
@@ -123,6 +136,7 @@ export default function Kiosk() {
         check_in_method: override ? "Manual" : mode === "qr" ? "QR" : mode === "pin" ? "PIN" : "Manual",
         override,
         session_id: session?.session_id,
+        check_in_token: checkInToken,
       });
       const data = res.data || res;
       if (data.cap_reached) {
@@ -162,6 +176,7 @@ export default function Kiosk() {
         class_name: selectedClass,
         drop_in: true,
         session_id: session?.session_id,
+        check_in_token: checkInToken,
       });
       const data = res.data || res;
       if (!data.success) {
@@ -203,6 +218,7 @@ export default function Kiosk() {
     setSelectedClass("");
     setSearch("");
     setSuccess(null);
+    setCheckInToken(null);
   };
 
   const handleSuccessDismiss = () => {
@@ -210,6 +226,7 @@ export default function Kiosk() {
     setSelectedUser(null);
     setSelectedClass("");
     setSearch("");
+    setCheckInToken(null);
   };
 
   if (loading) {
@@ -353,7 +370,7 @@ export default function Kiosk() {
                       {filtered.map(u => (
                         <button
                           key={u.id}
-                          onClick={() => setSelectedUser(u)}
+                          onClick={() => handleSelectUser(u)}
                           className="w-full text-left px-6 py-5 border-b border-[#A8A9AD]/10 hover:bg-[#C9A84C]/10 transition-colors flex items-center gap-4"
                         >
                           <div className="w-12 h-12 bg-[#C9A84C]/10 border border-[#C9A84C]/30 flex items-center justify-center text-lg font-bold text-[#C9A84C] shrink-0">
@@ -374,7 +391,7 @@ export default function Kiosk() {
             </>
           ) : (
             <div className="space-y-6">
-              <button onClick={() => setSelectedUser(null)} className="flex items-center gap-2 text-[#A8A9AD] hover:text-white">
+              <button onClick={() => { setSelectedUser(null); setCheckInToken(null); }} className="flex items-center gap-2 text-[#A8A9AD] hover:text-white">
                 <ChevronLeft size={18} /> Back
               </button>
               <div className="text-center">

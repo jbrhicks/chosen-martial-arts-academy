@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { verifyCheckInToken } from '../../shared/kioskToken.ts';
 
 const attempts = new Map<string, { count: number; resetAt: number }>();
 const WINDOW_MS = 15 * 60 * 1000;
@@ -35,10 +36,24 @@ Deno.serve(async (req) => {
 
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { user_id, class_name, check_in_method = 'PIN', override = false, drop_in = false, session_id } = body;
+    const { user_id, class_name, check_in_method = 'PIN', override = false, drop_in = false, session_id, check_in_token } = body;
 
     if (!user_id || !class_name) {
       return Response.json({ error: 'user_id and class_name are required' }, { status: 400 });
+    }
+
+    // Regular (non-admin) check-ins require a signed identity token from kioskLookup,
+    // proving the member was verified via PIN/QR/phone within the last 60 seconds.
+    // Admin-authorized operations (override / drop-in) rely on the active admin
+    // kiosk session instead — those are guarded by session_id below.
+    if (!override && !drop_in) {
+      if (!check_in_token) {
+        return Response.json({ error: 'Identity verification required' }, { status: 403 });
+      }
+      const tokenValid = await verifyCheckInToken(check_in_token, user_id);
+      if (!tokenValid) {
+        return Response.json({ error: 'Invalid or expired identity token' }, { status: 403 });
+      }
     }
 
     // Require active admin kiosk session for privileged operations (override / drop-in)

@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { hashPin, verifyPin } from '../../shared/pinHash.ts';
+import { issueCheckInToken } from '../../shared/kioskToken.ts';
 
 // In-memory rate limit (per isolate). Enough to blunt PIN spraying on public kiosk.
 const attempts = new Map<string, { count: number; resetAt: number }>();
@@ -96,7 +97,8 @@ Deno.serve(async (req) => {
       if (!user) {
         return Response.json({ error: 'Invalid PIN' }, { status: 401 });
       }
-      return Response.json({ success: true, user: publicUser(user) });
+      const checkInToken = await issueCheckInToken(user.id);
+      return Response.json({ success: true, user: publicUser(user), check_in_token: checkInToken });
     }
 
     if (!rateLimit(`lookup:${ip}`, MAX_LOOKUP_ATTEMPTS)) {
@@ -110,7 +112,8 @@ Deno.serve(async (req) => {
       if (!user || !isCheckInEligible(user)) {
         return Response.json({ error: 'Not found' }, { status: 404 });
       }
-      return Response.json({ success: true, user: minimalUser(user) });
+      const checkInToken = await issueCheckInToken(user.id);
+      return Response.json({ success: true, user: minimalUser(user), check_in_token: checkInToken });
     }
 
     if (action === 'phone') {
@@ -124,7 +127,8 @@ Deno.serve(async (req) => {
         return ud === digits || ud.endsWith(digits) || digits.endsWith(ud);
       });
       if (!user) return Response.json({ error: 'Not found' }, { status: 404 });
-      return Response.json({ success: true, user: minimalUser(user) });
+      const checkInToken = await issueCheckInToken(user.id);
+      return Response.json({ success: true, user: minimalUser(user), check_in_token: checkInToken });
     }
 
     if (action === 'search') {
@@ -148,6 +152,17 @@ Deno.serve(async (req) => {
           full_name: u.full_name,
         }));
       return Response.json({ success: true, users });
+    }
+
+    if (action === 'select') {
+      const id = String(body.id || '').trim();
+      if (!id) return Response.json({ error: 'id is required' }, { status: 400 });
+      const user = await base44.asServiceRole.entities.User.get(id).catch(() => null);
+      if (!user || !isCheckInEligible(user)) {
+        return Response.json({ error: 'Not found' }, { status: 404 });
+      }
+      const checkInToken = await issueCheckInToken(user.id);
+      return Response.json({ success: true, user: minimalUser(user), check_in_token: checkInToken });
     }
 
     return Response.json({ error: 'Unknown action' }, { status: 400 });
