@@ -59,10 +59,13 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, message: 'Already completed', alreadyDone: true });
     }
 
-    // Determine if guardian verification is needed (age 12 and under)
+    // Determine if guardian verification is needed (age 12 and under).
+    // COPPA-safe: if DOB is unknown, conservatively require guardian verification
+    // rather than defaulting to adult — prevents minors from bypassing the gate
+    // by simply not setting their date of birth.
     const studentAge = student.dob
       ? Math.floor((Date.now() - new Date(student.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
-      : 99;
+      : 0;
     const requiresGuardian = studentAge <= 12 && (log_type === 'manual' || log_type === 'media_upload');
 
     // Find guardian if needed

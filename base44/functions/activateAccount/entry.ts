@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { hashPin } from '../../shared/pinHash.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -36,9 +37,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: "PIN must be exactly 4 digits" }, { status: 400 });
     }
 
-    // Activate the account: save PIN, mark active, destroy token
+    // Activate the account: save HASHED PIN (never store plaintext), mark active, destroy token
+    const hashedPin = await hashPin(pin, user.id);
     await base44.asServiceRole.entities.User.update(user.id, {
-      pin_code: pin,
+      pin_code: hashedPin,
       account_status: "active",
       activation_token: "",
       token_expiration: "",
