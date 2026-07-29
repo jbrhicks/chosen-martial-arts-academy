@@ -69,7 +69,7 @@ function MemberLayoutContent() {
               <p className="text-sm font-medium truncate">{user?.full_name || "Student"}</p>
               {user?.belt_rank && <BeltBadge rank={user.belt_rank} size="sm" />}
             </div>
-            <NotificationBell />
+            <NotificationBell align="left" />
           </div>
         </div>
 

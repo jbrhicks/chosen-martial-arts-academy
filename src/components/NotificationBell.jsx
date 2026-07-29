@@ -14,7 +14,7 @@ const ADMIN_FILTERS = [
   { val: "dm", label: "Messages" },
 ];
 
-export default function NotificationBell({ isAdmin = false }) {
+export default function NotificationBell({ isAdmin = false, align = "right" }) {
   const { notifications, unreadCount, loading, markAsRead, markAllRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("all");
@@ -55,7 +55,7 @@ export default function NotificationBell({ isAdmin = false }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 max-h-[70vh] bg-[#0A0A0A] border border-[#A8A9AD]/30 z-50 flex flex-col shadow-2xl">
+        <div className={`absolute mt-2 w-[min(20rem,calc(100vw-1.5rem))] max-h-[70vh] bg-[#0A0A0A] border border-[#A8A9AD]/30 z-[60] flex flex-col shadow-2xl ${align === "left" ? "left-full ml-2" : "right-0"}`}>
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#A8A9AD]/20">
             <div className="flex items-center gap-2">
               <Bell size={16} className="text-[#C9A84C]" />

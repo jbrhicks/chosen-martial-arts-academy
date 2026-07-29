@@ -76,7 +76,7 @@ export default function AdminLayout() {
               <p className="text-sm font-medium truncate">{user?.full_name || "Admin"}</p>
               <p className="text-[10px] text-[#C9A84C] tracking-widest uppercase">Administrator</p>
             </div>
-            <NotificationBell isAdmin />
+            <NotificationBell isAdmin align="left" />
           </div>
         </div>
 
