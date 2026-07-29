@@ -92,39 +92,52 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Send alert to admins
+    // 4. Send in-app notification to admins (no integration credits used)
     try {
       const admins = await base44.asServiceRole.entities.User.filter({ role: "admin" });
+      const leadDisplayName = lead.full_name || lead.email || "New Prospect";
+      const alertBody = [
+        `A new lead has just submitted a trial request!`,
+        `Name: ${lead.full_name || "N/A"}`,
+        `Email: ${lead.email || "N/A"}`,
+        `Phone: ${lead.phone || "N/A"}`,
+        `Program: ${lead.program_of_interest || lead.interest || "Not specified"}`,
+        `Inquiring for: ${lead.inquiry_type === "child" ? "My Child" : "Myself"}`,
+        `Source: ${lead.lead_source || "Website"}`,
+        `View this lead in the CRM to follow up immediately.`,
+      ].join("\n");
+
+      const thread = await base44.asServiceRole.entities.MessageThread.create({
+        thread_name: `⚡ New Lead — ${leadDisplayName}`,
+        type: "support",
+        created_by_id: lead.linked_user_id || null,
+        support_category: "general",
+        is_admin_managed: true,
+        last_message_preview: alertBody.slice(0, 140),
+        last_message_date: new Date().toISOString(),
+      });
+
       for (const admin of admins) {
-        if (admin.email) {
-          if (channel === "email") {
-            await base44.asServiceRole.functions.invoke("sendBrandedEmail", {
-              to: admin.email,
-              subject: "New Lead Alert",
-              body_lines: [
-                `A new lead has just submitted a trial request!`,
-                `<strong>Name:</strong> ${lead.full_name || "N/A"}`,
-                `<strong>Email:</strong> ${lead.email || "N/A"}`,
-                `<strong>Phone:</strong> ${lead.phone || "N/A"}`,
-                `<strong>Program:</strong> ${lead.program_of_interest || lead.interest || "Not specified"}`,
-                `<strong>Inquiring for:</strong> ${lead.inquiry_type === "child" ? "My Child" : "Myself"}`,
-                `<strong>Source:</strong> ${lead.lead_source || "Website"}`,
-                "Follow up immediately to maximize conversion."
-              ],
-              action_url: `${appUrl}/admin/leads`,
-              action_label: "View Lead Details",
-            });
-          } else {
-            await base44.asServiceRole.integrations.Core.SendEmail({
-              to: admin.email,
-              subject: "⚡ New Lead Alert — " + (lead.full_name || "New Prospect"),
-              body: `A new lead has just submitted a trial request!\n\nName: ${lead.full_name || "N/A"}\nEmail: ${lead.email || "N/A"}\nPhone: ${lead.phone || "N/A"}\nProgram: ${lead.program_of_interest || lead.interest || "Not specified"}\nInquiring for: ${lead.inquiry_type === "child" ? "My Child" : "Myself"}\nSource: ${lead.lead_source || "Website"}\n\nFollow up immediately to maximize conversion.`,
-            });
-          }
-        }
+        await base44.asServiceRole.entities.ThreadParticipant.create({
+          thread_id: thread.id,
+          user_id: admin.id,
+          user_name: admin.full_name,
+          joined_date: new Date().toISOString(),
+          is_admin: true,
+          unread_count: 1,
+        });
       }
+
+      await base44.asServiceRole.entities.Message.create({
+        thread_id: thread.id,
+        sender_id: admins[0]?.id || null,
+        sender_name: "Lead System",
+        content: alertBody,
+        message_type: "private",
+        channel_used: "in_app",
+      });
     } catch (adminErr) {
-      console.error("Admin alert failed:", adminErr);
+      console.error("Admin in-app alert failed:", adminErr);
     }
 
     // 5. Mark welcome email as sent
