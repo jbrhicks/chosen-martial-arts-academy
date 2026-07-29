@@ -3,6 +3,15 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
+
+    // This function fans out system notifications (including admin broadcasts)
+    // via asServiceRole, so it must only accept calls from authenticated admins.
+    // Unauthenticated callers could otherwise broadcast arbitrary messages.
+    const caller = await base44.auth.me().catch(() => null);
+    if (!caller || caller.role !== 'admin') {
+      return Response.json({ error: 'Admin only' }, { status: 403 });
+    }
+
     const body = await req.json();
     const event = body.event || {};
     const data = body.data || {};
