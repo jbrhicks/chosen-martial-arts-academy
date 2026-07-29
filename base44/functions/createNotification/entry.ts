@@ -24,12 +24,12 @@ export default async function(req) {
       return Response.json({ error: 'notification_type and preview_text required' }, { status: 400 });
     }
 
-    // Broadcast/admin notifications require admin or service-role privileges.
-    // Service-role is detected by the no-reply email pattern used for internal
-    // function-to-function calls (e.g. deliverAlert, triggerNotification).
-    const isServiceRole = (caller.email || '').startsWith('service+') || (caller.email || '').includes('@no-reply.base44.com');
+    // Broadcast/admin notifications require admin privileges. Internal
+    // function-to-function calls via asServiceRole carry an admin-level token,
+    // so caller.role === 'admin' covers both direct admin calls and service-role
+    // calls — without relying on spoofable email-pattern matching.
     if (recipient_type === 'all' || recipient_type === 'admin') {
-      if (caller.role !== 'admin' && !isServiceRole) {
+      if (caller.role !== 'admin') {
         return Response.json({ error: 'Forbidden — admin privileges required for broadcasts' }, { status: 403 });
       }
     }
