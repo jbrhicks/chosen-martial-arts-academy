@@ -6,7 +6,8 @@
       "type": "string",
       "enum": [
         "email",
-        "sms"
+        "sms",
+        "in_app"
       ],
       "default": "email"
     },
@@ -14,7 +15,8 @@
       "type": "string",
       "enum": [
         "email",
-        "sms"
+        "sms",
+        "in_app"
       ],
       "default": "email"
     },
@@ -22,7 +24,8 @@
       "type": "string",
       "enum": [
         "email",
-        "sms"
+        "sms",
+        "in_app"
       ],
       "default": "email"
     }

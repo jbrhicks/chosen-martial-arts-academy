@@ -76,7 +76,7 @@ export default function AdminNotificationSettings() {
         <p className="text-xs tracking-widest uppercase text-[#C9A84C] mb-2">Master Switchboard</p>
         <h1 className="text-3xl font-bold">Notification Settings</h1>
         <p className="text-sm text-[#A8A9AD] mt-2">
-          Control how automated notifications are delivered. Switch between branded formatted emails (with logo and direct links) or plain-text SMS-style messages at any time.
+          Control how automated notifications are delivered. Choose branded formatted emails (with logo and direct links), plain-text SMS-style messages, or in-app bell notifications. If an external channel fails, the system automatically falls back to an in-app alert.
         </p>
       </div>
 
@@ -96,7 +96,7 @@ export default function AdminNotificationSettings() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
                   onClick={() => toggleChannel(cat.key, "email")}
                   disabled={saving}
@@ -129,6 +129,23 @@ export default function AdminNotificationSettings() {
                     <p className="text-[10px] text-[#A8A9AD]">Short text-only messages</p>
                   </div>
                   {currentChannel === "sms" && <Check size={16} className="text-[#C9A84C] ml-auto" />}
+                </button>
+
+                <button
+                  onClick={() => toggleChannel(cat.key, "in_app")}
+                  disabled={saving}
+                  className={`flex items-center gap-3 px-4 py-3 border transition-all ${
+                    currentChannel === "in_app"
+                      ? "border-[#C9A84C] bg-[#C9A84C]/10"
+                      : "border-[#A8A9AD]/20 hover:border-[#A8A9AD]/40"
+                  }`}
+                >
+                  <Bell size={18} className={currentChannel === "in_app" ? "text-[#C9A84C]" : "text-[#A8A9AD]"} />
+                  <div className="text-left">
+                    <p className={`text-sm font-medium ${currentChannel === "in_app" ? "text-white" : "text-[#A8A9AD]"}`}>In-App</p>
+                    <p className="text-[10px] text-[#A8A9AD]">Bell notification feed</p>
+                  </div>
+                  {currentChannel === "in_app" && <Check size={16} className="text-[#C9A84C] ml-auto" />}
                 </button>
               </div>
             </div>

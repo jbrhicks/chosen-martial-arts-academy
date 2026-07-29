@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { deliverAlert } from '../../shared/notify.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -29,33 +30,47 @@ Deno.serve(async (req) => {
       if (!family) continue;
 
       const contactEmails = (family.cc_emails || "").split(",").map(e => e.trim()).filter(Boolean);
-      if (contactEmails.length === 0) continue;
+      const primaryUserId = family.primary_contact_id;
+      const billingBodyLines = [
+        "Hello,",
+        "A recent payment for your Chosen Martial Arts Academy membership could not be processed. This may be due to an expired card or insufficient funds.",
+        `<strong>Amount Due:</strong> $${(record.recurring_amount || 0).toFixed(2)}`,
+        `<strong>Next Billing Date:</strong> ${record.next_billing_date || "N/A"}`,
+        "We will automatically retry this charge in 3 days. To avoid any interruption in service, please update your payment method by logging into your member portal.",
+      ];
+      const billingPlainBody = `Hello,\n\nA recent payment for your Chosen Martial Arts Academy membership could not be processed. This may be due to an expired card or insufficient funds.\n\nAmount Due: $${(record.recurring_amount || 0).toFixed(2)}\nNext Billing Date: ${record.next_billing_date || "N/A"}\n\nWe will automatically retry this charge in 3 days. To avoid any interruption in service, please update your payment method by logging into your member portal.\n\nThank you,\nChosen Martial Arts Academy`;
+      const billingInApp = {
+        notification_type: "billing",
+        preview_text: `Action needed: a payment of $${(record.recurring_amount || 0).toFixed(2)} could not be processed. Tap to update your payment method.`,
+        target_type: "billing",
+        target_id: record.id,
+        sender_name: "Billing System",
+      };
 
-      for (const email of contactEmails) {
-        try {
-          if (channel === "email") {
-            await base44.asServiceRole.functions.invoke("sendBrandedEmail", {
-              to: email,
-              subject: "Action Needed: Payment Update Required",
-              body_lines: [
-                "Hello,",
-                "A recent payment for your Chosen Martial Arts Academy membership could not be processed. This may be due to an expired card or insufficient funds.",
-                `<strong>Amount Due:</strong> $${(record.recurring_amount || 0).toFixed(2)}`,
-                `<strong>Next Billing Date:</strong> ${record.next_billing_date || "N/A"}`,
-                "We will automatically retry this charge in 3 days. To avoid any interruption in service, please update your payment method by logging into your member portal.",
-              ],
-              action_url: `${appUrl}/portal/billing`,
-              action_label: "Update Payment Method",
-            });
-          } else {
-            await base44.asServiceRole.integrations.Core.SendEmail({
-              to: email,
-              subject: "Action Needed: Payment Method Update Required",
-              body: `Hello,\n\nA recent payment for your Chosen Martial Arts Academy membership could not be processed. This may be due to an expired card or insufficient funds.\n\nAmount Due: $${(record.recurring_amount || 0).toFixed(2)}\nNext Billing Date: ${record.next_billing_date || "N/A"}\n\nWe will automatically retry this charge in 3 days. To avoid any interruption in service, please update your payment method by logging into your member portal.\n\nThank you,\nChosen Martial Arts Academy`,
-            });
-          }
-          emailsSent++;
-        } catch (e) { console.error("Dunning email failed", e); }
+      if (channel === "in_app") {
+        if (!primaryUserId) continue;
+        const res = await deliverAlert(base44, {
+          channel: "in_app",
+          user_id: primaryUserId,
+          inAppPayload: billingInApp,
+        });
+        if (res.delivered) emailsSent++;
+      } else {
+        if (contactEmails.length === 0) continue;
+        for (const email of contactEmails) {
+          const res = await deliverAlert(base44, {
+            channel,
+            email,
+            user_id: primaryUserId,
+            subject: channel === "email" ? "Action Needed: Payment Update Required" : "Action Needed: Payment Method Update Required",
+            body_lines: billingBodyLines,
+            plain_body: billingPlainBody,
+            action_url: `${appUrl}/portal/billing`,
+            action_label: "Update Payment Method",
+            inAppPayload: billingInApp,
+          });
+          if (res.delivered) emailsSent++;
+        }
       }
 
       const attempts = (record.dunning_attempts || 0) + 1;

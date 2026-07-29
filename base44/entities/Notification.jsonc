@@ -32,7 +32,8 @@
         "enrollment",
         "account_request",
         "support",
-        "new_post"
+        "new_post",
+        "billing"
       ]
     },
     "preview_text": {

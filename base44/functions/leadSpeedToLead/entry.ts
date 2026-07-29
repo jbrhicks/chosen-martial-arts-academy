@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { deliverAlert } from '../../shared/notify.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -19,32 +20,22 @@ Deno.serve(async (req) => {
     const appUrl = Deno.env.get("BASE44_APP_URL") || "";
     const trialLink = `${appUrl}/trial-booking?lead=${lead.id}`;
 
-    // 1. Send welcome email to prospect
+    // 1. Send welcome email to prospect (in-app channel skips the external send)
     if (lead.email) {
-      try {
-        if (channel === "email") {
-          await base44.asServiceRole.functions.invoke("sendBrandedEmail", {
-            to: lead.email,
-            subject: "Welcome to Chosen Martial Arts Academy",
-            body_lines: [
-              `Hi ${leadName},`,
-              "Thank you for your interest in Chosen Martial Arts Academy! We're excited to welcome you to our dojo.",
-              "Your free trial pass is ready. Click the button below to book your first class.",
-              "<strong>What to bring:</strong> Comfortable workout clothes, a water bottle, and a positive attitude!"
-            ],
-            action_url: trialLink,
-            action_label: "Book Your First Class",
-          });
-        } else {
-          await base44.asServiceRole.integrations.Core.SendEmail({
-            to: lead.email,
-            subject: "Welcome to Chosen Martial Arts Academy — Let's Get Your First Class Scheduled!",
-            body: `Hi ${leadName},\n\nThank you for your interest in Chosen Martial Arts Academy! We're excited to welcome you to our dojo.\n\nYour free trial pass is ready. Click the link below to book your first class:\n${trialLink}\n\nWhat to bring:\n- Comfortable workout clothes\n- A water bottle\n- A positive attitude!\n\nIf you have any questions, call us at (555) 123-4567 or reply to this email.\n\nWe look forward to training with you.\n\n— The Chosen Martial Arts Academy Team\nDiscipline • Respect • Perseverance`,
-          });
-        }
-      } catch (emailErr) {
-        console.error("Welcome email failed:", emailErr);
-      }
+      await deliverAlert(base44, {
+        channel,
+        email: lead.email,
+        subject: "Welcome to Chosen Martial Arts Academy",
+        body_lines: [
+          `Hi ${leadName},`,
+          "Thank you for your interest in Chosen Martial Arts Academy! We're excited to welcome you to our dojo.",
+          "Your free trial pass is ready. Click the button below to book your first class.",
+          "<strong>What to bring:</strong> Comfortable workout clothes, a water bottle, and a positive attitude!"
+        ],
+        action_url: trialLink,
+        action_label: "Book Your First Class",
+        plain_body: `Hi ${leadName},\n\nThank you for your interest in Chosen Martial Arts Academy! We're excited to welcome you to our dojo.\n\nYour free trial pass is ready. Click the link below to book your first class:\n${trialLink}\n\nWhat to bring:\n- Comfortable workout clothes\n- A water bottle\n- A positive attitude!\n\nIf you have any questions, call us at (555) 123-4567 or reply to this email.\n\nWe look forward to training with you.\n\n— The Chosen Martial Arts Academy Team\nDiscipline • Respect • Perseverance`,
+      });
     }
 
     // 2. Create LeadPipeline record
