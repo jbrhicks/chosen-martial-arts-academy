@@ -16,6 +16,7 @@ import ResetPassword from '@/pages/ResetPassword';
 
 // Public pages
 import Home from '@/pages/Home';
+import AuthStateRouter from '@/components/dashboard/AuthStateRouter';
 import Schedule from '@/pages/Schedule';
 import About from '@/pages/About';
 import Testimonials from '@/pages/Testimonials';
@@ -28,6 +29,7 @@ import GuestPassLanding from '@/pages/GuestPassLanding';
 // Member portal
 import MemberLayout from '@/components/MemberLayout';
 import PortalHome from '@/pages/portal/PortalHome';
+import Dashboard from '@/pages/portal/Dashboard';
 import Curriculum from '@/pages/portal/Curriculum';
 import Community from '@/pages/portal/Community';
 import Events from '@/pages/portal/Events';
@@ -91,7 +93,7 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       {/* Public pages */}
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={<AuthStateRouter />} />
       <Route path="/schedule" element={<Schedule />} />
       <Route path="/about" element={<About />} />
       <Route path="/testimonials" element={<Testimonials />} />
@@ -115,6 +117,7 @@ const AuthenticatedApp = () => {
       {/* Member portal (authenticated) */}
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<MemberLayout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/portal" element={<PortalHome />} />
           <Route path="/portal/curriculum" element={<Curriculum />} />
           <Route path="/portal/community" element={<Community />} />

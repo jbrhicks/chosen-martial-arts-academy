@@ -297,6 +297,35 @@
           }
         }
       }
+    },
+    "fab_actions": {
+      "type": "string",
+      "rls": {
+        "read": {
+          "$or": [
+            {
+              "id": "{{user.id}}"
+            },
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            }
+          ]
+        },
+        "write": {
+          "$or": [
+            {
+              "id": "{{user.id}}"
+            },
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            }
+          ]
+        }
+      }
     }
   },
   "required": [

@@ -19,7 +19,7 @@ function MemberLayoutContent() {
   const { hasAccess: hasCommunityAccess } = useCommunityAccess();
 
   const navItems = [
-    { label: "Dashboard", path: "/portal", icon: Home },
+    { label: "Dashboard", path: "/dashboard", icon: Home },
     ...(user?.is_instructor ? [{ label: "Teaching", path: "/portal/teaching", icon: BookOpen }] : []),
     { label: "Curriculum", path: "/portal/curriculum", icon: Video, communityAccess: true },
     { label: "Progression", path: "/portal/progress", icon: TrendingUp, communityAccess: true },
