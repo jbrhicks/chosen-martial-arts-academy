@@ -107,10 +107,8 @@ export default function BroadcastComposer({ onClose, onSent, programs, events, a
       toast.error("Subject and message body are required");
       return;
     }
-    if (!formData.channel_email && !formData.channel_sms && !formData.channel_in_app) {
-      toast.error("Select at least one delivery channel");
-      return;
-    }
+    // In-App is always mandatory — force it on regardless of admin selection.
+    const finalData = { ...formData, channel_in_app: true };
     if (scheduleEnabled && !scheduledDate) {
       toast.error("Select a scheduled date and time");
       return;
@@ -121,7 +119,7 @@ export default function BroadcastComposer({ onClose, onSent, programs, events, a
       const user = await base44.auth.me();
       const status = scheduleEnabled ? "scheduled" : "sent";
       const broadcast = await base44.entities.BroadcastMessage.create({
-        ...formData,
+        ...finalData,
         created_by_id: user.id,
         created_by_name: user.full_name,
         created_date: new Date().toISOString(),
@@ -209,8 +207,8 @@ export default function BroadcastComposer({ onClose, onSent, programs, events, a
             <Label className="text-[#A8A9AD] mb-2 block">Delivery Channels *</Label>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Checkbox id="ch_inapp" checked={formData.channel_in_app} onCheckedChange={c => setFormData({ ...formData, channel_in_app: c })} />
-                <label htmlFor="ch_inapp" className="text-sm text-white flex items-center gap-2"><Bell size={16} /> In-App Push (Always delivered — mandatory fallback)</label>
+                <Checkbox id="ch_inapp" checked disabled />
+                <label htmlFor="ch_inapp" className="text-sm text-white flex items-center gap-2"><Bell size={16} /> In-App Push <span className="text-[10px] tracking-widest uppercase text-[#C9A84C] border border-[#C9A84C]/30 px-1.5 py-0.5 rounded">Always On</span><span className="text-xs text-[#A8A9AD]">— mandatory, cannot be opted out</span></label>
               </div>
               <div className="flex items-center gap-2">
                 <Checkbox id="ch_email" checked={formData.channel_email} onCheckedChange={c => setFormData({ ...formData, channel_email: c })} />

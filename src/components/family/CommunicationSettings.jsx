@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useFamily } from "@/lib/FamilyContext";
-import { Loader2, Mail, Phone, Plus, X, Send, Trash2 } from "lucide-react";
+import { Loader2, Mail, Phone, Plus, X, Send, Trash2, Bell, BellOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 const parseList = (str) => str ? str.split(",").map(s => s.trim()).filter(Boolean) : [];
 const joinList = (arr) => arr.join(", ");
@@ -17,6 +18,30 @@ export default function CommunicationSettings() {
   const [saving, setSaving] = useState(false);
   const [announcement, setAnnouncement] = useState({ subject: "", message: "" });
   const [sending, setSending] = useState(false);
+  const [optInEmail, setOptInEmail] = useState(familyGroup?.opt_in_email !== false);
+  const [optInSms, setOptInSms] = useState(familyGroup?.opt_in_sms !== false);
+  const [savingPrefs, setSavingPrefs] = useState(false);
+
+  useEffect(() => {
+    setOptInEmail(familyGroup?.opt_in_email !== false);
+    setOptInSms(familyGroup?.opt_in_sms !== false);
+  }, [familyGroup]);
+
+  const saveOptPrefs = async (emailVal, smsVal) => {
+    setSavingPrefs(true);
+    try {
+      await base44.entities.FamilyGroup.update(familyGroup.id, {
+        opt_in_email: emailVal,
+        opt_in_sms: smsVal,
+      });
+      setOptInEmail(emailVal);
+      setOptInSms(smsVal);
+      refreshFamily();
+    } catch (e) {
+      alert("Failed to update preferences.");
+    }
+    setSavingPrefs(false);
+  };
 
   const saveEmails = async (updated) => {
     setSaving(true);
@@ -152,6 +177,76 @@ export default function CommunicationSettings() {
           <button onClick={addPhone} disabled={saving} className="flex items-center gap-2 px-4 py-2.5 bg-[#C9A84C] text-black font-bold text-sm hover:bg-[#E0C97A] transition-colors disabled:opacity-50">
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={16} />}
           </button>
+        </div>
+      </div>
+
+      {/* Notification Opt-Out Preferences */}
+      <div className="border border-[#A8A9AD]/20 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Bell size={18} className="text-[#C9A84C]" />
+          <h3 className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">Notification Preferences</h3>
+        </div>
+        <p className="text-xs text-[#A8A9AD] mb-4">
+          Control which channels the academy uses to send you announcements. You can mute notification alerts on your device,
+          but in-app messages are always delivered so you never miss an important update.
+        </p>
+
+        <div className="space-y-3">
+          {/* In-App (locked) */}
+          <div className="flex items-center justify-between border border-[#A8A9AD]/20 bg-black px-4 py-3">
+            <div className="flex items-center gap-3">
+              <Bell size={16} className="text-[#C9A84C]" />
+              <div>
+                <p className="text-sm text-white">In-App Messages</p>
+                <p className="text-xs text-[#A8A9AD]">Always delivered — cannot be turned off</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] tracking-widest uppercase text-[#C9A84C] border border-[#C9A84C]/30 px-1.5 py-0.5 rounded">Always On</span>
+              <Switch checked disabled />
+            </div>
+          </div>
+
+          {/* Email opt-out */}
+          <div className="flex items-center justify-between border border-[#A8A9AD]/20 bg-black px-4 py-3">
+            <div className="flex items-center gap-3">
+              <Mail size={16} className={optInEmail ? "text-white" : "text-[#A8A9AD]/40"} />
+              <div>
+                <p className="text-sm text-white">Email Announcements</p>
+                <p className="text-xs text-[#A8A9AD]">{optInEmail ? "Receiving emails" : "Opted out — emails skipped"}</p>
+              </div>
+            </div>
+            <Switch
+              checked={optInEmail}
+              disabled={savingPrefs}
+              onCheckedChange={(v) => saveOptPrefs(v, optInSms)}
+            />
+          </div>
+
+          {/* SMS opt-out */}
+          <div className="flex items-center justify-between border border-[#A8A9AD]/20 bg-black px-4 py-3">
+            <div className="flex items-center gap-3">
+              <Phone size={16} className={optInSms ? "text-white" : "text-[#A8A9AD]/40"} />
+              <div>
+                <p className="text-sm text-white">SMS Text Alerts</p>
+                <p className="text-xs text-[#A8A9AD]">{optInSms ? "Receiving SMS" : "Opted out — texts skipped"}</p>
+              </div>
+            </div>
+            <Switch
+              checked={optInSms}
+              disabled={savingPrefs}
+              onCheckedChange={(v) => saveOptPrefs(optInEmail, v)}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-start gap-2 mt-4 text-xs text-[#A8A9AD]">
+          <BellOff size={14} className="mt-0.5 shrink-0" />
+          <p>
+            <strong className="text-white">Heads up:</strong> Turning off Email or SMS only stops those channels.
+            In-App messages stay active so you still receive every announcement inside the app.
+            To silence notification sounds/pings on your phone, use your device's notification settings.
+          </p>
         </div>
       </div>
 
