@@ -107,7 +107,7 @@ export default function AdminLayout() {
           })}
         </nav>
 
-        <div className="p-4 border-t border-[#A8A9AD]/20 shrink-0">
+        <div className="p-4 border-t border-[#A8A9AD]/20 shrink-0 mb-16 lg:mb-0">
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#A8A9AD] hover:text-white transition-colors w-full"
