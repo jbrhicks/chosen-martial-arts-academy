@@ -19,8 +19,13 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      await base44.auth.loginViaEmailPassword(email, password);
-      window.location.href = "/";
+      const { user } = await base44.auth.loginViaEmailPassword(email, password);
+      // Redirect directly to the role-appropriate dashboard. Routing through "/"
+      // (AuthStateRouter) can fall back to the public Home page if the session
+      // check hasn't resolved yet, which strands authenticated users on the
+      // marketing site.
+      const dest = user?.role === "admin" ? "/admin" : "/dashboard";
+      window.location.href = dest;
     } catch (err) {
       setError(err.message || "Invalid email or password");
     } finally {
