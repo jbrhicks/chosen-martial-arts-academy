@@ -4,6 +4,7 @@ import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, Cal
 import { useAuth } from "@/lib/AuthContext";
 import Logo from "@/components/Logo";
 import NotificationBell from "@/components/NotificationBell";
+import AdminBottomNav from "@/components/admin/AdminBottomNav";
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -131,10 +132,13 @@ export default function AdminLayout() {
           <NotificationBell isAdmin />
         </header>
 
-        <div className="p-6 lg:p-8">
+        <div className="p-6 lg:p-8 pb-24 lg:pb-8">
           <Outlet />
         </div>
       </div>
+
+      {/* Sticky bottom nav for mobile/tablet floor ops */}
+      <AdminBottomNav />
     </div>
   );
 }
