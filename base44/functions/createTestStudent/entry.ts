@@ -14,6 +14,7 @@ Deno.serve(async (req) => {
     }
 
     const email = "teststudent@chosenmaa.com";
+    const randomPin = Math.floor(1000 + Math.random() * 9000).toString();
 
     // Check if already exists
     const existing = await base44.asServiceRole.entities.User.filter({ email });
@@ -39,7 +40,7 @@ Deno.serve(async (req) => {
       belt_rank: "White",
       dob: "2015-03-15",
       join_date: "2026-01-15",
-      pin_code: "1234",
+      pin_code: randomPin,
       family_role: "student",
       subscription_status: "active",
       is_active: true,
@@ -123,7 +124,7 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       email,
-      pin: "1234",
+      pin: randomPin,
       belt: "White",
       program: "Tang Soo Do (Youth)",
       attendanceCreated: 8,
