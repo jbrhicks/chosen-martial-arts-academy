@@ -173,11 +173,7 @@ export default function TeachingPlaybook() {
                           {planSections.map((section, i) => (
                             <div key={i} className="border-l-2 border-[#C9A84C]/30 pl-4">
                               <h5 className="text-sm font-bold text-[#C9A84C] mb-1">{section.section_name}</h5>
-                              {section.isHtml ? (
-                                <div className="text-sm text-[#A8A9AD] leading-relaxed [&_h1]:text-white [&_h1]:font-bold [&_h2]:text-white [&_h2]:font-bold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5" dangerouslySetInnerHTML={{ __html: section.content }} />
-                              ) : (
-                                <p className="text-sm text-[#A8A9AD] leading-relaxed whitespace-pre-wrap">{section.content}</p>
-                              )}
+                              <p className="text-sm text-[#A8A9AD] leading-relaxed whitespace-pre-wrap">{section.content}</p>
                             </div>
                           ))}
                         </div>
