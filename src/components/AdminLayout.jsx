@@ -1,49 +1,24 @@
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useState } from "react";
-import { LayoutDashboard, Users, CreditCard, Video, MessageSquare, Calendar, CalendarDays, UserPlus, LogOut, Menu, X, TrendingUp, ClipboardCheck, ClipboardList, BarChart3, BookOpen, ListChecks, FormInput, Tag, Inbox, Tablet, ShieldAlert, UserSearch, Award, UserCheck, UsersRound, Mail, Bell, Trophy } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import Logo from "@/components/Logo";
 import NotificationBell from "@/components/NotificationBell";
 import AdminBottomNav from "@/components/admin/AdminBottomNav";
+import AdminSidebar from "@/components/admin/sidebar/AdminSidebar";
+import AdminBreadcrumb from "@/components/admin/sidebar/AdminBreadcrumb";
+import { useAdminNavSettings } from "@/hooks/useAdminNavSettings";
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { settings, loading, toggleFavorite, toggleSidebarCollapsed, handleDragEnd } =
+    useAdminNavSettings(user);
 
-  const navItems = [
-    { label: "Dashboard", path: "/admin", icon: LayoutDashboard },
-    { label: "Leads", path: "/admin/leads", icon: UserPlus },
-    { label: "Users", path: "/admin/users", icon: Users },
-    { label: "Profile Manager", path: "/admin/profile-manager", icon: UserSearch },
-    { label: "Onboarding", path: "/admin/onboarding", icon: UserPlus },
-    { label: "Programs & Finance", path: "/admin/programs", icon: BarChart3 },
-    { label: "Billing", path: "/admin/billing", icon: CreditCard },
-    { label: "Discounts", path: "/admin/discounts", icon: Tag },
-    { label: "Curriculum", path: "/admin/curriculum", icon: Video },
-    { label: "Curriculum Builder", path: "/admin/curriculum-builder", icon: BookOpen },
-    { label: "Lesson Plans", path: "/admin/lesson-plans", icon: ClipboardList },
-    { label: "Progress", path: "/admin/progress", icon: TrendingUp },
-    { label: "Evaluation", path: "/admin/evaluation", icon: ListChecks },
-    { label: "Attendance", path: "/admin/attendance", icon: ClipboardCheck },
-    { label: "Front Desk Kiosk", path: "/front-desk", icon: Tablet, external: true },
-    { label: "Membership Requests", path: "/admin/membership-requests", icon: Inbox },
-    { label: "Age Overrides", path: "/admin/exception-requests", icon: ShieldAlert },
-    { label: "Community", path: "/admin/community", icon: MessageSquare },
-    { label: "Events", path: "/admin/events", icon: Calendar },
-    { label: "Event Check-In", path: "/admin/event-checkin", icon: UserCheck },
-    { label: "Custom Fields", path: "/admin/custom-fields", icon: FormInput },
-    { label: "Schedule", path: "/admin/schedule", icon: CalendarDays },
-    { label: "Challenges", path: "/admin/family-challenges", icon: Trophy },
-    { label: "Badges", path: "/admin/badges", icon: Award },
-    { label: "Referral Campaigns", path: "/admin/referral-campaigns", icon: Tag },
-    { label: "Referral Tracking", path: "/admin/referral-tracking", icon: TrendingUp },
-    { label: "Inbox", path: "/admin/inbox", icon: MessageSquare },
-    { label: "Broadcasts", path: "/admin/broadcasts", icon: Mail },
-    { label: "Notification Settings", path: "/admin/notification-settings", icon: Bell },
-  ];
-
+  const collapsed = settings?.sidebarCollapsed ?? false;
+  const sidebarWidth = collapsed ? "w-64 lg:w-16" : "w-64 lg:w-64";
   const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
@@ -54,72 +29,94 @@ export default function AdminLayout() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white flex">
       {/* Sidebar */}
-      <aside className={`fixed lg:sticky top-0 left-0 h-screen w-64 bg-black border-r border-[#A8A9AD]/20 z-50 transition-transform duration-300 flex flex-col ${
-        sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-      }`}>
-        <div className="h-20 flex items-center px-6 border-b border-[#A8A9AD]/20 shrink-0">
+      <aside
+        className={`fixed lg:sticky top-0 left-0 h-screen ${sidebarWidth} bg-black border-r border-[#A8A9AD]/20 z-50 transition-all duration-300 flex flex-col ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
+      >
+        {/* Logo */}
+        <div
+          className={`h-20 flex items-center border-b border-[#A8A9AD]/20 shrink-0 ${
+            collapsed ? "lg:justify-center lg:px-2 px-6" : "px-6"
+          }`}
+        >
           <Link to="/" className="flex items-center gap-3">
             <Logo size={36} />
-            <div className="leading-none">
-              <div className="font-bold text-xs tracking-widest uppercase">Chosen</div>
-              <div className="text-[9px] tracking-[0.15em] text-[#C9A84C] uppercase">Admin Dashboard</div>
-            </div>
+            {!collapsed && (
+              <div className="leading-none">
+                <div className="font-bold text-xs tracking-widest uppercase">Chosen</div>
+                <div className="text-[9px] tracking-[0.15em] text-[#C9A84C] uppercase">
+                  Admin Dashboard
+                </div>
+              </div>
+            )}
           </Link>
         </div>
 
-        <div className="p-4 border-b border-[#A8A9AD]/20 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#C9A84C] flex items-center justify-center">
+        {/* User profile */}
+        <div
+          className={`p-4 border-b border-[#A8A9AD]/20 shrink-0 ${
+            collapsed ? "lg:flex lg:justify-center" : ""
+          }`}
+        >
+          {collapsed ? (
+            <div className="w-10 h-10 bg-[#C9A84C] flex items-center justify-center lg:mx-auto">
               <span className="text-black font-bold text-sm">
                 {user?.full_name?.charAt(0) || "A"}
               </span>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user?.full_name || "Admin"}</p>
-              <p className="text-[10px] text-[#C9A84C] tracking-widest uppercase">Administrator</p>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#C9A84C] flex items-center justify-center">
+                <span className="text-black font-bold text-sm">
+                  {user?.full_name?.charAt(0) || "A"}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{user?.full_name || "Admin"}</p>
+                <p className="text-[10px] text-[#C9A84C] tracking-widest uppercase">Administrator</p>
+              </div>
+              <NotificationBell isAdmin align="left" />
             </div>
-            <NotificationBell isAdmin align="left" />
-          </div>
+          )}
         </div>
 
-        <nav className="p-4 flex flex-col gap-1 flex-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const linkClass = `flex items-center gap-3 px-4 py-3 text-sm font-medium tracking-wide transition-all ${
-              isActive(item.path)
-                ? "bg-[#C9A84C]/10 text-[#C9A84C] border-l-2 border-[#C9A84C]"
-                : "text-[#A8A9AD] hover:text-white hover:bg-white/5 border-l-2 border-transparent"
-            }`;
-            if (item.external) {
-              return (
-                <a key={item.path} href={item.path} target="_blank" rel="noopener noreferrer" onClick={() => setSidebarOpen(false)} className={linkClass}>
-                  <Icon size={18} />
-                  {item.label}
-                </a>
-              );
-            }
-            return (
-              <Link key={item.path} to={item.path} onClick={() => setSidebarOpen(false)} className={linkClass}>
-                <Icon size={18} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+        {/* Navigation */}
+        <AdminSidebar
+          settings={settings}
+          loading={loading}
+          isActive={isActive}
+          onToggleFavorite={toggleFavorite}
+          onToggleSidebarCollapsed={toggleSidebarCollapsed}
+          handleDragEnd={handleDragEnd}
+          collapsed={collapsed}
+          onNavigate={() => setSidebarOpen(false)}
+        />
 
-        <div className="p-4 border-t border-[#A8A9AD]/20 shrink-0 mb-16 lg:mb-0">
+        {/* Logout */}
+        <div
+          className={`p-4 border-t border-[#A8A9AD]/20 shrink-0 mb-16 lg:mb-0 ${
+            collapsed ? "lg:flex lg:justify-center" : ""
+          }`}
+        >
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#A8A9AD] hover:text-white transition-colors w-full"
+            title={collapsed ? "Log Out" : undefined}
+            className={`flex items-center gap-3 text-sm font-medium text-[#A8A9AD] hover:text-white transition-colors ${
+              collapsed ? "lg:justify-center" : "px-4 py-3 w-full"
+            }`}
           >
             <LogOut size={18} />
-            Log Out
+            {!collapsed && <span>Log Out</span>}
           </button>
         </div>
       </aside>
 
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
       {/* Main content */}
@@ -128,11 +125,14 @@ export default function AdminLayout() {
           <button onClick={() => setSidebarOpen(true)} className="text-white p-2">
             <Menu size={22} />
           </button>
-          <span className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">Admin</span>
+          <span className="text-sm font-bold tracking-widest uppercase text-[#C9A84C]">
+            Admin
+          </span>
           <NotificationBell isAdmin />
         </header>
 
         <div className="p-6 lg:p-8 pb-24 lg:pb-8">
+          <AdminBreadcrumb />
           <Outlet />
         </div>
       </div>

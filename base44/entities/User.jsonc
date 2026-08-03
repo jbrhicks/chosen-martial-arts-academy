@@ -326,6 +326,26 @@
           ]
         }
       }
+    },
+    "admin_nav_settings": {
+      "type": "string",
+      "rls": {
+        "read": {
+          "$or": [
+            {
+              "id": "{{user.id}}"
+            },
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            }
+          ]
+        },
+        "write": {
+          "id": "{{user.id}}"
+        }
+      }
     }
   },
   "required": [
