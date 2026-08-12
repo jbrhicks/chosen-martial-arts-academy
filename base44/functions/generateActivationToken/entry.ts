@@ -12,9 +12,20 @@ Deno.serve(async (req) => {
     if (!email) return Response.json({ error: "Email is required" }, { status: 400 });
 
     // Find the user by email
-    const users = await base44.asServiceRole.entities.User.filter({ email });
-    if (users.length === 0) return Response.json({ error: "User not found" }, { status: 404 });
-    const targetUser = users[0];
+    let users = await base44.asServiceRole.entities.User.filter({ email });
+    let targetUser = users.length > 0 ? users[0] : null;
+
+    // If user doesn't exist yet and invite is requested, create via inviteUser then retry lookup
+    if (!targetUser && body.invite) {
+      await base44.users.inviteUser(email, body.role === "admin" ? "admin" : "user");
+      for (let attempt = 0; attempt < 10; attempt++) {
+        await new Promise(r => setTimeout(r, 1500));
+        users = await base44.asServiceRole.entities.User.filter({ email });
+        if (users.length > 0) { targetUser = users[0]; break; }
+      }
+    }
+
+    if (!targetUser) return Response.json({ error: "User not found" }, { status: 404 });
 
     // Generate cryptographic token
     const token = crypto.randomUUID();

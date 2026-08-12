@@ -52,27 +52,14 @@ export default function AdminUsers() {
     if (!inviteForm.email) return;
     setInviting(true);
     try {
-      await base44.users.inviteUser(inviteForm.email, inviteForm.role === "admin" ? "admin" : "user");
-
-      // Send branded activation email with /activate?token=... link.
-      // inviteUser creates the user record asynchronously, so retry until it's available.
-      let activationSent = false;
-      for (let attempt = 0; attempt < 5; attempt++) {
-        await new Promise(r => setTimeout(r, 1500));
-        try {
-          await base44.functions.invoke("generateActivationToken", { email: inviteForm.email });
-          activationSent = true;
-          break;
-        } catch (err) {
-          // User record not ready yet — retry
-        }
-      }
-
-      alert(
-        activationSent
-          ? `Invitation sent to ${inviteForm.email}. They'll receive an activation email with a secure link to set up their account.`
-          : `Account created for ${inviteForm.email}, but the activation email could not be delivered right now. Use "Resend Activation" to send the link.`
-      );
+      // generateActivationToken handles both inviteUser + branded activation email
+      // when called with invite: true (retry logic runs server-side)
+      await base44.functions.invoke("generateActivationToken", {
+        email: inviteForm.email,
+        invite: true,
+        role: inviteForm.role,
+      });
+      alert(`Invitation sent to ${inviteForm.email}. They'll receive an activation email with a secure link to set up their account.`);
       setShowInvite(false);
       setInviteForm({ email: "", role: "student", belt_rank: "White" });
       loadUsers();
