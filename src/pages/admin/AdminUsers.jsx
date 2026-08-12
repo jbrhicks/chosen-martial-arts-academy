@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { BELT_RANKS } from "@/lib/constants";
 import BeltBadge from "@/components/BeltBadge";
-import { Loader2, UserPlus, X, Mail, Send, KeyRound, Ban, Trash2, AlertTriangle, CheckCircle } from "lucide-react";
+import { Loader2, UserPlus, X, Mail, Send, KeyRound, Ban, Trash2, AlertTriangle } from "lucide-react";
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -16,8 +16,6 @@ export default function AdminUsers() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [cancelTarget, setCancelTarget] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [activationLink, setActivationLink] = useState(null);
-  const [linkCopied, setLinkCopied] = useState(false);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -54,21 +52,29 @@ export default function AdminUsers() {
     if (!inviteForm.email) return;
     setInviting(true);
     try {
-      const res = await base44.functions.invoke("generateActivationToken", {
-        email: inviteForm.email,
-        invite: true,
-        role: inviteForm.role,
-        belt_rank: inviteForm.belt_rank,
-      });
-      const data = res.data || res;
-      if (data.activation_url) {
-        // Email couldn't be sent automatically — show the link for manual sharing
-        setActivationLink({ url: data.activation_url, email: inviteForm.email });
-      } else {
-        alert(`Invitation sent to ${inviteForm.email}. They'll receive an activation email with a secure link to set up their account.`);
-        setShowInvite(false);
-        setInviteForm({ email: "", role: "student", belt_rank: "White" });
+      await base44.users.inviteUser(inviteForm.email, inviteForm.role === "admin" ? "admin" : "user");
+
+      // Send branded activation email with /activate?token=... link.
+      // inviteUser creates the user record asynchronously, so retry until it's available.
+      let activationSent = false;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        await new Promise(r => setTimeout(r, 1500));
+        try {
+          await base44.functions.invoke("generateActivationToken", { email: inviteForm.email });
+          activationSent = true;
+          break;
+        } catch (err) {
+          // User record not ready yet — retry
+        }
       }
+
+      alert(
+        activationSent
+          ? `Invitation sent to ${inviteForm.email}. They'll receive an activation email with a secure link to set up their account.`
+          : `Account created for ${inviteForm.email}, but the activation email could not be delivered right now. Use "Resend Activation" to send the link.`
+      );
+      setShowInvite(false);
+      setInviteForm({ email: "", role: "student", belt_rank: "White" });
       loadUsers();
     } catch (e) {
       alert("Failed to invite user: " + e.message);
@@ -79,36 +85,12 @@ export default function AdminUsers() {
   const handleResendActivation = async (email) => {
     setActionLoading(true);
     try {
-      const res = await base44.functions.invoke("generateActivationToken", { email });
-      const data = res.data || res;
-      if (data.activation_url) {
-        setActivationLink({ url: data.activation_url, email });
-      } else {
-        alert(`Activation link sent to ${email}`);
-      }
+      await base44.functions.invoke("generateActivationToken", { email });
+      alert(`Activation link sent to ${email}`);
     } catch (e) {
       alert("Failed to send activation link: " + (e.message || "User may already be active."));
     }
     setActionLoading(false);
-  };
-
-  const copyLink = async () => {
-    if (!activationLink?.url) return;
-    try {
-      await navigator.clipboard.writeText(activationLink.url);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
-    } catch (e) {
-      // Fallback for older browsers
-      const textarea = document.createElement("textarea");
-      textarea.value = activationLink.url;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
-    }
   };
 
   const updatePin = async (userId) => {
@@ -363,7 +345,7 @@ export default function AdminUsers() {
                 >
                   {BELT_RANKS.map((rank) => <option key={rank} value={rank}>{rank}</option>)}
                 </select>
-                <p className="text-xs text-[#A8A9AD] mt-2">Note: The belt rank will be applied when the user activates their account.</p>
+                <p className="text-xs text-[#A8A9AD] mt-2">Note: Belt rank will be set after the user accepts their invitation and logs in for the first time.</p>
               </div>
               <button
                 type="submit"
@@ -414,31 +396,6 @@ export default function AdminUsers() {
                 {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <><Trash2 size={16} /> Delete Permanently</>}
               </button>
               <button onClick={() => setDeleteTarget(null)} disabled={actionLoading} className="px-4 py-3 text-sm text-[#A8A9AD] hover:text-white">Back</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Activation link sharing modal */}
-      {activationLink && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setActivationLink(null)}>
-          <div className="w-full max-w-lg border border-[#C9A84C]/30 bg-[#0A0A0A] p-8" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Share Activation Link</h2>
-              <button onClick={() => setActivationLink(null)} className="text-[#A8A9AD] hover:text-white"><X size={20} /></button>
-            </div>
-            <div className="border border-[#C9A84C]/20 bg-[#C9A84C]/5 p-4 mb-4 flex items-start gap-3">
-              <Mail size={18} className="text-[#C9A84C] shrink-0 mt-0.5" />
-              <p className="text-sm text-[#A8A9AD]">The activation email couldn't be sent automatically to <strong className="text-white">{activationLink.email}</strong>. Copy this secure link and share it with them via email or text — it expires in 48 hours.</p>
-            </div>
-            <div className="border border-[#A8A9AD]/30 bg-black p-3 mb-4">
-              <p className="text-xs text-[#A8A9AD] mb-2 break-all font-mono">{activationLink.url}</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={copyLink} className="flex-1 px-4 py-3 bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase hover:bg-[#E0C97A] transition-colors flex items-center justify-center gap-2">
-                {linkCopied ? <><CheckCircle size={16} /> Copied!</> : <><Mail size={16} /> Copy Link</>}
-              </button>
-              <button onClick={() => setActivationLink(null)} className="px-4 py-3 text-sm text-[#A8A9AD] hover:text-white">Close</button>
             </div>
           </div>
         </div>

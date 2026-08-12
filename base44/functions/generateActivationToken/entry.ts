@@ -7,58 +7,33 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
     if (user.role !== "admin") return Response.json({ error: "Forbidden" }, { status: 403 });
     const body = await req.json();
-    const { email, first_name, role, belt_rank, invite } = body;
+    const { email, first_name } = body;
 
     if (!email) return Response.json({ error: "Email is required" }, { status: 400 });
+
+    // Find the user by email
+    const users = await base44.asServiceRole.entities.User.filter({ email });
+    if (users.length === 0) return Response.json({ error: "User not found" }, { status: 404 });
+    const targetUser = users[0];
 
     // Generate cryptographic token
     const token = crypto.randomUUID();
     const expiration = new Date();
     expiration.setHours(expiration.getHours() + 48);
 
-    // 1. Check if a User record already exists (e.g., resend for an existing account)
-    const existingUsers = await base44.asServiceRole.entities.User.filter({ email });
-    if (existingUsers.length > 0) {
-      const targetUser = existingUsers[0];
-      await base44.asServiceRole.entities.User.update(targetUser.id, {
-        activation_token: token,
-        token_expiration: expiration.toISOString(),
-        account_status: "pending_activation",
-      });
-    } else {
-      // 2. Check if a PendingInvitation already exists (e.g., resend for a pending invite)
-      const existingInvites = await base44.asServiceRole.entities.PendingInvitation.filter({ email, status: "pending" });
-      if (existingInvites.length > 0) {
-        await base44.asServiceRole.entities.PendingInvitation.update(existingInvites[0].id, {
-          token,
-          token_expiration: expiration.toISOString(),
-          role: role || existingInvites[0].role,
-          belt_rank: belt_rank || existingInvites[0].belt_rank,
-        });
-      } else if (invite) {
-        // 3. No existing record — create a new PendingInvitation
-        await base44.asServiceRole.entities.PendingInvitation.create({
-          email,
-          role: role || "student",
-          first_name: first_name || "",
-          belt_rank: belt_rank || "",
-          token,
-          token_expiration: expiration.toISOString(),
-          status: "pending",
-          created_by_id: user.id,
-          created_by_name: user.full_name,
-        });
-      } else {
-        return Response.json({ error: "No existing invitation or user found for this email" }, { status: 404 });
-      }
-    }
+    // Store token on user record
+    await base44.asServiceRole.entities.User.update(targetUser.id, {
+      activation_token: token,
+      token_expiration: expiration.toISOString(),
+      account_status: "pending_activation",
+    });
 
     // Build activation URL
     const baseUrl = Deno.env.get("BASE44_APP_URL") || "";
     const activationUrl = `${baseUrl}/activate?token=${token}`;
-    const firstName = first_name || "there";
+    const firstName = first_name || (targetUser.full_name ? targetUser.full_name.split(" ")[0] : "there");
 
-    // Send branded activation email
+    // Send welcome email with HTML template
     const htmlBody = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
@@ -97,22 +72,13 @@ Deno.serve(async (req) => {
 </body>
 </html>`;
 
-    // Try to send the branded activation email (requires the recipient to be a registered app user
-    // or the app to be enabled for external email on a paid plan). If SendEmail fails, return the
-    // activation URL so the admin can share it with the user directly.
-    let email_sent = false;
-    try {
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to: email,
-        subject: "Welcome to Chosen Martial Arts Academy — Activate Your Account",
-        body: htmlBody,
-      });
-      email_sent = true;
-    } catch (emailErr) {
-      // SendEmail can only reach registered users — return the link for manual sharing
-    }
+    await base44.asServiceRole.integrations.Core.SendEmail({
+      to: email,
+      subject: "Welcome to Chosen Martial Arts Academy — Activate Your Account",
+      body: htmlBody,
+    });
 
-    return Response.json({ success: true, email_sent, activation_url: email_sent ? undefined : activationUrl });
+    return Response.json({ success: true });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

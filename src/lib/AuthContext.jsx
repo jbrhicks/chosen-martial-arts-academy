@@ -101,17 +101,9 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(false);
       setAuthChecked(true);
 
-      // Attempt to link any existing leads and apply pending invitation settings (idempotent — safe to call every login)
+      // Attempt to link any existing leads with the same email (idempotent — safe to call every login)
       if (currentUser?.email) {
         base44.functions.invoke("linkLeadToUser", { email: currentUser.email }).catch(() => {});
-        base44.functions.invoke("applyPendingInvitation", { email: currentUser.email })
-          .then(res => {
-            const data = res.data || res;
-            if (data.success && data.role && data.role !== currentUser.role) {
-              setUser(prev => prev ? { ...prev, role: data.role, belt_rank: data.belt_rank || prev.belt_rank } : prev);
-            }
-          })
-          .catch(() => {});
       }
     } catch (error) {
       console.error('User auth check failed:', error);
