@@ -18,6 +18,8 @@ export default function AdminUsers() {
   const [cancelTarget, setCancelTarget] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [activationLinks, setActivationLinks] = useState(null);
+  const [pendingInvites, setPendingInvites] = useState([]);
+  const [deleteInviteTarget, setDeleteInviteTarget] = useState(null);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -27,7 +29,14 @@ export default function AdminUsers() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { loadUsers(); }, [loadUsers]);
+  const loadPendingInvites = useCallback(async () => {
+    try {
+      const data = await base44.entities.PendingInvitation.filter({ status: "pending" }, "-created_date");
+      setPendingInvites(data);
+    } catch (e) { console.error(e); }
+  }, []);
+
+  useEffect(() => { loadUsers(); loadPendingInvites(); }, [loadUsers, loadPendingInvites]);
 
   const updateBeltRank = async (userId, beltRank) => {
     try {
@@ -95,6 +104,18 @@ export default function AdminUsers() {
       }
     } catch (e) {
       alert("Failed to send activation link: " + (e.message || "User may already be active."));
+    }
+    setActionLoading(false);
+  };
+
+  const handleDeleteInvite = async (inviteId) => {
+    setActionLoading(true);
+    try {
+      await base44.entities.PendingInvitation.delete(inviteId);
+      setPendingInvites(pendingInvites.filter(i => i.id !== inviteId));
+      setDeleteInviteTarget(null);
+    } catch (e) {
+      alert("Failed to delete invitation: " + (e.message || "Unknown error"));
     }
     setActionLoading(false);
   };
@@ -307,6 +328,104 @@ export default function AdminUsers() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Pending Invitations */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs tracking-widest uppercase text-[#C9A84C] mb-2">Awaiting Activation</p>
+            <h2 className="text-xl font-bold">Pending Invitations</h2>
+            <p className="text-xs text-[#A8A9AD] mt-1">Invited users who haven't activated their account yet. Resend a link or revoke the invitation.</p>
+          </div>
+          <span className="text-xs text-[#A8A9AD]">{pendingInvites.length} pending</span>
+        </div>
+        {pendingInvites.length === 0 ? (
+          <div className="border border-[#A8A9AD]/20 bg-[#C9A84C]/5 p-8 text-center">
+            <p className="text-sm text-[#A8A9AD]">No pending invitations. All invited users have activated their accounts.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#A8A9AD]/20 text-left">
+                  <th className="py-3 px-4 text-[10px] tracking-widest uppercase text-[#A8A9AD] font-medium">Email</th>
+                  <th className="py-3 px-4 text-[10px] tracking-widest uppercase text-[#A8A9AD] font-medium">Role</th>
+                  <th className="py-3 px-4 text-[10px] tracking-widest uppercase text-[#A8A9AD] font-medium">Invited</th>
+                  <th className="py-3 px-4 text-[10px] tracking-widest uppercase text-[#A8A9AD] font-medium">Expires</th>
+                  <th className="py-3 px-4 text-[10px] tracking-widest uppercase text-[#A8A9AD] font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingInvites.map((invite) => {
+                  const expires = invite.token_expiration ? new Date(invite.token_expiration) : null;
+                  const isExpired = expires && expires < new Date();
+                  return (
+                    <tr key={invite.id} className="border-b border-[#A8A9AD]/10 hover:bg-white/5">
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-[#A8A9AD]/10 border border-[#A8A9AD]/30 flex items-center justify-center text-xs font-bold text-[#A8A9AD]">
+                            {(invite.email || "?").charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-sm font-medium">{invite.email || "Unknown"}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-sm text-[#A8A9AD] capitalize">{invite.role || "student"}</td>
+                      <td className="py-4 px-4 text-sm text-[#A8A9AD]">{invite.created_date ? new Date(invite.created_date).toLocaleDateString("en-US", { timeZone: "America/New_York" }) : "—"}</td>
+                      <td className="py-4 px-4">
+                        <span className={`text-sm ${isExpired ? "text-red-400" : "text-[#A8A9AD]"}`}>
+                          {expires ? expires.toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "—"}
+                          {isExpired && " (expired)"}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleResendActivation(invite.email)}
+                            disabled={actionLoading}
+                            className="p-1.5 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Resend Activation Link"
+                          >
+                            <Send size={14} />
+                          </button>
+                          <button
+                            onClick={() => setDeleteInviteTarget(invite)}
+                            disabled={actionLoading}
+                            className="p-1.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Revoke / Delete Invitation"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Delete pending invitation confirmation */}
+      {deleteInviteTarget && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => !actionLoading && setDeleteInviteTarget(null)}>
+          <div className="w-full max-w-md border border-red-500/30 bg-[#0A0A0A] p-8" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start gap-3 mb-4">
+              <AlertTriangle size={20} className="text-red-400 shrink-0 mt-0.5" />
+              <div>
+                <h2 className="text-xl font-bold">Revoke Invitation?</h2>
+                <p className="text-sm text-[#A8A9AD] mt-2">This will permanently delete the pending invitation for <strong className="text-white">{deleteInviteTarget.email}</strong>. They will no longer be able to activate an account with the existing link. You can re-invite them at any time.</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => handleDeleteInvite(deleteInviteTarget.id)} disabled={actionLoading} className="flex-1 px-4 py-3 bg-red-500 text-white font-bold text-sm tracking-wide uppercase hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2">
+                {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <><Trash2 size={16} /> Delete Invitation</>}
+              </button>
+              <button onClick={() => setDeleteInviteTarget(null)} disabled={actionLoading} className="px-4 py-3 text-sm text-[#A8A9AD] hover:text-white">Back</button>
+            </div>
+          </div>
         </div>
       )}
 
