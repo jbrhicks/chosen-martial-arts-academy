@@ -98,20 +98,21 @@ Deno.serve(async (req) => {
 </html>`;
 
     // Try to send the branded activation email (requires the recipient to be a registered app user
-    // or the app to be enabled for external email on a paid plan). If SendEmail fails, fall back to
-    // the platform's inviteUser which sends a standard invitation email that reaches anyone.
+    // or the app to be enabled for external email on a paid plan). If SendEmail fails, return the
+    // activation URL so the admin can share it with the user directly.
+    let email_sent = false;
     try {
       await base44.asServiceRole.integrations.Core.SendEmail({
         to: email,
         subject: "Welcome to Chosen Martial Arts Academy — Activate Your Account",
         body: htmlBody,
       });
+      email_sent = true;
     } catch (emailErr) {
-      // Branded email failed — fall back to platform invitation
-      await base44.users.inviteUser(email, role === "admin" ? "admin" : "user");
+      // SendEmail can only reach registered users — return the link for manual sharing
     }
 
-    return Response.json({ success: true });
+    return Response.json({ success: true, email_sent, activation_url: email_sent ? undefined : activationUrl });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
