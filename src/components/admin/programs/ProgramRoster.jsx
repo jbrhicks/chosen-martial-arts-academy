@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, ChevronLeft, Mail, ArrowRightLeft, AlertTriangle, CheckCircle, Settings, Send, X, Layers, ArrowUpCircle } from "lucide-react";
+import { Loader2, ChevronLeft, Mail, ArrowRightLeft, AlertTriangle, CheckCircle, Settings, Send, X, Layers, ArrowUpCircle, SlidersHorizontal } from "lucide-react";
 import TierBuilder from "./TierBuilder";
 import TierUpgradeModal from "./TierUpgradeModal";
+import EnrollmentStatusModal from "./EnrollmentStatusModal";
 import { BELT_RANKS } from "@/lib/constants";
 
 export default function ProgramRoster({ program, onBack }) {
@@ -17,6 +18,7 @@ export default function ProgramRoster({ program, onBack }) {
   const [showTiers, setShowTiers] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeTarget, setUpgradeTarget] = useState(null);
+  const [statusTarget, setStatusTarget] = useState(null);
   const [tiers, setTiers] = useState([]);
   const [emailForm, setEmailForm] = useState({ subject: "", body: "" });
   const [transferTarget, setTransferTarget] = useState("");
@@ -182,6 +184,9 @@ export default function ProgramRoster({ program, onBack }) {
                 <button onClick={() => { setUpgradeTarget(en); setShowUpgrade(true); }} className="p-2 text-[#A8A9AD] hover:text-[#C9A84C] shrink-0" title="Change tier">
                   <ArrowUpCircle size={16} />
                 </button>
+                <button onClick={() => setStatusTarget(en)} className="p-2 text-[#A8A9AD] hover:text-[#C9A84C] shrink-0" title="Manage status / billing">
+                  <SlidersHorizontal size={16} />
+                </button>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {health.status === "flagged" && <><AlertTriangle size={14} className="text-red-400" /><span className="text-xs text-red-400 hidden lg:inline">{health.days}d ago</span></>}
                   {health.status === "healthy" && <><CheckCircle size={14} className="text-green-400" /><span className="text-xs text-green-400 hidden lg:inline">{health.days}d ago</span></>}
@@ -297,6 +302,11 @@ export default function ProgramRoster({ program, onBack }) {
       {/* Upgrade/Downgrade modal */}
       {showUpgrade && upgradeTarget && (
         <TierUpgradeModal enrollment={upgradeTarget} tiers={tiers} onClose={() => setShowUpgrade(false)} onDone={() => { setShowUpgrade(false); load(); }} />
+      )}
+
+      {/* Status / billing management modal */}
+      {statusTarget && (
+        <EnrollmentStatusModal enrollment={statusTarget} onClose={() => setStatusTarget(null)} onDone={() => { setStatusTarget(null); load(); }} />
       )}
     </div>
   );
