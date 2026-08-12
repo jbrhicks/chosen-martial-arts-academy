@@ -43,12 +43,17 @@ export default function Login() {
       title="Welcome back"
       subtitle="Log in to your account"
       footer={
-        <>
-          Don't have an account?{" "}
-          <Link to="/register" className="text-primary font-medium hover:underline">
-            Create one
+        <div className="flex flex-col items-center gap-2">
+          <div>
+            Don't have an account?{" "}
+            <Link to="/register" className="text-primary font-medium hover:underline">
+              Create one
+            </Link>
+          </div>
+          <Link to="/activate" className="text-sm text-muted-foreground hover:text-primary">
+            Activate account
           </Link>
-        </>
+        </div>
       }
     >
       <Button

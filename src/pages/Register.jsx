@@ -133,12 +133,17 @@ export default function Register() {
       title="Create your account"
       subtitle="Sign up to get started"
       footer={
-        <>
-          Already have an account?{" "}
-          <Link to="/login" className="text-primary font-medium hover:underline">
-            Log in
+        <div className="flex flex-col items-center gap-2">
+          <div>
+            Already have an account?{" "}
+            <Link to="/login" className="text-primary font-medium hover:underline">
+              Log in
+            </Link>
+          </div>
+          <Link to="/activate" className="text-sm text-muted-foreground hover:text-primary">
+            Activate account
           </Link>
-        </>
+        </div>
       }
     >
       <Button

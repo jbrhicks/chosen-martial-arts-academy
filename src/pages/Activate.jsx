@@ -16,7 +16,7 @@ export default function Activate() {
   const [resending, setResending] = useState(false);
 
   useEffect(() => {
-    if (!token) { setStatus("error"); return; }
+    if (!token) { setStatus("request"); return; }
     base44.functions.invoke("activateAccount", { token })
       .then(res => {
         const data = res.data || res;
@@ -180,6 +180,33 @@ export default function Activate() {
             </div>
             <h2 className="text-xl font-bold mb-2">Check Your Email</h2>
             <p className="text-sm text-[#A8A9AD]">A new activation link has been sent. It will expire in 48 hours.</p>
+          </div>
+        )}
+
+        {status === "request" && (
+          <div className="border border-[#C9A84C]/30 bg-black p-8 text-center">
+            <div className="w-14 h-14 border-2 border-[#C9A84C] flex items-center justify-center mx-auto mb-4">
+              <Mail size={24} className="text-[#C9A84C]" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">Activate Your Account</h2>
+            <p className="text-sm text-[#A8A9AD] mb-6">Enter the email you used when you were invited or onboarded to receive your activation link.</p>
+            <div className="space-y-4">
+              <input
+                type="email"
+                value={resendEmail}
+                onChange={e => setResendEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-sm text-white focus:border-[#C9A84C] focus:outline-none"
+              />
+              {error && <p className="text-red-400 text-sm">{error}</p>}
+              <button
+                onClick={handleResend}
+                disabled={resending}
+                className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-3 hover:bg-[#E0C97A] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {resending ? <><Loader2 size={16} className="animate-spin" /> Sending...</> : "Send Activation Link"}
+              </button>
+            </div>
           </div>
         )}
 
