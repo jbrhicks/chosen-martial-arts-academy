@@ -52,12 +52,12 @@ export default function AdminUsers() {
     if (!inviteForm.email) return;
     setInviting(true);
     try {
-      // generateActivationToken handles both inviteUser + branded activation email
-      // when called with invite: true (retry logic runs server-side)
+      // generateActivationToken creates a PendingInvitation and sends the branded activation email
       await base44.functions.invoke("generateActivationToken", {
         email: inviteForm.email,
         invite: true,
         role: inviteForm.role,
+        belt_rank: inviteForm.belt_rank,
       });
       alert(`Invitation sent to ${inviteForm.email}. They'll receive an activation email with a secure link to set up their account.`);
       setShowInvite(false);
@@ -332,7 +332,7 @@ export default function AdminUsers() {
                 >
                   {BELT_RANKS.map((rank) => <option key={rank} value={rank}>{rank}</option>)}
                 </select>
-                <p className="text-xs text-[#A8A9AD] mt-2">Note: Belt rank will be set after the user accepts their invitation and logs in for the first time.</p>
+                <p className="text-xs text-[#A8A9AD] mt-2">Note: The belt rank will be applied when the user activates their account.</p>
               </div>
               <button
                 type="submit"

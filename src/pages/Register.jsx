@@ -48,7 +48,18 @@ export default function Register() {
       // Set role to guest (no paid subscription yet) and link any existing leads
       await base44.auth.updateMe({ role: "guest" }).catch(() => {});
       await base44.functions.invoke("linkLeadToUser", { email }).catch(() => {});
-      window.location.href = "/";
+      // Apply pending invitation settings (role, belt_rank) if the admin invited this user
+      let appliedRole = "guest";
+      try {
+        const invResult = await base44.functions.invoke("applyPendingInvitation", { email });
+        const invData = invResult.data || invResult;
+        if (invData.success && invData.role) {
+          appliedRole = invData.role;
+        }
+      } catch (e) { /* no pending invitation — normal self-registration */ }
+      // Redirect to the role-appropriate dashboard (not the homepage)
+      const dest = appliedRole === "admin" ? "/admin" : "/dashboard";
+      window.location.href = dest;
     } catch (err) {
       setError(err.message || "Invalid verification code");
     } finally {
