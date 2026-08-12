@@ -53,7 +53,26 @@ export default function AdminUsers() {
     setInviting(true);
     try {
       await base44.users.inviteUser(inviteForm.email, inviteForm.role === "admin" ? "admin" : "user");
-      alert(`Invitation sent to ${inviteForm.email}`);
+
+      // Send branded activation email with /activate?token=... link.
+      // inviteUser creates the user record asynchronously, so retry until it's available.
+      let activationSent = false;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        await new Promise(r => setTimeout(r, 1500));
+        try {
+          await base44.functions.invoke("generateActivationToken", { email: inviteForm.email });
+          activationSent = true;
+          break;
+        } catch (err) {
+          // User record not ready yet — retry
+        }
+      }
+
+      alert(
+        activationSent
+          ? `Invitation sent to ${inviteForm.email}. They'll receive an activation email with a secure link to set up their account.`
+          : `Account created for ${inviteForm.email}, but the activation email could not be delivered right now. Use "Resend Activation" to send the link.`
+      );
       setShowInvite(false);
       setInviteForm({ email: "", role: "student", belt_rank: "White" });
       loadUsers();
@@ -61,6 +80,17 @@ export default function AdminUsers() {
       alert("Failed to invite user: " + e.message);
     }
     setInviting(false);
+  };
+
+  const handleResendActivation = async (email) => {
+    setActionLoading(true);
+    try {
+      await base44.functions.invoke("generateActivationToken", { email });
+      alert(`Activation link sent to ${email}`);
+    } catch (e) {
+      alert("Failed to send activation link: " + (e.message || "User may already be active."));
+    }
+    setActionLoading(false);
   };
 
   const updatePin = async (userId) => {
@@ -239,6 +269,16 @@ export default function AdminUsers() {
                     </td>
                     <td className="py-4 px-4">
                     <div className="flex items-center gap-2">
+                      {u.account_status !== "active" && (
+                        <button
+                          onClick={() => handleResendActivation(u.email)}
+                          disabled={actionLoading}
+                          className="p-1.5 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          title="Resend Activation Link"
+                        >
+                          <Send size={14} />
+                        </button>
+                      )}
                       <button
                         onClick={() => setCancelTarget(u)}
                         disabled={u.role === "admin"}
