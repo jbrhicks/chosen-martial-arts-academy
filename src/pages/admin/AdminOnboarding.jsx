@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import StepIndicator from "@/components/admin/onboarding/StepIndicator";
+import ActivationLinkModal from "@/components/admin/ActivationLinkModal";
 import StepContact from "@/components/admin/onboarding/StepContact";
 import StepEmergency from "@/components/admin/onboarding/StepEmergency";
 import StepProgram from "@/components/admin/onboarding/StepProgram";
@@ -46,6 +47,7 @@ export default function AdminOnboarding() {
   const [waiverSigned, setWaiverSigned] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState(null);
+  const [activationLinks, setActivationLinks] = useState(null);
 
   const updateMember = (index, field, value) => {
     setMembers(members.map((m, i) => i === index ? { ...m, [field]: value } : m));
@@ -166,8 +168,7 @@ export default function AdminOnboarding() {
         }
       }
       if (pendingActivationLinks.length > 0) {
-        const linksText = pendingActivationLinks.map(l => `${l.name} (${l.email}): ${l.url}`).join("\n\n");
-        alert(`Some members could not be emailed (not registered yet). Copy these activation links and send them via text or WhatsApp:\n\n${linksText}`);
+        setActivationLinks(pendingActivationLinks);
       }
 
       // 3. Create EmergencyContact records
@@ -366,6 +367,11 @@ export default function AdminOnboarding() {
           </button>
         </div>
       )}
+      <ActivationLinkModal
+        open={!!activationLinks}
+        onClose={() => setActivationLinks(null)}
+        activationLinks={activationLinks}
+      />
     </div>
   );
 }

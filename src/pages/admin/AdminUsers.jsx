@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { BELT_RANKS } from "@/lib/constants";
 import BeltBadge from "@/components/BeltBadge";
 import { Loader2, UserPlus, X, Mail, Send, KeyRound, Ban, Trash2, AlertTriangle } from "lucide-react";
+import ActivationLinkModal from "@/components/admin/ActivationLinkModal";
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -16,6 +17,7 @@ export default function AdminUsers() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [cancelTarget, setCancelTarget] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [activationLinks, setActivationLinks] = useState(null);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -69,8 +71,8 @@ export default function AdminUsers() {
       if (data.emailSent) {
         alert(`Invitation sent to ${inviteForm.email}. They'll receive an activation email with a secure link to set up their PIN and password.`);
       } else if (data.activationUrl) {
-        // Email couldn't be delivered (invitee isn't a registered user yet) — show the link for manual sharing
-        prompt(`Could not email ${inviteForm.email} (not a registered user yet). Copy this activation link and send it to them via text or WhatsApp:`, data.activationUrl);
+        // Email couldn't be delivered (invitee isn't a registered user yet) — show QR + link for manual sharing
+        setActivationLinks([{ name: inviteForm.first_name || "", email: inviteForm.email, url: data.activationUrl }]);
       }
       setShowInvite(false);
       setInviteForm({ email: "", role: "student", belt_rank: "White" });
@@ -89,7 +91,7 @@ export default function AdminUsers() {
       if (data.emailSent) {
         alert(`Activation link sent to ${email}`);
       } else if (data.activationUrl) {
-        prompt(`Could not email ${email} (not a registered user yet). Copy this activation link and send it via text or WhatsApp:`, data.activationUrl);
+        setActivationLinks([{ name: "", email, url: data.activationUrl }]);
       }
     } catch (e) {
       alert("Failed to send activation link: " + (e.message || "User may already be active."));
@@ -383,6 +385,13 @@ export default function AdminUsers() {
           </div>
         </div>
       )}
+
+      {/* Activation link / QR sharing modal */}
+      <ActivationLinkModal
+        open={!!activationLinks}
+        onClose={() => setActivationLinks(null)}
+        activationLinks={activationLinks}
+      />
 
       {/* Delete confirmation */}
       {deleteTarget && (
