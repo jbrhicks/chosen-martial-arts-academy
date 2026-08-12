@@ -143,6 +143,7 @@ export default function AdminOnboarding() {
       });
 
       // 2. Create a PendingInvitation for each member and send branded activation email
+      const pendingActivationLinks = [];
       for (const member of members) {
         if (member.email) {
           try {
@@ -156,9 +157,17 @@ export default function AdminOnboarding() {
             });
           } catch (e) { console.error("PendingInvitation failed for", member.email, e); }
           try {
-            await base44.functions.invoke("generateActivationToken", { email: member.email, first_name: member.firstName });
+            const res = await base44.functions.invoke("generateActivationToken", { email: member.email, first_name: member.firstName });
+            const data = res.data || res;
+            if (!data.emailSent && data.activationUrl) {
+              pendingActivationLinks.push({ email: member.email, name: member.firstName, url: data.activationUrl });
+            }
           } catch (e) { console.error("Activation email failed for", member.email, e); }
         }
+      }
+      if (pendingActivationLinks.length > 0) {
+        const linksText = pendingActivationLinks.map(l => `${l.name} (${l.email}): ${l.url}`).join("\n\n");
+        alert(`Some members could not be emailed (not registered yet). Copy these activation links and send them via text or WhatsApp:\n\n${linksText}`);
       }
 
       // 3. Create EmergencyContact records

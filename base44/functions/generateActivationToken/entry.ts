@@ -54,8 +54,13 @@ Deno.serve(async (req) => {
     const activationUrl = `${baseUrl}/activate?token=${token}`;
     const firstName = first_name || (targetUser?.full_name ? targetUser.full_name.split(" ")[0] : "there");
 
-    // Send welcome email with HTML template
-    const htmlBody = `<!DOCTYPE html>
+    // Send welcome email with HTML template (only succeeds for registered app users)
+    let emailSent = false;
+    try {
+      await base44.asServiceRole.integrations.Core.SendEmail({
+        to: email,
+        subject: "Welcome to Chosen Martial Arts Academy — Activate Your Account",
+        body: `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
 <body style="margin:0;padding:0;background:#0A0A0A;font-family:Helvetica,Arial,sans-serif;">
@@ -74,43 +79,21 @@ Deno.serve(async (req) => {
         <a href="${activationUrl}" style="display:inline-block;background:#C9A84C;color:#000;font-weight:bold;font-size:14px;letter-spacing:2px;text-transform:uppercase;padding:16px 40px;text-decoration:none;">Activate My Account</a>
       </div>
       <p style="color:#A8A9AD;font-size:13px;line-height:1.6;">This link will expire in 48 hours. If you did not expect this email, please ignore it.</p>
-      <hr style="border:none;border-top:1px solid #333;margin:32px 0;">
-      <div style="text-align:center;">
-        <p style="color:#A8A9AD;font-size:11px;text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;">Download Our App</p>
-        <div style="display:inline-block;margin:0 4px;">
-          <span style="display:inline-block;background:#1a1a1a;color:#fff;border:1px solid #A8A9AD;padding:10px 20px;font-size:13px;border-radius:8px;">&#63743; App Store</span>
-        </div>
-        <div style="display:inline-block;margin:0 4px;">
-          <span style="display:inline-block;background:#1a1a1a;color:#fff;border:1px solid #A8A9AD;padding:10px 20px;font-size:13px;border-radius:8px;">&#9654; Google Play</span>
-        </div>
-      </div>
     </div>
     <div style="padding:20px 30px;border-top:1px solid #333;text-align:center;">
       <p style="color:#A8A9AD;font-size:11px;">&copy; 2026 Chosen Martial Arts Academy. All rights reserved.</p>
-      <p style="color:#A8A9AD;font-size:11px;margin-top:4px;">Discipline &bull; Respect &bull; Perseverance</p>
     </div>
   </div>
 </body>
-</html>`;
-
-    try {
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to: email,
-        subject: "Welcome to Chosen Martial Arts Academy — Activate Your Account",
-        body: htmlBody,
+</html>`,
       });
+      emailSent = true;
     } catch (emailError) {
-      // Branded email failed — for pending invitations (unregistered users), fall back to platform invite
-      if (!targetUser && existingInvitation) {
-        try {
-          await base44.users.inviteUser(email, existingInvitation.role === "admin" ? "admin" : "user");
-        } catch (inviteError) {
-          // Both email methods failed
-        }
-      }
+      // SendEmail only reaches registered app users — for new invitees (no User record yet),
+      // the branded email can't be delivered. The admin will need to share the activation link manually.
     }
 
-    return Response.json({ success: true });
+    return Response.json({ success: true, activationUrl, emailSent });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

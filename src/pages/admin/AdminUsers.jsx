@@ -64,9 +64,14 @@ export default function AdminUsers() {
       });
 
       // Send branded activation email (stores a fresh token on the PendingInvitation)
-      await base44.functions.invoke("generateActivationToken", { email: inviteForm.email });
-
-      alert(`Invitation sent to ${inviteForm.email}. They'll receive an activation email with a secure link to set up their PIN and password.`);
+      const res = await base44.functions.invoke("generateActivationToken", { email: inviteForm.email });
+      const data = res.data || res;
+      if (data.emailSent) {
+        alert(`Invitation sent to ${inviteForm.email}. They'll receive an activation email with a secure link to set up their PIN and password.`);
+      } else if (data.activationUrl) {
+        // Email couldn't be delivered (invitee isn't a registered user yet) — show the link for manual sharing
+        prompt(`Could not email ${inviteForm.email} (not a registered user yet). Copy this activation link and send it to them via text or WhatsApp:`, data.activationUrl);
+      }
       setShowInvite(false);
       setInviteForm({ email: "", role: "student", belt_rank: "White" });
       loadUsers();
@@ -79,8 +84,13 @@ export default function AdminUsers() {
   const handleResendActivation = async (email) => {
     setActionLoading(true);
     try {
-      await base44.functions.invoke("generateActivationToken", { email });
-      alert(`Activation link sent to ${email}`);
+      const res = await base44.functions.invoke("generateActivationToken", { email });
+      const data = res.data || res;
+      if (data.emailSent) {
+        alert(`Activation link sent to ${email}`);
+      } else if (data.activationUrl) {
+        prompt(`Could not email ${email} (not a registered user yet). Copy this activation link and send it via text or WhatsApp:`, data.activationUrl);
+      }
     } catch (e) {
       alert("Failed to send activation link: " + (e.message || "User may already be active."));
     }
