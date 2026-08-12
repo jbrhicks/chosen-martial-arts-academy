@@ -3,35 +3,56 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-    if (user.role !== "admin") return Response.json({ error: "Forbidden" }, { status: 403 });
+
+    // Try to get current user (optional — self-service activation requests are unauthenticated)
+    let currentUser = null;
+    try { currentUser = await base44.auth.me(); } catch (e) { /* unauthenticated — self-service */ }
+    const isAdmin = currentUser && currentUser.role === "admin";
+
     const body = await req.json();
-    const { email, first_name } = body;
+    const { email, first_name, invite, role, belt_rank } = body;
 
     if (!email) return Response.json({ error: "Email is required" }, { status: 400 });
 
+    // Admin-initiated invites require admin auth
+    if (invite && !isAdmin) return Response.json({ error: "Forbidden" }, { status: 403 });
+
     // Find the user by email
     const users = await base44.asServiceRole.entities.User.filter({ email });
-    if (users.length === 0) return Response.json({ error: "User not found" }, { status: 404 });
-    const targetUser = users[0];
+    const targetUser = users.length > 0 ? users[0] : null;
+
+    // Also check for a pending invitation (covers invited users who haven't registered yet)
+    const invitations = await base44.asServiceRole.entities.PendingInvitation.filter({ email, status: "pending" });
+    const existingInvitation = invitations.length > 0 ? invitations[0] : null;
+
+    // If no user and no pending invitation, return generic success (prevents email enumeration)
+    if (!targetUser && !existingInvitation) {
+      return Response.json({ success: true });
+    }
 
     // Generate cryptographic token
     const token = crypto.randomUUID();
     const expiration = new Date();
     expiration.setHours(expiration.getHours() + 48);
 
-    // Store token on user record
-    await base44.asServiceRole.entities.User.update(targetUser.id, {
-      activation_token: token,
-      token_expiration: expiration.toISOString(),
-      account_status: "pending_activation",
-    });
+    // Store token on user record or pending invitation
+    if (targetUser) {
+      await base44.asServiceRole.entities.User.update(targetUser.id, {
+        activation_token: token,
+        token_expiration: expiration.toISOString(),
+        account_status: "pending_activation",
+      });
+    } else if (existingInvitation) {
+      await base44.asServiceRole.entities.PendingInvitation.update(existingInvitation.id, {
+        token,
+        token_expiration: expiration.toISOString(),
+      });
+    }
 
     // Build activation URL
     const baseUrl = Deno.env.get("BASE44_APP_URL") || "";
     const activationUrl = `${baseUrl}/activate?token=${token}`;
-    const firstName = first_name || (targetUser.full_name ? targetUser.full_name.split(" ")[0] : "there");
+    const firstName = first_name || (targetUser?.full_name ? targetUser.full_name.split(" ")[0] : "there");
 
     // Send welcome email with HTML template
     const htmlBody = `<!DOCTYPE html>
@@ -72,11 +93,22 @@ Deno.serve(async (req) => {
 </body>
 </html>`;
 
-    await base44.asServiceRole.integrations.Core.SendEmail({
-      to: email,
-      subject: "Welcome to Chosen Martial Arts Academy — Activate Your Account",
-      body: htmlBody,
-    });
+    try {
+      await base44.asServiceRole.integrations.Core.SendEmail({
+        to: email,
+        subject: "Welcome to Chosen Martial Arts Academy — Activate Your Account",
+        body: htmlBody,
+      });
+    } catch (emailError) {
+      // Branded email failed — for pending invitations (unregistered users), fall back to platform invite
+      if (!targetUser && existingInvitation) {
+        try {
+          await base44.users.inviteUser(email, existingInvitation.role === "admin" ? "admin" : "user");
+        } catch (inviteError) {
+          // Both email methods failed
+        }
+      }
+    }
 
     return Response.json({ success: true });
   } catch (error) {
