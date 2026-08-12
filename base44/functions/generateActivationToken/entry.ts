@@ -16,11 +16,6 @@ Deno.serve(async (req) => {
     if (users.length === 0) return Response.json({ error: "User not found" }, { status: 404 });
     const targetUser = users[0];
 
-    // Prevent resetting already-active accounts
-    if (targetUser.account_status === "active") {
-      return Response.json({ error: "Cannot reset an already-active account" }, { status: 400 });
-    }
-
     // Generate cryptographic token
     const token = crypto.randomUUID();
     const expiration = new Date();
