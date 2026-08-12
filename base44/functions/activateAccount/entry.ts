@@ -11,25 +11,57 @@ Deno.serve(async (req) => {
 
     // Find the user with this activation token
     const users = await base44.asServiceRole.entities.User.filter({ activation_token: token });
-    if (users.length === 0) {
-      return Response.json({ valid: false, reason: "invalid" });
-    }
-    const user = users[0];
+    let user = users.length > 0 ? users[0] : null;
+    let invitation = null;
 
-    // Check if token is expired
-    if (user.token_expiration) {
-      const expiration = new Date(user.token_expiration);
-      if (expiration < new Date()) {
-        return Response.json({ valid: false, reason: "expired" });
+    // If no user found, check PendingInvitation (new flow — User created by register on Activate page)
+    if (!user) {
+      const invitations = await base44.asServiceRole.entities.PendingInvitation.filter({ token, status: "pending" });
+      if (invitations.length === 0) {
+        return Response.json({ valid: false, reason: "invalid" });
       }
-    }
+      invitation = invitations[0];
 
-    // If no PIN provided, return verification status without exposing PII
-    if (!pin) {
-      return Response.json({
-        valid: true,
-        first_name: user.full_name ? user.full_name.split(" ")[0] : "there",
-      });
+      // Check expiration on invitation
+      if (invitation.token_expiration) {
+        const exp = new Date(invitation.token_expiration);
+        if (exp < new Date()) {
+          return Response.json({ valid: false, reason: "expired" });
+        }
+      }
+
+      // If no PIN, return valid with invitation data
+      if (!pin) {
+        return Response.json({
+          valid: true,
+          first_name: invitation.first_name || "there",
+          email: invitation.email,
+        });
+      }
+
+      // PIN provided — find the User by email (should have been created by register)
+      const usersByEmail = await base44.asServiceRole.entities.User.filter({ email: invitation.email });
+      user = usersByEmail.length > 0 ? usersByEmail[0] : null;
+
+      if (!user) {
+        return Response.json({ error: "Please set up your password first" }, { status: 400 });
+      }
+    } else {
+      // User found by activation_token (existing flow — User created by inviteUser)
+      if (user.token_expiration) {
+        const expiration = new Date(user.token_expiration);
+        if (expiration < new Date()) {
+          return Response.json({ valid: false, reason: "expired" });
+        }
+      }
+
+      if (!pin) {
+        return Response.json({
+          valid: true,
+          first_name: user.full_name ? user.full_name.split(" ")[0] : "there",
+          email: user.email,
+        });
+      }
     }
 
     // Validate PIN
@@ -45,6 +77,11 @@ Deno.serve(async (req) => {
       activation_token: "",
       token_expiration: "",
     });
+
+    // Mark invitation as used if it came from PendingInvitation
+    if (invitation) {
+      await base44.asServiceRole.entities.PendingInvitation.update(invitation.id, { status: "used" });
+    }
 
     // Sync role based on billing (student if they have active billing, guest otherwise)
     try {

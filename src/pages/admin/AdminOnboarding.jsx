@@ -142,10 +142,19 @@ export default function AdminOnboarding() {
         send_to_both_households: household.splitEnabled ? household.sendToBothHouseholds : true,
       });
 
-      // 2. Invite each member and generate activation token
+      // 2. Create a PendingInvitation for each member and send branded activation email
       for (const member of members) {
         if (member.email) {
-          try { await base44.users.inviteUser(member.email, "user"); } catch (e) { console.error("Invite failed for", member.email, e); }
+          try {
+            await base44.entities.PendingInvitation.create({
+              email: member.email,
+              role: "student",
+              first_name: member.firstName,
+              belt_rank: member.beltRank || "White",
+              token: crypto.randomUUID(),
+              status: "pending",
+            });
+          } catch (e) { console.error("PendingInvitation failed for", member.email, e); }
           try {
             await base44.functions.invoke("generateActivationToken", { email: member.email, first_name: member.firstName });
           } catch (e) { console.error("Activation email failed for", member.email, e); }

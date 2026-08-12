@@ -52,27 +52,21 @@ export default function AdminUsers() {
     if (!inviteForm.email) return;
     setInviting(true);
     try {
-      await base44.users.inviteUser(inviteForm.email, inviteForm.role === "admin" ? "admin" : "user");
+      // Create a PendingInvitation (replaces inviteUser — the User record + auth identity
+      // are created when the invitee clicks the activation link and sets their password)
+      await base44.entities.PendingInvitation.create({
+        email: inviteForm.email,
+        role: inviteForm.role,
+        first_name: "",
+        belt_rank: inviteForm.belt_rank,
+        token: crypto.randomUUID(),
+        status: "pending",
+      });
 
-      // Send branded activation email with /activate?token=... link.
-      // inviteUser creates the user record asynchronously, so retry until it's available.
-      let activationSent = false;
-      for (let attempt = 0; attempt < 5; attempt++) {
-        await new Promise(r => setTimeout(r, 1500));
-        try {
-          await base44.functions.invoke("generateActivationToken", { email: inviteForm.email });
-          activationSent = true;
-          break;
-        } catch (err) {
-          // User record not ready yet — retry
-        }
-      }
+      // Send branded activation email (stores a fresh token on the PendingInvitation)
+      await base44.functions.invoke("generateActivationToken", { email: inviteForm.email });
 
-      alert(
-        activationSent
-          ? `Invitation sent to ${inviteForm.email}. They'll receive an activation email with a secure link to set up their account.`
-          : `Account created for ${inviteForm.email}, but the activation email could not be delivered right now. Use "Resend Activation" to send the link.`
-      );
+      alert(`Invitation sent to ${inviteForm.email}. They'll receive an activation email with a secure link to set up their PIN and password.`);
       setShowInvite(false);
       setInviteForm({ email: "", role: "student", belt_rank: "White" });
       loadUsers();

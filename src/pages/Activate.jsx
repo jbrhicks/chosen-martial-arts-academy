@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Loader2, CheckCircle, AlertTriangle, Key, Lock, Mail } from "lucide-react";
+import { Loader2, CheckCircle, AlertTriangle, Key, Lock, Mail, LogIn } from "lucide-react";
 
 export default function Activate() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
   const [status, setStatus] = useState("verifying");
   const [pin, setPin] = useState("");
-  const [confirmPin, setConfirmPin] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [otpCode, setOtpCode] = useState("");
   const [error, setError] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -21,8 +23,8 @@ export default function Activate() {
       .then(res => {
         const data = res.data || res;
         if (data.valid) {
-          setStatus("valid");
-          setUserEmail(data.email);
+          setStatus("setup");
+          setUserEmail(data.email || "");
           setFirstName(data.first_name);
         } else if (data.reason === "expired") {
           setStatus("expired");
@@ -34,25 +36,70 @@ export default function Activate() {
       .catch(() => setStatus("error"));
   }, [token]);
 
-  const handleActivate = async () => {
+  const handleSetup = async () => {
     if (pin.length !== 4 || !/^\d{4}$/.test(pin)) { setError("PIN must be exactly 4 digits"); return; }
-    if (pin !== confirmPin) { setError("PINs do not match"); return; }
-    setStatus("activating");
+    if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    if (password !== confirmPassword) { setError("Passwords do not match"); return; }
+    setStatus("submitting");
     setError("");
     try {
+      // Step 1: Try to register (creates User record + auth identity with chosen password)
+      let registerSucceeded = false;
+      try {
+        await base44.auth.register({ email: userEmail, password });
+        registerSucceeded = true;
+      } catch (regErr) {
+        // Register failed — User already has an auth identity (from a prior inviteUser).
+        // Fall back to password reset email flow.
+      }
+
+      // Step 2: Activate account and save PIN
       const res = await base44.functions.invoke("activateAccount", { token, pin });
       const data = res.data || res;
-      if (data.success) {
-        setUserEmail(data.email);
-        try { await base44.auth.resetPasswordRequest(data.email); } catch (e) { console.error("Password email failed:", e); }
-        setStatus("success");
-      } else {
+      if (!data.success) {
         setError(data.error || "Activation failed");
-        setStatus("valid");
+        setStatus("setup");
+        return;
+      }
+
+      if (registerSucceeded) {
+        // Step 3: Show OTP input for email verification
+        setStatus("otp");
+      } else {
+        // Fallback: send password reset email (user already has auth identity)
+        try { await base44.auth.resetPasswordRequest(userEmail); } catch (e) { /* ignore */ }
+        setStatus("fallback");
       }
     } catch (e) {
       setError("Activation failed. Please try again.");
-      setStatus("valid");
+      setStatus("setup");
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otpCode.length < 6) { setError("Enter the 6-digit code"); return; }
+    setStatus("verifying_otp");
+    setError("");
+    try {
+      const result = await base44.auth.verifyOtp({ email: userEmail, otpCode });
+      if (result?.access_token) {
+        base44.auth.setToken(result.access_token);
+      }
+      // Link any existing leads/invitations
+      await base44.functions.invoke("linkLeadToUser", { email: userEmail }).catch(() => {});
+      window.location.href = "/";
+    } catch (err) {
+      setError(err.message || "Invalid verification code");
+      setStatus("otp");
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      await base44.auth.resendOtp(userEmail);
+      setError("");
+    } catch (err) {
+      setError("Failed to resend code");
     }
   };
 
@@ -63,7 +110,7 @@ export default function Activate() {
       await base44.functions.invoke("generateActivationToken", { email: resendEmail });
       setStatus("resent");
     } catch (e) {
-      setError("Failed to resend. Please contact the academy at (555) 123-4567.");
+      setError("Failed to resend. Please contact the academy.");
     }
     setResending(false);
   };
@@ -89,18 +136,18 @@ export default function Activate() {
           </div>
         )}
 
-        {status === "valid" && (
+        {status === "setup" && (
           <div className="border border-[#C9A84C]/30 bg-black p-8">
             <div className="text-center mb-6">
               <div className="w-14 h-14 border-2 border-[#C9A84C] flex items-center justify-center mx-auto mb-4">
                 <Key size={24} className="text-[#C9A84C]" />
               </div>
-              <h2 className="text-xl font-bold mb-1">Activate Your Account</h2>
-              <p className="text-sm text-[#A8A9AD]">Welcome, {firstName}! Set up your check-in PIN to get started.</p>
+              <h2 className="text-xl font-bold mb-1">Set Up Your Account</h2>
+              <p className="text-sm text-[#A8A9AD]">Welcome, {firstName}! Create your check-in PIN and login password below.</p>
             </div>
             <div className="space-y-5">
               <div>
-                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Create Your 4-Digit Check-In PIN</label>
+                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">4-Digit Check-In PIN</label>
                 <input
                   type="password"
                   inputMode="numeric"
@@ -112,37 +159,87 @@ export default function Activate() {
                 />
               </div>
               <div>
-                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Confirm PIN</label>
+                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Login Password</label>
                 <input
                   type="password"
-                  inputMode="numeric"
-                  maxLength={4}
-                  value={confirmPin}
-                  onChange={e => setConfirmPin(e.target.value.replace(/\D/g, ""))}
-                  className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-white text-center text-2xl tracking-[0.5em] focus:border-[#C9A84C] focus:outline-none"
-                  placeholder="••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-white focus:border-[#C9A84C] focus:outline-none"
+                  placeholder="At least 6 characters"
+                />
+              </div>
+              <div>
+                <label className="block text-xs tracking-widest uppercase text-[#A8A9AD] mb-2">Confirm Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-white focus:border-[#C9A84C] focus:outline-none"
+                  placeholder="Re-enter password"
                 />
               </div>
               {error && <p className="text-red-400 text-sm">{error}</p>}
               <button
-                onClick={handleActivate}
-                disabled={status === "activating"}
+                onClick={handleSetup}
+                disabled={status === "submitting"}
                 className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-4 hover:bg-[#E0C97A] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {status === "activating" ? <><Loader2 size={18} className="animate-spin" /> Activating...</> : <>Activate Account</>}
+                {status === "submitting" ? <><Loader2 size={18} className="animate-spin" /> Setting up...</> : "Activate & Create Account"}
               </button>
             </div>
           </div>
         )}
 
-        {status === "success" && (
+        {status === "submitting" && (
+          <div className="text-center py-12">
+            <Loader2 size={32} className="animate-spin text-[#C9A84C] mx-auto mb-4" />
+            <p className="text-sm text-[#A8A9AD]">Creating your account...</p>
+          </div>
+        )}
+
+        {status === "otp" && (
+          <div className="border border-[#C9A84C]/30 bg-black p-8">
+            <div className="text-center mb-6">
+              <div className="w-14 h-14 border-2 border-[#C9A84C] flex items-center justify-center mx-auto mb-4">
+                <Mail size={24} className="text-[#C9A84C]" />
+              </div>
+              <h2 className="text-xl font-bold mb-1">Verify Your Email</h2>
+              <p className="text-sm text-[#A8A9AD]">We sent a 6-digit code to {userEmail}. Enter it below to finish setting up your account.</p>
+            </div>
+            <div className="space-y-5">
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={otpCode}
+                onChange={e => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                className="w-full bg-transparent border border-[#A8A9AD]/30 px-4 py-3 text-white text-center text-2xl tracking-[0.4em] focus:border-[#C9A84C] focus:outline-none"
+                placeholder="••••••"
+                autoFocus
+              />
+              {error && <p className="text-red-400 text-sm">{error}</p>}
+              <button
+                onClick={handleVerifyOtp}
+                disabled={status === "verifying_otp" || otpCode.length < 6}
+                className="w-full bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase py-4 hover:bg-[#E0C97A] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {status === "verifying_otp" ? <><Loader2 size={18} className="animate-spin" /> Verifying...</> : "Verify & Log In"}
+              </button>
+              <button onClick={handleResendOtp} className="w-full text-sm text-[#A8A9AD] hover:text-[#C9A84C] tracking-wide">
+                Didn't get the code? Resend
+              </button>
+            </div>
+          </div>
+        )}
+
+        {status === "fallback" && (
           <div className="border border-[#C9A84C]/30 bg-black p-8 text-center">
             <div className="w-16 h-16 border-2 border-[#C9A84C] flex items-center justify-center mx-auto mb-4">
               <CheckCircle size={32} className="text-[#C9A84C]" />
             </div>
-            <h2 className="text-xl font-bold mb-2">Account Activated!</h2>
-            <p className="text-sm text-[#A8A9AD] mb-4">Your check-in PIN is set. We've sent a password setup link to <span className="text-white font-medium">{userEmail}</span>.</p>
-            <p className="text-sm text-[#A8A9AD] mb-6">Check your email, click the link to set your password, and you'll be ready to log in to your dashboard.</p>
+            <h2 className="text-xl font-bold mb-2">PIN Set — Finish Your Password</h2>
+            <p className="text-sm text-[#A8A9AD] mb-4">Your check-in PIN is saved. We've sent a password setup link to <span className="text-white font-medium">{userEmail}</span>.</p>
+            <p className="text-sm text-[#A8A9AD] mb-6">Check your email, click the link to set your password, then log in.</p>
             <Link to="/login" className="inline-block px-6 py-3 bg-[#C9A84C] text-black font-bold text-sm tracking-widest uppercase hover:bg-[#E0C97A]">Go to Login</Link>
           </div>
         )}
